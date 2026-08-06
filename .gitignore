@@ -3,12 +3,15 @@
 .env.*
 !.env.example
 !.env.local.example
+!frontend/.env.example
+!frontend/.env.local.example
+!backend/.env.example
 
 # Frontend
-front-end/node_modules/
-front-end/.next/
-front-end/out/
-front-end/coverage/
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/coverage/
 
 # Backend
 backend/.venv/
