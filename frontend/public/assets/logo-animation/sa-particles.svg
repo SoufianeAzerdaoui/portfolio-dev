@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1536 1024">
+  <g id="particles" fill="#E2E8F0">
+    <circle cx="375" cy="640" r="3"/><circle cx="520" cy="730" r="2"/>
+    <circle cx="760" cy="790" r="3"/><circle cx="1050" cy="690" r="2.5"/>
+    <circle cx="1190" cy="390" r="2"/><circle cx="1020" cy="280" r="2.5"/>
+  </g>
+  <g id="stars" stroke="#F8FAFC" stroke-linecap="round">
+    <path d="M1050 310v28M1036 324h28" stroke-width="3"/>
+    <path d="M360 610v24M348 622h24" stroke-width="2.5"/>
+    <path d="M1120 600v20M1110 610h20" stroke-width="2"/>
+  </g>
+</svg>

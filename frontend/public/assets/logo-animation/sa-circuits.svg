@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1536 1024" fill="none">
+  <g id="circuits-left" stroke="#AAB7C8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path id="circuit-left-1" d="M250 455H345L372 430H455"/>
+    <path id="circuit-left-2" d="M300 505H390L420 480H500"/>
+    <path id="circuit-left-3" d="M330 555H420L445 530H520"/>
+    <circle cx="250" cy="455" r="8"/><circle cx="300" cy="505" r="8"/><circle cx="330" cy="555" r="8"/>
+  </g>
+  <g id="circuits-right" stroke="#AAB7C8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path id="circuit-right-1" d="M1286 455H1191L1164 430H1081"/>
+    <path id="circuit-right-2" d="M1236 505H1146L1116 480H1036"/>
+    <path id="circuit-right-3" d="M1206 555H1116L1091 530H1016"/>
+    <circle cx="1286" cy="455" r="8"/><circle cx="1236" cy="505" r="8"/><circle cx="1206" cy="555" r="8"/>
+  </g>
+</svg>
