@@ -1,7 +1,6 @@
 import { HeroActions } from "@/components/home/hero-actions";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
 import { HeroLogo } from "@/components/home/hero-logo";
-import { ParticleWave } from "@/components/home/particle-wave";
 import { ScrollIndicator } from "@/components/home/scroll-indicator";
 import type { PortfolioContent } from "@/types/portfolio";
 
@@ -17,8 +16,6 @@ export function HeroSection({ content }: HeroSectionProps) {
     >
       <div className="pointer-events-none absolute left-1/2 top-[18%] -z-10 h-[26.25rem] w-[38.75rem] -translate-x-1/2 rounded-full bg-[#0C2465]/8 blur-[110px]" />
 
-      <ParticleWave />
-
       <div className="relative mx-auto flex h-full w-full max-w-[120rem] flex-col">
         <div className="pointer-events-none absolute inset-x-0 top-0 hidden h-16 lg:block">
           <LanguageSwitcher
@@ -29,7 +26,7 @@ export function HeroSection({ content }: HeroSectionProps) {
         </div>
 
         <div className="flex flex-1 items-center justify-center">
-          <div className="relative z-10 flex w-full max-w-[57.5rem] flex-col items-center text-center lg:-translate-y-2 xl:-translate-y-1">
+          <div className="relative z-10 flex w-full max-w-[57.5rem] flex-col items-center text-center lg:-translate-x-5 lg:translate-y-3 xl:-translate-x-8 xl:translate-y-4 2xl:-translate-x-10 2xl:translate-y-5">
             <HeroLogo
               name={content.identity.name}
               role={content.identity.role}

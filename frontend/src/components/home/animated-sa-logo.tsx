@@ -15,6 +15,15 @@ const CORE_IMAGE_HEIGHT = 365;
 const SHINE_START_PERCENT = -135;
 const SHINE_END_PERCENT = 135;
 const ORBIT_IDLE_OPACITIES = [0.24, 0.21, 0.18] as const;
+const S_CLIP_X = 0;
+const S_CLIP_WIDTH = 565;
+const A_CLIP_X = 381;
+const A_CLIP_WIDTH = 355;
+const CORE_SAFE_ZONE = {
+  x: 0.35,
+  y: 0.2,
+};
+type OrbitLevel = "inner" | "middle" | "outer";
 type DebugLogoLayer =
   | "all"
   | "infinity"
@@ -27,88 +36,80 @@ type DebugLogoLayer =
   | "skills"
   | "shine";
 const DEBUG_LOGO_LAYER: DebugLogoLayer = "all";
-const CORE_PATHS = {
-  sUpper:
-    "M94 176C70 122 92 72 151 47C210 22 282 39 338 91C388 138 436 203 493 263C512 284 531 298 551 304",
-  sLower:
-    "M386 276C340 318 283 333 219 324C154 315 100 284 85 236C76 208 85 181 111 167C145 149 197 158 251 170C299 181 339 187 374 180",
-  aTop: "M418 188C458 141 496 99 541 64C589 27 649 24 684 55",
-  aLeg: "M684 55C710 78 716 111 716 150C718 202 728 282 746 350",
-  aBar: "M492 194L623 194",
-} as const;
-const CORE_STROKES = {
-  sUpper: 68,
-  sLower: 68,
-  aTop: 62,
-  aLeg: 60,
-  aBar: 44,
-} as const;
 
 const getOrbitIdleOpacity = (index: number) =>
   ORBIT_IDLE_OPACITIES[index] ?? ORBIT_IDLE_OPACITIES.at(-1) ?? 0.18;
 
 const satellites = [
   {
-    label: "Data Science",
-    orbitClassName: "orbit-wrapper orbit-outer pointer-events-none absolute inset-0 z-40",
-    labelClassName:
-      "absolute left-[40%] top-[28%] -translate-x-1/2 -translate-y-1/2",
-    visibilityClassName: "hidden md:block",
-    duration: 51,
-    initialRotation: 0,
-    direction: 1,
-    arcStart: -8,
-    arcEnd: 12,
-    arcDuration: 28,
-    prominence: "primary" as const,
-    alignment: "left" as const,
-  },
-  {
-    label: "Machine Learning",
-    orbitClassName: "orbit-wrapper orbit-middle pointer-events-none absolute inset-0 z-40",
-    labelClassName:
-      "absolute left-[76%] top-[35%] -translate-x-1/2 -translate-y-1/2",
-    visibilityClassName: "",
-    duration: 37,
-    initialRotation: 6,
-    direction: -1,
-    arcStart: 8,
-    arcEnd: -10,
-    arcDuration: 32,
-    prominence: "primary" as const,
-    alignment: "right" as const,
-  },
-  {
     label: "NLP",
-    orbitClassName: "orbit-wrapper orbit-inner pointer-events-none absolute inset-0 z-40",
-    labelClassName:
-      "absolute left-[74%] top-[64%] -translate-x-1/2 -translate-y-1/2",
+    orbit: "inner" as const,
+    phase: 345,
+    duration: 30,
+    direction: 1,
     visibilityClassName: "",
-    duration: 29,
-    initialRotation: -10,
-    direction: -1,
-    arcStart: -8,
-    arcEnd: 12,
-    arcDuration: 34,
-    prominence: "primary" as const,
-    alignment: "right" as const,
+    alignment: "left" as const,
   },
   {
     label: "RAG Systems",
-    orbitClassName: "orbit-wrapper orbit-middle pointer-events-none absolute inset-0 z-40",
-    labelClassName:
-      "absolute left-[29%] top-[67%] -translate-x-1/2 -translate-y-1/2",
-    visibilityClassName: "hidden lg:block",
-    duration: 43,
-    initialRotation: 4,
+    orbit: "inner" as const,
+    phase: 165,
+    duration: 30,
     direction: 1,
-    arcStart: 10,
-    arcEnd: -12,
-    arcDuration: 30,
-    prominence: "secondary" as const,
+    visibilityClassName: "hidden md:block",
+    alignment: "right" as const,
+  },
+  {
+    label: "Machine Learning",
+    orbit: "middle" as const,
+    phase: 105,
+    duration: 40,
+    direction: -1,
+    visibilityClassName: "",
+    alignment: "right" as const,
+  },
+  {
+    label: "Deep Learning",
+    orbit: "middle" as const,
+    phase: 285,
+    duration: 40,
+    direction: -1,
+    visibilityClassName: "hidden lg:block",
     alignment: "left" as const,
   },
-];
+  {
+    label: "Data Science",
+    orbit: "outer" as const,
+    phase: 215,
+    duration: 52,
+    direction: 1,
+    visibilityClassName: "hidden md:block",
+    alignment: "right" as const,
+  },
+  {
+    label: "Generative AI",
+    orbit: "outer" as const,
+    phase: 35,
+    duration: 52,
+    direction: 1,
+    visibilityClassName: "hidden lg:block",
+    alignment: "left" as const,
+  },
+] satisfies Array<{
+  label: string;
+  orbit: OrbitLevel;
+  phase: number;
+  duration: number;
+  direction: 1 | -1;
+  visibilityClassName: string;
+  alignment: "left" | "right";
+}>;
+
+const orbitRadii: Record<OrbitLevel, { rx: number; ry: number; yBias: number }> = {
+  inner: { rx: 0.36, ry: 0.2, yBias: -0.01 },
+  middle: { rx: 0.45, ry: 0.27, yBias: -0.01 },
+  outer: { rx: 0.48, ry: 0.28, yBias: -0.015 },
+};
 
 export function AnimatedSALogo() {
   const sceneRef = useRef<HTMLDivElement>(null);
@@ -118,7 +119,15 @@ export function AnimatedSALogo() {
   useLayoutEffect(() => {
     const sceneElement = sceneRef.current;
     let intersectionObserver: IntersectionObserver | undefined;
+    let logoResizeObserver: ResizeObserver | undefined;
     let handleVisibilityChange: (() => void) | undefined;
+    let handleScenePointerEnter: (() => void) | undefined;
+    let handleScenePointerLeave: (() => void) | undefined;
+    const satelliteCardListeners: Array<{
+      card: HTMLElement;
+      enter: () => void;
+      leave: () => void;
+    }> = [];
 
     if (!sceneElement) {
       return;
@@ -126,14 +135,16 @@ export function AnimatedSALogo() {
 
     const context = gsap.context(() => {
       const orbitGroups = gsap.utils.toArray<SVGGElement>(".orbit-group");
-      const orbitWrappers = gsap.utils.toArray<HTMLElement>(".orbit-wrapper");
-      const orbitLabels = gsap.utils.toArray<HTMLElement>(".orbit-label");
+      const satelliteNodes = gsap.utils.toArray<HTMLElement>(".satellite");
+      const satelliteCards = gsap.utils.toArray<HTMLElement>(".satellite-card");
+      const satelliteDots = gsap.utils.toArray<HTMLElement>(".satellite-dot");
       const circuitPaths = gsap.utils.toArray<SVGPathElement>(".circuit-path");
       const circuitNodes = gsap.utils.toArray<SVGCircleElement>(".circuit-node");
       const pulseDots = gsap.utils.toArray<SVGGElement>(".circuit-pulse");
       const particles = gsap.utils.toArray<SVGCircleElement>(".ambient-particle");
       const stars = gsap.utils.toArray<SVGPathElement>(".ambient-star");
       const continuousAnimations: gsap.core.Animation[] = [];
+      const satelliteOrbitAnimations: gsap.core.Animation[] = [];
       const leftCircuitPaths = circuitPaths.slice(0, 3);
       const rightCircuitPaths = circuitPaths.slice(3);
       const leftCircuitNodes = circuitNodes.slice(0, 3);
@@ -141,31 +152,19 @@ export function AnimatedSALogo() {
       const infinityPath = sceneElement.querySelector<SVGPathElement>(
         "#infinity-energy-path",
       );
-      const sUpperMaskPath = sceneElement.querySelector<SVGPathElement>(
-        ".mask-path-s-upper",
+      const sClipRect = sceneElement.querySelector<SVGRectElement>(
+        ".clip-rect-s",
       );
-      const sLowerMaskPath = sceneElement.querySelector<SVGPathElement>(
-        ".mask-path-s-lower",
-      );
-      const aTopMaskPath = sceneElement.querySelector<SVGPathElement>(
-        ".mask-path-a-top",
-      );
-      const aLegMaskPath = sceneElement.querySelector<SVGPathElement>(
-        ".mask-path-a-leg",
-      );
-      const aBarMaskPath = sceneElement.querySelector<SVGPathElement>(
-        ".mask-path-a-bar",
+      const aClipRect = sceneElement.querySelector<SVGRectElement>(
+        ".clip-rect-a",
       );
       const shineLayer = shineRef.current;
 
       if (
         !infinityPath ||
         !shineLayer ||
-        !sUpperMaskPath ||
-        !sLowerMaskPath ||
-        !aTopMaskPath ||
-        !aLegMaskPath ||
-        !aBarMaskPath
+        !sClipRect ||
+        !aClipRect
       ) {
         return;
       }
@@ -186,8 +185,8 @@ export function AnimatedSALogo() {
           ".core-energy-left",
           ".core-energy-right",
         ],
-        s: [".core-reveal-s-upper", ".core-reveal-s-lower", ".core-handoff-pulse", ".reveal-front-s-upper", ".reveal-front-s-lower"],
-        a: [".core-reveal-a-top", ".core-reveal-a-leg", ".core-reveal-a-bar", ".reveal-front-a-top", ".reveal-front-a-leg", ".reveal-front-a-bar"],
+        s: [".core-reveal-s", ".core-handoff-pulse"],
+        a: [".core-reveal-a"],
         "final-core": [".core-full-image"],
         circuits: [".circuit-path", ".circuit-node", ".circuit-pulse"],
         orbits: [".orbit-group", ".comet"],
@@ -215,30 +214,6 @@ export function AnimatedSALogo() {
         });
       };
 
-      const getSatelliteBaseOpacity = (target: gsap.TweenTarget) =>
-        target instanceof HTMLElement && target.dataset.prominence === "secondary"
-          ? 0.46
-          : 0.52;
-
-      const getSatellitePeakOpacity = (target: gsap.TweenTarget) =>
-        target instanceof HTMLElement && target.dataset.prominence === "secondary"
-          ? 0.54
-          : 0.6;
-
-      const getSatelliteRevealOpacity = (target: gsap.TweenTarget) =>
-        target instanceof HTMLElement && target.dataset.prominence === "secondary"
-          ? 0.64
-          : 0.7;
-
-      const setRevealPath = (path: SVGPathElement) => {
-        const length = path.getTotalLength();
-        const hiddenLength = length + 4;
-        gsap.set(path, {
-          strokeDasharray: hiddenLength,
-          strokeDashoffset: reducedMotion ? 0 : hiddenLength,
-        });
-      };
-
       const setFrontStart = (selector: string, path: string) => {
         gsap.set(selector, {
           motionPath: {
@@ -252,10 +227,80 @@ export function AnimatedSALogo() {
         });
       };
 
+      const getSatelliteConfig = (node: HTMLElement) =>
+        satellites.find((satellite) => satellite.label === node.dataset.skill);
+
+      const getSatellitePoint = (
+        config: (typeof satellites)[number],
+        angle: number,
+      ) => {
+        const sceneWidth = sceneElement.clientWidth || 620;
+        const sceneHeight = sceneElement.clientHeight || 388;
+        const metrics = orbitRadii[config.orbit];
+        const responsiveScale =
+          sceneWidth < 430 ? 0.62 : sceneWidth < 520 ? 0.72 : sceneWidth < 600 ? 0.88 : 1;
+        const radians = (angle * Math.PI) / 180;
+        const safeX = sceneWidth * CORE_SAFE_ZONE.x * responsiveScale;
+        const safeY = sceneHeight * CORE_SAFE_ZONE.y * responsiveScale;
+        let x = Math.cos(radians) * sceneWidth * metrics.rx * responsiveScale;
+        let y =
+          Math.sin(radians) * sceneHeight * metrics.ry * responsiveScale +
+          sceneHeight * metrics.yBias;
+        const xInside = Math.abs(x) < safeX;
+        const yInside = Math.abs(y) < safeY;
+
+        if (xInside && yInside) {
+          const signX = Math.cos(radians) >= 0 ? 1 : -1;
+          const signY = Math.sin(radians) >= 0 ? 1 : -1;
+          const xPressure = (safeX - Math.abs(x)) / safeX;
+          const yPressure = (safeY - Math.abs(y)) / safeY;
+          const push = Math.min(1, Math.max(xPressure, yPressure) * 1.15);
+
+          if (xPressure <= yPressure) {
+            x += (signX * safeX - x) * push;
+          } else {
+            y += (signY * safeY - y) * push;
+          }
+        }
+
+        return {
+          x,
+          y,
+        };
+      };
+
+      const setSatellitePosition = (
+        node: HTMLElement,
+        config: (typeof satellites)[number],
+        angle: number,
+      ) => {
+        const point = getSatellitePoint(config, angle);
+
+        gsap.set(node, {
+          x: point.x,
+          y: point.y,
+          xPercent: -50,
+          yPercent: -50,
+          rotate: 0,
+        });
+      };
+
+      const resetSatellitePositions = () => {
+        satelliteNodes.forEach((node) => {
+          const config = getSatelliteConfig(node);
+          const angle = Number(node.dataset.angle ?? config?.phase ?? 0);
+
+          if (config) {
+            setSatellitePosition(node, config, angle);
+          }
+        });
+      };
+
       const pathLength = infinityPath.getTotalLength();
       let introComplete = reducedMotion;
       let sceneInView = true;
       let pageVisible = document.visibilityState === "visible";
+      let sceneHovered = false;
 
       const syncContinuousAnimations = () => {
         const shouldRun =
@@ -294,13 +339,14 @@ export function AnimatedSALogo() {
         scale: 0.7,
         transformOrigin: "50% 50%",
       });
-      setRevealPath(sUpperMaskPath);
-      setRevealPath(sLowerMaskPath);
-      setRevealPath(aTopMaskPath);
-      setRevealPath(aLegMaskPath);
-      setRevealPath(aBarMaskPath);
+      gsap.set(sClipRect, {
+        attr: { width: reducedMotion ? S_CLIP_WIDTH : 0 },
+      });
+      gsap.set(aClipRect, {
+        attr: { width: reducedMotion ? A_CLIP_WIDTH : 0 },
+      });
       gsap.set(
-        ".core-reveal-s-upper, .core-reveal-s-lower, .core-reveal-a-top, .core-reveal-a-leg, .core-reveal-a-bar",
+        ".core-reveal-s, .core-reveal-a",
         {
           autoAlpha: 0,
           scale: 1,
@@ -310,14 +356,9 @@ export function AnimatedSALogo() {
       gsap.set(".core-full-image", {
         autoAlpha: reducedMotion ? 1 : 0,
       });
-      setFrontStart(".reveal-front-s-upper", "#s-upper-guide-path");
-      setFrontStart(".reveal-front-s-lower", "#s-lower-guide-path");
-      setFrontStart(".reveal-front-a-top", "#a-top-guide-path");
-      setFrontStart(".reveal-front-a-leg", "#a-leg-guide-path");
-      setFrontStart(".reveal-front-a-bar", "#a-bar-guide-path");
       setFrontStart(".core-handoff-pulse", "#s-a-handoff-path");
       gsap.set(
-        ".core-handoff-pulse, .reveal-front-s-upper, .reveal-front-s-lower, .reveal-front-a-top, .reveal-front-a-leg, .reveal-front-a-bar",
+        ".core-handoff-pulse",
         {
           autoAlpha: 0,
           scale: 0.84,
@@ -339,12 +380,18 @@ export function AnimatedSALogo() {
         filter: "blur(0px)",
       });
       gsap.set(".satellite", {
-        autoAlpha: reducedMotion
-          ? (_index, target) => getSatelliteBaseOpacity(target)
-          : 0,
-        y: reducedMotion ? 0 : 8,
-        scale: reducedMotion ? 1 : 0.96,
+        autoAlpha: reducedMotion ? 1 : 0,
+        xPercent: -50,
+        yPercent: -50,
+        rotate: 0,
       });
+      gsap.set(".satellite-card", {
+        y: reducedMotion ? 0 : 6,
+        scale: reducedMotion ? 1 : 0.98,
+        opacity: 1,
+        transformOrigin: "50% 50%",
+      });
+      resetSatellitePositions();
       gsap.set(sceneElement, { autoAlpha: 0 });
 
       circuitPaths.forEach((path) => {
@@ -384,6 +431,11 @@ export function AnimatedSALogo() {
       gsap.set(stars, { autoAlpha: reducedMotion ? 0.26 : 0.1 });
       applyDebugLayerMode();
       gsap.set(sceneElement, { autoAlpha: 1 });
+
+      if ("ResizeObserver" in window) {
+        logoResizeObserver = new ResizeObserver(resetSatellitePositions);
+        logoResizeObserver.observe(sceneElement);
+      }
 
       if (!reducedMotion) {
         const introTimeline = gsap.timeline({
@@ -456,7 +508,7 @@ export function AnimatedSALogo() {
             "sReveal-=0.05",
           )
           .to(
-            ".core-reveal-s-upper",
+            ".core-reveal-s",
             {
               autoAlpha: 1,
               duration: 0.01,
@@ -464,90 +516,13 @@ export function AnimatedSALogo() {
             "sReveal",
           )
           .to(
-            sUpperMaskPath,
+            sClipRect,
             {
-              strokeDashoffset: 0,
-              duration: 0.52,
-              ease: "power3.out",
+              attr: { width: S_CLIP_WIDTH },
+              duration: 0.56,
+              ease: "power1.inOut",
             },
             "sReveal",
-          )
-          .to(
-            ".reveal-front-s-upper",
-            {
-              autoAlpha: 0.58,
-              scale: 1,
-              duration: 0.06,
-              ease: "power1.out",
-            },
-            "sReveal",
-          )
-          .to(
-            ".reveal-front-s-upper",
-            {
-              duration: 0.52,
-              ease: "none",
-              motionPath: {
-                path: "#s-upper-guide-path",
-                align: "#s-upper-guide-path",
-                autoRotate: false,
-                alignOrigin: [0.5, 0.5],
-                start: 0,
-                end: 1,
-              },
-            },
-            "sReveal",
-          )
-          .to(
-            ".core-reveal-s-lower",
-            {
-              autoAlpha: 1,
-              duration: 0.01,
-            },
-            "sReveal+=0.07",
-          )
-          .to(
-            sLowerMaskPath,
-            {
-              strokeDashoffset: 0,
-              duration: 0.46,
-              ease: "power3.out",
-            },
-            "sReveal+=0.07",
-          )
-          .to(
-            ".reveal-front-s-lower",
-            {
-              autoAlpha: 0.46,
-              scale: 1,
-              duration: 0.06,
-              ease: "power1.out",
-            },
-            "sReveal+=0.07",
-          )
-          .to(
-            ".reveal-front-s-lower",
-            {
-              duration: 0.46,
-              ease: "none",
-              motionPath: {
-                path: "#s-lower-guide-path",
-                align: "#s-lower-guide-path",
-                autoRotate: false,
-                alignOrigin: [0.5, 0.5],
-                start: 0,
-                end: 1,
-              },
-            },
-            "sReveal+=0.07",
-          )
-          .to(
-            ".reveal-front-s-upper, .reveal-front-s-lower",
-            {
-              autoAlpha: 0,
-              duration: 0.08,
-            },
-            "sReveal+=0.52",
           )
           .to(
             ".core-handoff-pulse",
@@ -613,7 +588,7 @@ export function AnimatedSALogo() {
             "sReveal+=0.04",
           )
           .to(
-            ".core-reveal-a-top",
+            ".core-reveal-a",
             {
               autoAlpha: 1,
               duration: 0.01,
@@ -621,133 +596,13 @@ export function AnimatedSALogo() {
             "aReveal",
           )
           .to(
-            aTopMaskPath,
+            aClipRect,
             {
-              strokeDashoffset: 0,
-              duration: 0.24,
+              attr: { width: A_CLIP_WIDTH },
+              duration: 0.58,
               ease: "power1.inOut",
             },
             "aReveal+=0.04",
-          )
-          .to(
-            ".reveal-front-a-top",
-            {
-              autoAlpha: 0.48,
-              scale: 1,
-              duration: 0.06,
-              ease: "power1.out",
-            },
-            "aReveal+=0.04",
-          )
-          .to(
-            ".reveal-front-a-top",
-            {
-              duration: 0.24,
-              ease: "none",
-              motionPath: {
-                path: "#a-top-guide-path",
-                align: "#a-top-guide-path",
-                autoRotate: false,
-                alignOrigin: [0.5, 0.5],
-                start: 0,
-                end: 1,
-              },
-            },
-            "aReveal+=0.04",
-          )
-          .to(
-            ".core-reveal-a-leg",
-            {
-              autoAlpha: 1,
-              duration: 0.01,
-            },
-            "aReveal+=0.28",
-          )
-          .to(
-            aLegMaskPath,
-            {
-              strokeDashoffset: 0,
-              duration: 0.26,
-              ease: "power1.inOut",
-            },
-            "aReveal+=0.28",
-          )
-          .to(
-            ".reveal-front-a-leg",
-            {
-              autoAlpha: 0.46,
-              scale: 1,
-              duration: 0.05,
-              ease: "power1.out",
-            },
-            "aReveal+=0.28",
-          )
-          .to(
-            ".reveal-front-a-leg",
-            {
-              duration: 0.26,
-              ease: "none",
-              motionPath: {
-                path: "#a-leg-guide-path",
-                align: "#a-leg-guide-path",
-                autoRotate: false,
-                alignOrigin: [0.5, 0.5],
-                start: 0,
-                end: 1,
-              },
-            },
-            "aReveal+=0.28",
-          )
-          .to(
-            ".core-reveal-a-bar",
-            {
-              autoAlpha: 1,
-              duration: 0.01,
-            },
-            "aReveal+=0.54",
-          )
-          .to(
-            aBarMaskPath,
-            {
-              strokeDashoffset: 0,
-              duration: 0.15,
-              ease: "power2.out",
-            },
-            "aReveal+=0.54",
-          )
-          .to(
-            ".reveal-front-a-bar",
-            {
-              autoAlpha: 0.42,
-              scale: 1,
-              duration: 0.05,
-              ease: "power1.out",
-            },
-            "aReveal+=0.54",
-          )
-          .to(
-            ".reveal-front-a-bar",
-            {
-              duration: 0.15,
-              ease: "none",
-              motionPath: {
-                path: "#a-bar-guide-path",
-                align: "#a-bar-guide-path",
-                autoRotate: false,
-                alignOrigin: [0.5, 0.5],
-                start: 0,
-                end: 1,
-              },
-            },
-            "aReveal+=0.54",
-          )
-          .to(
-            ".reveal-front-a-top, .reveal-front-a-leg, .reveal-front-a-bar",
-            {
-              autoAlpha: 0,
-              duration: 0.08,
-            },
-            "aReveal+=0.68",
           )
           .to(
             ".infinity-cross-highlight",
@@ -771,7 +626,7 @@ export function AnimatedSALogo() {
             "coreComplete",
           )
           .to(
-            ".core-reveal-s-upper, .core-reveal-s-lower, .core-reveal-a-top, .core-reveal-a-leg, .core-reveal-a-bar, .core-handoff-pulse, .reveal-front-s-upper, .reveal-front-s-lower, .reveal-front-a-top, .reveal-front-a-leg, .reveal-front-a-bar",
+            ".core-reveal-s, .core-reveal-a, .core-handoff-pulse",
             {
               autoAlpha: 0,
               duration: 0.12,
@@ -977,53 +832,23 @@ export function AnimatedSALogo() {
             "saLock+=0.14",
           )
           .to(
-            ".satellite[data-skill='Data Science']",
+            ".satellite",
             {
-              autoAlpha: (_index, target) => getSatelliteRevealOpacity(target),
-              y: 0,
-              scale: 1,
-              duration: 0.42,
+              autoAlpha: 1,
+              duration: 0.38,
+              stagger: 0.08,
             },
             "skills",
           )
           .to(
-            ".satellite[data-skill='Machine Learning']",
+            ".satellite-card",
             {
-              autoAlpha: (_index, target) => getSatelliteRevealOpacity(target),
               y: 0,
               scale: 1,
-              duration: 0.42,
+              duration: 0.38,
+              stagger: 0.08,
             },
-            "skills+=0.12",
-          )
-          .to(
-            ".satellite[data-skill='NLP']",
-            {
-              autoAlpha: (_index, target) => getSatelliteRevealOpacity(target),
-              y: 0,
-              scale: 1,
-              duration: 0.42,
-            },
-            "skills+=0.24",
-          )
-          .to(
-            ".satellite[data-skill='RAG Systems']",
-            {
-              autoAlpha: (_index, target) => getSatelliteRevealOpacity(target),
-              y: 0,
-              scale: 1,
-              duration: 0.42,
-            },
-            "skills+=0.36",
-          )
-          .to(
-            ".satellite",
-            {
-              autoAlpha: (_index, target) => getSatelliteBaseOpacity(target),
-              duration: 0.34,
-              ease: "sine.out",
-            },
-            "idle-=0.1",
+            "skills",
           )
           .to(
             ".sa-metal-shine-sweep",
@@ -1089,45 +914,119 @@ export function AnimatedSALogo() {
           );
         });
 
-        orbitWrappers.forEach((wrapper, index) => {
-          const config = satellites[index];
+        satelliteNodes.forEach((node) => {
+          const config = getSatelliteConfig(node);
 
           if (!config) {
             return;
           }
 
-          gsap.set(wrapper, { rotate: config.arcStart });
-          registerContinuousAnimation(
-            gsap.to(wrapper, {
-              rotate: config.arcEnd,
-              transformOrigin: "50% 50%",
-              duration: config.arcDuration,
-              ease: "sine.inOut",
-              repeat: -1,
-              yoyo: true,
-            }),
-          );
+          const state = { angle: config.phase };
+          node.dataset.angle = String(state.angle);
+
+          const animation = gsap.to(state, {
+            angle: config.phase + config.direction * 360,
+            duration: config.duration,
+            ease: "none",
+            repeat: -1,
+            onUpdate: () => {
+              node.dataset.angle = String(state.angle);
+              setSatellitePosition(node, config, state.angle);
+            },
+          });
+
+          satelliteOrbitAnimations.push(animation);
+          registerContinuousAnimation(animation);
         });
 
-        orbitLabels.forEach((label, index) => {
-          const config = satellites[index];
+        satelliteCards.forEach((card) => {
+          const dot = card.querySelector<HTMLElement>(".satellite-dot");
+          const enter = () => {
+            gsap.to(card, {
+              color: "rgba(226,232,240,0.88)",
+              y: -1,
+              duration: 0.2,
+              ease: "power1.out",
+            });
+            if (dot) {
+              gsap.to(dot, { opacity: 1, duration: 0.2, ease: "power1.out" });
+            }
+          };
 
-          if (!config) {
+          const leave = () => {
+            gsap.to(card, {
+              color: sceneHovered
+                ? "rgba(226,232,240,0.74)"
+                : "rgba(226,232,240,0.68)",
+              y: 0,
+              duration: 0.32,
+              ease: "sine.out",
+            });
+            if (dot) {
+              gsap.to(dot, {
+                opacity: sceneHovered ? 0.92 : 0.84,
+                duration: 0.32,
+                ease: "sine.out",
+              });
+            }
+          };
+
+          card.addEventListener("pointerenter", enter);
+          card.addEventListener("pointerleave", leave);
+          satelliteCardListeners.push({ card, enter, leave });
+        });
+
+        handleScenePointerEnter = () => {
+          if (!introComplete) {
             return;
           }
 
-          gsap.set(label, { rotate: -config.arcStart });
-          registerContinuousAnimation(
-            gsap.to(label, {
-              rotate: -config.arcEnd,
-              transformOrigin: "50% 50%",
-              duration: config.arcDuration,
-              ease: "sine.inOut",
-              repeat: -1,
-              yoyo: true,
-            }),
-          );
-        });
+          sceneHovered = true;
+          satelliteOrbitAnimations.forEach((animation) => animation.timeScale(1.05));
+          gsap.to(satelliteCards, {
+            color: "rgba(226,232,240,0.74)",
+            duration: 0.42,
+            ease: "sine.out",
+          });
+          gsap.to(satelliteDots, {
+            opacity: 0.92,
+            duration: 0.42,
+            ease: "sine.out",
+          });
+          gsap.to(orbitGroups, {
+            autoAlpha: (index) => Math.min(getOrbitIdleOpacity(index) + 0.012, 0.3),
+            duration: 0.42,
+            ease: "sine.out",
+          });
+        };
+
+        handleScenePointerLeave = () => {
+          if (!introComplete) {
+            return;
+          }
+
+          sceneHovered = false;
+          satelliteOrbitAnimations.forEach((animation) => animation.timeScale(1));
+          gsap.to(satelliteCards, {
+            color: "rgba(226,232,240,0.68)",
+            y: 0,
+            duration: 0.52,
+            ease: "sine.out",
+          });
+          gsap.to(satelliteDots, {
+            opacity: 0.84,
+            duration: 0.52,
+            ease: "sine.out",
+          });
+          gsap.to(orbitGroups, {
+            autoAlpha: (index) => getOrbitIdleOpacity(index),
+            duration: 0.52,
+            ease: "sine.out",
+          });
+        };
+
+        sceneElement.addEventListener("pointerenter", handleScenePointerEnter);
+        sceneElement.addEventListener("pointerleave", handleScenePointerLeave);
 
         registerContinuousAnimation(
           gsap.to(".comet", {
@@ -1230,19 +1129,6 @@ export function AnimatedSALogo() {
               yoyo: true,
               ease: "sine.inOut",
               delay: index * 0.85,
-            }),
-          );
-        });
-
-        gsap.utils.toArray<HTMLElement>(".satellite").forEach((chip, index) => {
-          registerContinuousAnimation(
-            gsap.to(chip, {
-              opacity: getSatellitePeakOpacity(chip),
-              duration: 6.8 + index * 0.9,
-              repeat: -1,
-              yoyo: true,
-              ease: "sine.inOut",
-              delay: index * 0.55,
             }),
           );
         });
@@ -1375,6 +1261,20 @@ export function AnimatedSALogo() {
 
     return () => {
       intersectionObserver?.disconnect();
+      logoResizeObserver?.disconnect();
+
+      if (handleScenePointerEnter) {
+        sceneElement.removeEventListener("pointerenter", handleScenePointerEnter);
+      }
+
+      if (handleScenePointerLeave) {
+        sceneElement.removeEventListener("pointerleave", handleScenePointerLeave);
+      }
+
+      satelliteCardListeners.forEach(({ card, enter, leave }) => {
+        card.removeEventListener("pointerenter", enter);
+        card.removeEventListener("pointerleave", leave);
+      });
 
       if (handleVisibilityChange) {
         document.removeEventListener("visibilitychange", handleVisibilityChange);
@@ -1622,27 +1522,28 @@ export function AnimatedSALogo() {
       </svg>
 
       {satellites.map((satellite) => (
-        <div key={satellite.label} className={satellite.orbitClassName}>
-          <div className={`orbit-label ${satellite.labelClassName}`}>
-            <div
-              data-skill={satellite.label}
-              data-prominence={satellite.prominence}
+        <div
+          key={satellite.label}
+          data-skill={satellite.label}
+          data-orbit={satellite.orbit}
+          className={[
+            "satellite pointer-events-auto absolute left-1/2 top-1/2 z-40",
+            satellite.visibilityClassName,
+          ].join(" ")}
+        >
+          <div
+            className="satellite-card group rounded-[8px] border border-[rgba(148,163,184,0.14)] bg-[rgba(8,13,26,0.22)] px-[9px] py-[5px] text-[11px] font-[470] tracking-[0.01em] text-[rgba(226,232,240,0.68)] transition-[border-color,background-color,color,transform] duration-200 hover:-translate-y-px hover:border-[rgba(148,163,184,0.18)] hover:bg-[rgba(8,13,26,0.28)] hover:text-[rgba(226,232,240,0.88)] md:text-[12px]"
+          >
+            <span
               className={[
-                "satellite rounded-[8px] border border-[rgba(148,163,184,0.08)] bg-[rgba(8,13,26,0.28)] px-[9px] py-[5px] text-[11px] font-[450] tracking-[0.01em] text-[rgba(226,232,240,0.78)] transition-[border-color,color,opacity] duration-200 md:text-[12px]",
-                satellite.visibilityClassName,
+                "inline-flex items-center gap-2 whitespace-nowrap",
+                satellite.alignment === "left" ? "flex-row-reverse text-right" : "",
               ].join(" ")}
             >
-              <span
-                className={[
-                  "inline-flex items-center gap-2 whitespace-nowrap",
-                  satellite.alignment === "left" ? "flex-row-reverse text-right" : "",
-                ].join(" ")}
-              >
-                <span className="h-px w-5 bg-[rgba(148,163,184,0.24)]" />
-                <span className="h-[4px] w-[4px] rounded-full bg-[#7C8CFF]" />
-                <span>{satellite.label}</span>
-              </span>
-            </div>
+              <span className="h-px w-5 bg-[rgba(148,163,184,0.28)]" />
+              <span className="satellite-dot h-[4px] w-[4px] rounded-full bg-[#7C8CFF] opacity-[0.84] transition-opacity duration-200 group-hover:opacity-100" />
+              <span>{satellite.label}</span>
+            </span>
           </div>
         </div>
       ))}
@@ -1659,93 +1560,25 @@ export function AnimatedSALogo() {
           fill="none"
         >
           <defs>
-            <path id="s-upper-guide-path" d={CORE_PATHS.sUpper} />
-            <path id="s-lower-guide-path" d={CORE_PATHS.sLower} />
             <path id="s-a-handoff-path" d="M536 294C506 267 459 226 418 188" />
-            <path id="a-top-guide-path" d={CORE_PATHS.aTop} />
-            <path id="a-leg-guide-path" d={CORE_PATHS.aLeg} />
-            <path id="a-bar-guide-path" d={CORE_PATHS.aBar} />
-
-            <mask
-              id="sa-core-mask-s-upper"
-              maskUnits="userSpaceOnUse"
-              maskContentUnits="userSpaceOnUse"
-              style={{ maskType: "luminance" } as CSSProperties}
-            >
-              <rect width={CORE_IMAGE_WIDTH} height={CORE_IMAGE_HEIGHT} fill="black" />
-              <path
-                className="mask-path-s-upper"
-                d={CORE_PATHS.sUpper}
-                stroke="white"
-                strokeWidth={CORE_STROKES.sUpper}
-                strokeLinecap="butt"
-                strokeLinejoin="round"
+            <clipPath id="sa-core-clip-s" clipPathUnits="userSpaceOnUse">
+              <rect
+                className="clip-rect-s"
+                x={S_CLIP_X}
+                y="0"
+                width="0"
+                height={CORE_IMAGE_HEIGHT}
               />
-            </mask>
-            <mask
-              id="sa-core-mask-s-lower"
-              maskUnits="userSpaceOnUse"
-              maskContentUnits="userSpaceOnUse"
-              style={{ maskType: "luminance" } as CSSProperties}
-            >
-              <rect width={CORE_IMAGE_WIDTH} height={CORE_IMAGE_HEIGHT} fill="black" />
-              <path
-                className="mask-path-s-lower"
-                d={CORE_PATHS.sLower}
-                stroke="white"
-                strokeWidth={CORE_STROKES.sLower}
-                strokeLinecap="butt"
-                strokeLinejoin="round"
+            </clipPath>
+            <clipPath id="sa-core-clip-a" clipPathUnits="userSpaceOnUse">
+              <rect
+                className="clip-rect-a"
+                x={A_CLIP_X}
+                y="0"
+                width="0"
+                height={CORE_IMAGE_HEIGHT}
               />
-            </mask>
-            <mask
-              id="sa-core-mask-a-top"
-              maskUnits="userSpaceOnUse"
-              maskContentUnits="userSpaceOnUse"
-              style={{ maskType: "luminance" } as CSSProperties}
-            >
-              <rect width={CORE_IMAGE_WIDTH} height={CORE_IMAGE_HEIGHT} fill="black" />
-              <path
-                className="mask-path-a-top"
-                d={CORE_PATHS.aTop}
-                stroke="white"
-                strokeWidth={CORE_STROKES.aTop}
-                strokeLinecap="butt"
-                strokeLinejoin="round"
-              />
-            </mask>
-            <mask
-              id="sa-core-mask-a-leg"
-              maskUnits="userSpaceOnUse"
-              maskContentUnits="userSpaceOnUse"
-              style={{ maskType: "luminance" } as CSSProperties}
-            >
-              <rect width={CORE_IMAGE_WIDTH} height={CORE_IMAGE_HEIGHT} fill="black" />
-              <path
-                className="mask-path-a-leg"
-                d={CORE_PATHS.aLeg}
-                stroke="white"
-                strokeWidth={CORE_STROKES.aLeg}
-                strokeLinecap="butt"
-                strokeLinejoin="round"
-              />
-            </mask>
-            <mask
-              id="sa-core-mask-a-bar"
-              maskUnits="userSpaceOnUse"
-              maskContentUnits="userSpaceOnUse"
-              style={{ maskType: "luminance" } as CSSProperties}
-            >
-              <rect width={CORE_IMAGE_WIDTH} height={CORE_IMAGE_HEIGHT} fill="black" />
-              <path
-                className="mask-path-a-bar"
-                d={CORE_PATHS.aBar}
-                stroke="white"
-                strokeWidth={CORE_STROKES.aBar}
-                strokeLinecap="butt"
-                strokeLinejoin="round"
-              />
-            </mask>
+            </clipPath>
 
             <linearGradient id="sa-shine-gradient" x1="0" y1="0" x2="1" y2="0">
               <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0" />
@@ -1783,7 +1616,7 @@ export function AnimatedSALogo() {
               preserveAspectRatio="none"
             />
           </g>
-          <g className="core-reveal-s-upper" mask="url(#sa-core-mask-s-upper)">
+          <g className="core-reveal-s" clipPath="url(#sa-core-clip-s)">
             <image
               href={S_ASSET_SRC}
               x="0"
@@ -1793,17 +1626,7 @@ export function AnimatedSALogo() {
               preserveAspectRatio="none"
             />
           </g>
-          <g className="core-reveal-s-lower" mask="url(#sa-core-mask-s-lower)">
-            <image
-              href={S_ASSET_SRC}
-              x="0"
-              y="0"
-              width={CORE_IMAGE_WIDTH}
-              height={CORE_IMAGE_HEIGHT}
-              preserveAspectRatio="none"
-            />
-          </g>
-          <g className="core-reveal-a-top" mask="url(#sa-core-mask-a-top)">
+          <g className="core-reveal-a" clipPath="url(#sa-core-clip-a)">
             <image
               href={A_ASSET_SRC}
               x="0"
@@ -1812,51 +1635,10 @@ export function AnimatedSALogo() {
               height={CORE_IMAGE_HEIGHT}
               preserveAspectRatio="none"
             />
-          </g>
-          <g className="core-reveal-a-leg" mask="url(#sa-core-mask-a-leg)">
-            <image
-              href={A_ASSET_SRC}
-              x="0"
-              y="0"
-              width={CORE_IMAGE_WIDTH}
-              height={CORE_IMAGE_HEIGHT}
-              preserveAspectRatio="none"
-            />
-          </g>
-          <g className="core-reveal-a-bar" mask="url(#sa-core-mask-a-bar)">
-            <image
-              href={A_ASSET_SRC}
-              x="0"
-              y="0"
-              width={CORE_IMAGE_WIDTH}
-              height={CORE_IMAGE_HEIGHT}
-              preserveAspectRatio="none"
-            />
-          </g>
-
-          <g className="reveal-front-s-upper opacity-0" filter="url(#sa-front-glow-filter)">
-            <circle r="3.2" fill="#E2E8F0" />
-            <circle r="10" fill="url(#reveal-front-glow)" opacity="0.22" />
-          </g>
-          <g className="reveal-front-s-lower opacity-0" filter="url(#sa-front-glow-filter)">
-            <circle r="2.8" fill="#E2E8F0" />
-            <circle r="8.5" fill="url(#reveal-front-glow)" opacity="0.16" />
           </g>
           <g className="core-handoff-pulse opacity-0" filter="url(#sa-front-glow-filter)">
             <circle r="2.2" fill="#E2E8F0" />
             <circle r="6.5" fill="url(#reveal-front-glow)" opacity="0.12" />
-          </g>
-          <g className="reveal-front-a-top opacity-0" filter="url(#sa-front-glow-filter)">
-            <circle r="3" fill="#E2E8F0" />
-            <circle r="9.5" fill="url(#reveal-front-glow)" opacity="0.2" />
-          </g>
-          <g className="reveal-front-a-leg opacity-0" filter="url(#sa-front-glow-filter)">
-            <circle r="3" fill="#E2E8F0" />
-            <circle r="9.5" fill="url(#reveal-front-glow)" opacity="0.2" />
-          </g>
-          <g className="reveal-front-a-bar opacity-0" filter="url(#sa-front-glow-filter)">
-            <circle r="2.8" fill="#E2E8F0" />
-            <circle r="8.8" fill="url(#reveal-front-glow)" opacity="0.18" />
           </g>
 
         </svg>
