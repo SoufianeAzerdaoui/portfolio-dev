@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1536 1024" fill="none">
+  <g id="orbits" stroke="#7C8CFF" stroke-width="1.5">
+    <ellipse id="orbit-inner" cx="768" cy="520" rx="430" ry="145" transform="rotate(-8 768 520)"/>
+    <ellipse id="orbit-middle" cx="768" cy="520" rx="510" ry="205" transform="rotate(7 768 520)"/>
+    <ellipse id="orbit-outer" cx="768" cy="520" rx="585" ry="255" transform="rotate(-12 768 520)"/>
+  </g>
+</svg>

@@ -9,10 +9,10 @@ type HeroActionsProps = {
 
 export function HeroActions({ ctas }: HeroActionsProps) {
   return (
-    <div className="flex w-full flex-col items-center justify-center gap-3 sm:flex-row sm:flex-wrap">
+    <div className="flex w-full flex-col items-center justify-center gap-4 md:flex-row md:flex-wrap">
       <Link
         href={ctas.primary.href}
-        className="group inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-[#4F6BFF]/28 bg-[linear-gradient(135deg,rgba(94,103,255,0.92),rgba(124,92,252,0.82))] px-5 py-2.5 text-[0.82rem] font-medium text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_10px_24px_rgba(79,107,255,0.18)] transition duration-200 hover:border-[#7f91ff]/40 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4F6BFF] focus-visible:ring-offset-2 focus-visible:ring-offset-[#050912] sm:min-w-[11.5rem]"
+        className="group inline-flex min-h-[46px] w-full items-center justify-center gap-2 rounded-[6px] border border-[#506DE8] bg-[linear-gradient(135deg,#3F63DD,#654EE8)] px-6 py-2.5 text-[0.83rem] font-medium text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.16),0_10px_24px_rgba(79,107,255,0.16)] transition duration-200 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4F6BFF] focus-visible:ring-offset-2 focus-visible:ring-offset-[#050912] md:w-auto md:min-w-[13.25rem]"
       >
         <span>{ctas.primary.label}</span>
         <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
@@ -20,7 +20,7 @@ export function HeroActions({ ctas }: HeroActionsProps) {
 
       <Link
         href={ctas.secondary.href}
-        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-white/16 bg-white/[0.02] px-5 py-2.5 text-[0.82rem] font-medium text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition duration-200 hover:border-white/28 hover:bg-white/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4F6BFF] focus-visible:ring-offset-2 focus-visible:ring-offset-[#050912] sm:min-w-[15.5rem]"
+        className="inline-flex min-h-[46px] w-full items-center justify-center gap-2 rounded-[6px] border border-[rgba(226,232,240,0.3)] bg-[rgba(8,13,26,0.5)] px-6 py-2.5 text-[0.83rem] font-medium text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition duration-200 hover:border-white/40 hover:bg-white/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4F6BFF] focus-visible:ring-offset-2 focus-visible:ring-offset-[#050912] md:w-auto md:min-w-[18.25rem]"
       >
         <Sparkles className="h-3.5 w-3.5 text-[#8CA0FF]" />
         <span>{ctas.secondary.label}</span>

@@ -80,7 +80,7 @@ export function MobileHeader({
 
   return (
     <>
-      <header className="fixed inset-x-0 top-0 z-40 flex items-center justify-between border-b border-white/8 bg-[#050912]/82 px-4 py-4 backdrop-blur-xl lg:hidden">
+      <header className="fixed inset-x-0 top-0 z-40 flex items-center justify-between border-b border-white/8 bg-[#080D1A]/82 px-4 py-4 backdrop-blur-xl lg:hidden">
         <Link
           href="#accueil"
           className="inline-flex items-center gap-3 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4F6BFF]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#050912]"
@@ -113,11 +113,11 @@ export function MobileHeader({
       </header>
 
       {open ? (
-        <div className="fixed inset-0 z-50 bg-[#03060d]/80 backdrop-blur-md lg:hidden">
+        <div className="fixed inset-0 z-50 bg-[#080D1A]/80 backdrop-blur-md lg:hidden">
           <div
             id="mobile-navigation"
             ref={panelRef}
-            className="ml-auto flex h-full w-[min(90vw,24rem)] flex-col border-l border-white/8 bg-[#060b14] px-6 py-6"
+            className="ml-auto flex h-full w-[min(90vw,24rem)] flex-col border-l border-white/8 bg-[#080D1A] px-6 py-6"
           >
             <div className="flex items-center justify-between">
               <LanguageSwitcher languages={languages} />

@@ -13,44 +13,55 @@ export function HeroSection({ content }: HeroSectionProps) {
   return (
     <section
       id="accueil"
-      className="relative flex min-h-[100svh] items-center justify-center overflow-hidden px-4 pb-8 pt-6 sm:px-6 lg:px-10"
+      className="relative grid min-h-[100svh] place-items-center overflow-hidden px-5 pt-[clamp(5rem,6vh,5.75rem)] pb-[clamp(4rem,8vh,5rem)] sm:px-8 lg:px-[clamp(2rem,4vw,4.5rem)]"
     >
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_22%,rgba(57,79,167,0.14),transparent_26%),linear-gradient(180deg,#05070f_0%,#040812_38%,#050912_100%)]" />
-      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.018),transparent_16%,transparent_84%,rgba(255,255,255,0.018))]" />
-      <div className="absolute left-1/2 top-[21%] h-56 w-56 -translate-x-1/2 rounded-full bg-[#10245f]/18 blur-[130px]" />
-      <div className="absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(67,94,255,0.85),transparent)]" />
+      <div className="pointer-events-none absolute left-1/2 top-[18%] -z-10 h-[26.25rem] w-[38.75rem] -translate-x-1/2 rounded-full bg-[#0C2465]/8 blur-[110px]" />
 
       <ParticleWave />
 
-      <div className="relative mx-auto flex w-full max-w-[120rem] flex-1 flex-col">
-        <div className="hidden items-center justify-end pr-14 pt-8 lg:flex xl:pr-18">
+      <div className="relative mx-auto flex h-full w-full max-w-[120rem] flex-col">
+        <div className="pointer-events-none absolute inset-x-0 top-0 hidden h-16 lg:block">
           <LanguageSwitcher
             languages={content.languages}
-            className="rounded-[1.75rem] border-white/12 bg-white/[0.035] px-1 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+            variant="minimal"
+            className="pointer-events-auto absolute right-[clamp(1.25rem,3vw,2.5rem)] top-7 z-10"
           />
         </div>
 
-        <div className="flex flex-1 items-center justify-center py-8 lg:py-9">
-          <div className="relative z-10 flex w-full max-w-[62rem] flex-col items-center text-center lg:-translate-y-2 lg:pr-4 xl:pr-6">
+        <div className="flex flex-1 items-center justify-center">
+          <div className="relative z-10 flex w-full max-w-[57.5rem] flex-col items-center text-center lg:-translate-y-2 xl:-translate-y-1">
             <HeroLogo
               name={content.identity.name}
               role={content.identity.role}
             />
-            <h1 className="mt-10 max-w-[9.5ch] text-balance text-[clamp(3.4rem,5vw,6rem)] font-medium leading-[0.96] tracking-[-0.06em] text-slate-50 sm:max-w-[10ch]">
-              {content.hero.title}
-            </h1>
-            <p className="mt-8 max-w-[45rem] text-pretty text-[1rem] leading-8 text-slate-300/88 sm:text-[1.1rem]">
+            {/* <h1 className="mt-7 w-full max-w-[49rem] text-center text-[clamp(2.55rem,3.95vw,4.35rem)] font-medium leading-[0.98] tracking-[-0.045em] text-slate-50 [text-wrap:balance] md:mt-8">
+              Je transforme des donnees
+              <br className="hidden md:block" />
+              {" "}
+              complexes en decisions
+              <br className="hidden md:block" />
+              {" "}
+              intelligentes.
+            </h1> */}
+            <p className="mt-4 max-w-[41.25rem] text-pretty text-[clamp(0.88rem,1vw,1rem)] leading-[1.65] text-slate-400 md:mt-5">
               {content.hero.description}
             </p>
-            <div className="mt-9 w-full max-w-[38rem]">
+            <div className="mt-5 w-full max-w-[39rem] md:mt-6">
               <HeroActions ctas={content.ctas} />
             </div>
-            <p className="mt-6 text-center text-[0.76rem] font-light tracking-[0.08em] text-slate-400/84 sm:text-[0.82rem]">
-              {content.hero.availability}
+            <p className="mt-4 flex items-center justify-center gap-2 text-center text-[0.76rem] leading-[1.4] text-slate-400 md:mt-4">
+              <span
+                aria-hidden="true"
+                className="h-[5px] w-[5px] shrink-0 rounded-full bg-[#4ADE80] shadow-[0_0_8px_rgba(74,222,128,0.35)]"
+              />
+              <span>{content.hero.availability}</span>
             </p>
-            <div className="mt-7">
-              <ScrollIndicator href="#accueil" />
-            </div>
+          </div>
+        </div>
+
+        <div className="pointer-events-none absolute inset-x-0 bottom-4 hidden lg:flex lg:justify-center">
+          <div className="pointer-events-auto">
+            <ScrollIndicator href="#accueil" />
           </div>
         </div>
       </div>

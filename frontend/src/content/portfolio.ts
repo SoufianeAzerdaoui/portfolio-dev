@@ -40,7 +40,7 @@ export const portfolioContent: PortfolioContent = {
   ],
   hero: {
     eyebrow: "AI & Data Engineering Portfolio",
-    title: "Je transforme des donnees complexes en decisions intelligentes.",
+    title: "",
     description:
       "Etudiant en Master 2 SIAD a l'ISIMA - Universite Clermont Auvergne. Passionne par la Data Science, le Machine Learning et le NLP.",
     availability:

@@ -79,10 +79,6 @@ export default function RootLayout({
         >
           Aller au contenu
         </a>
-        <span
-          aria-hidden="true"
-          className="pointer-events-none fixed inset-x-0 top-0 z-50 h-px bg-[linear-gradient(90deg,transparent,rgba(79,107,255,0.8),rgba(124,92,252,0.55),transparent)] shadow-[0_0_18px_rgba(79,107,255,0.45)]"
-        />
         {children}
       </body>
     </html>
