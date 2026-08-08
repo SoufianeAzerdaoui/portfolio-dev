@@ -10,13 +10,13 @@ export const portfolioContent: PortfolioContent = {
     { code: "en", label: "EN" },
   ],
   navigation: [
-    { href: "#accueil", label: "Accueil" },
-    { href: "#", label: "A propos", disabled: true },
-    { href: "#", label: "Projets", disabled: true },
-    { href: "#", label: "AI Lab", disabled: true },
-    { href: "#", label: "Competences", disabled: true },
-    { href: "#", label: "Parcours", disabled: true },
-    { href: "#", label: "Contact", disabled: true },
+    { id: "home", href: "#home", label: "Accueil" },
+    { id: "about", href: "#about", label: "À propos" },
+    { id: "projects", href: "#projects", label: "Projets" },
+    { id: "ai-lab", href: "#ai-lab", label: "AI Lab" },
+    { id: "skills", href: "#skills", label: "Compétences" },
+    { id: "journey", href: "#journey", label: "Parcours" },
+    { id: "contact", href: "#contact", label: "Contact" },
   ],
   socialLinks: [
     {
@@ -38,6 +38,91 @@ export const portfolioContent: PortfolioContent = {
       disabled: true,
     },
   ],
+  about: {
+    id: "about",
+    eyebrow: "Profil",
+    title: "À propos",
+    paragraphs: [
+      [
+        { text: "Je suis " },
+        { text: "Soufiane Azerdaoui", tone: "strong" },
+        { text: ", étudiant en " },
+        { text: "Master 2 SIAD", tone: "strong" },
+        {
+          text: " à l'ISIMA – Université Clermont Auvergne.",
+        },
+      ],
+      [
+        {
+          text: "Je conçois des systèmes intelligents qui transforment les ",
+        },
+        { text: "données complexes", tone: "accent" },
+        {
+          text: " en décisions utiles et impactantes.",
+        },
+      ],
+      [
+        { text: "Mon intérêt principal porte sur la " },
+        { text: "Data Science", tone: "strong" },
+        { text: ", le " },
+        { text: "Machine Learning", tone: "strong" },
+        { text: ", le " },
+        { text: "Deep Learning", tone: "strong" },
+        { text: " et le " },
+        { text: "NLP", tone: "strong" },
+        {
+          text: ". J'aime relever des défis techniques et construire des solutions robustes, scalables et centrées sur l’utilisateur.",
+        },
+      ],
+    ],
+    stats: [
+      { value: "2+", label: "Ans d'expérience" },
+      { value: "10+", label: "Projets Data/IA" },
+      { value: "M2", label: "SIAD • ISIMA" },
+    ],
+    highlights: ["Data Science", "Machine Learning", "Deep Learning", "NLP"],
+    image: {
+      src: "/assets/propos_image.jpg",
+      alt: "Portrait de Soufiane Azerdaoui",
+    },
+    signature: "Soufiane Azerdaoui",
+    cta: {
+      href: "#journey",
+      label: "Mon parcours",
+    },
+  },
+  sections: [
+    {
+      id: "projects",
+      title: "Projets",
+      description:
+        "Section structurelle prête pour accueillir une sélection de projets data, IA et engineering.",
+    },
+    {
+      id: "ai-lab",
+      title: "AI Lab",
+      description:
+        "Section structurelle prête pour les expérimentations, prototypes et démonstrations liées à l'IA.",
+    },
+    {
+      id: "skills",
+      title: "Compétences",
+      description:
+        "Section structurelle prête pour organiser les compétences techniques, outils et méthodes.",
+    },
+    {
+      id: "journey",
+      title: "Parcours",
+      description:
+        "Section structurelle prête pour détailler les expériences, formations et étapes clés.",
+    },
+    {
+      id: "contact",
+      title: "Contact",
+      description:
+        "Section structurelle prête pour les informations de contact et les prochains échanges.",
+    },
+  ],
   hero: {
     eyebrow: "AI & Data Engineering Portfolio",
     title: "",
@@ -48,11 +133,11 @@ export const portfolioContent: PortfolioContent = {
   },
   ctas: {
     primary: {
-      href: "#",
+      href: "#projects",
       label: "Explorer mes projets",
     },
     secondary: {
-      href: "#",
+      href: "#ai-lab",
       label: "Interroger mon portfolio avec l'IA",
     },
   },

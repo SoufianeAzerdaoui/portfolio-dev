@@ -11,7 +11,7 @@ type HeroSectionProps = {
 export function HeroSection({ content }: HeroSectionProps) {
   return (
     <section
-      id="accueil"
+      id="home"
       className="relative grid min-h-[100svh] place-items-center overflow-hidden px-5 pt-[clamp(5rem,6vh,5.75rem)] pb-[clamp(4rem,8vh,5rem)] sm:px-8 lg:px-[clamp(2rem,4vw,4.5rem)]"
     >
       <div className="pointer-events-none absolute left-1/2 top-[18%] -z-10 h-[26.25rem] w-[38.75rem] -translate-x-1/2 rounded-full bg-[#0C2465]/8 blur-[110px]" />
@@ -58,7 +58,7 @@ export function HeroSection({ content }: HeroSectionProps) {
 
         <div className="pointer-events-none absolute inset-x-0 bottom-4 hidden lg:flex lg:justify-center">
           <div className="pointer-events-auto">
-            <ScrollIndicator href="#accueil" />
+            <ScrollIndicator href="#about" />
           </div>
         </div>
       </div>
