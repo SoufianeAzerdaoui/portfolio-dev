@@ -3,9 +3,16 @@
 import Link from "next/link";
 import { GitBranch, Link2, Mail, Menu, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import type { MouseEvent } from "react";
 
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
-import type { LanguageOption, NavigationItem, SocialLink } from "@/types/portfolio";
+import { useSectionNavigation } from "@/hooks/use-section-navigation";
+import type {
+  LanguageOption,
+  NavigationItem,
+  SectionId,
+  SocialLink,
+} from "@/types/portfolio";
 
 const socialIcons = {
   github: GitBranch,
@@ -32,6 +39,18 @@ export function MobileHeader({
   const [open, setOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const { activeSection, navigateToSection } = useSectionNavigation(navigation);
+
+  const handleMobileNavigation = (
+    event: MouseEvent<HTMLAnchorElement>,
+    sectionId: SectionId,
+  ) => {
+    event.preventDefault();
+    setOpen(false);
+    window.requestAnimationFrame(() => {
+      navigateToSection(sectionId);
+    });
+  };
 
   useEffect(() => {
     if (!open) {
@@ -82,7 +101,9 @@ export function MobileHeader({
     <>
       <header className="fixed inset-x-0 top-0 z-40 flex items-center justify-between border-b border-white/8 bg-[#080D1A]/82 px-4 py-4 backdrop-blur-xl lg:hidden">
         <Link
-          href="#accueil"
+          href="#home"
+          scroll={false}
+          onClick={(event) => handleMobileNavigation(event, "home")}
           className="inline-flex items-center gap-3 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4F6BFF]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#050912]"
         >
           <span className="flex h-11 w-11 items-center justify-center rounded-full border border-white/12 bg-white/[0.03] text-sm font-semibold tracking-[0.22em] text-slate-50">
@@ -150,8 +171,17 @@ export function MobileHeader({
                     ) : (
                       <Link
                         href={item.href}
-                        onClick={() => setOpen(false)}
-                        className="block rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-4 text-sm uppercase tracking-[0.26em] text-slate-100 transition hover:border-white/16 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4F6BFF]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#050912]"
+                        scroll={false}
+                        aria-current={
+                          activeSection === item.id ? "location" : undefined
+                        }
+                        onClick={(event) => handleMobileNavigation(event, item.id)}
+                        className={[
+                          "block rounded-2xl border px-4 py-4 text-sm uppercase tracking-[0.26em] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4F6BFF]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#050912]",
+                          activeSection === item.id
+                            ? "border-[#7C8CFF]/40 bg-[#7C8CFF]/10 text-slate-50"
+                            : "border-white/8 bg-white/[0.03] text-slate-100 hover:border-white/16",
+                        ].join(" ")}
                       >
                         {item.label}
                       </Link>

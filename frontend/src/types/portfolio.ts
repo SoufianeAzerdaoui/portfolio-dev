@@ -2,13 +2,25 @@ export type LocaleCode = "fr" | "en";
 
 export type SocialIconKey = "github" | "linkedin" | "mail";
 
+export type SectionId =
+  | "home"
+  | "about"
+  | "projects"
+  | "ai-lab"
+  | "skills"
+  | "journey"
+  | "contact";
+
+export type SectionHref = `#${SectionId}`;
+
 export type LanguageOption = {
   code: LocaleCode;
   label: string;
 };
 
 export type NavigationItem = {
-  href: `#${string}`;
+  id: SectionId;
+  href: SectionHref;
   label: string;
   disabled?: boolean;
 };
@@ -22,7 +34,7 @@ export type SocialLink = {
 };
 
 export type CtaLink = {
-  href: `#${string}`;
+  href: SectionHref;
   label: string;
 };
 
@@ -33,8 +45,33 @@ export type HeroSectionContent = {
   availability: string;
 };
 
+export type AboutParagraphSegment = {
+  text: string;
+  tone?: "accent" | "strong";
+};
+
+export type AboutStat = {
+  value: string;
+  label: string;
+};
+
+export type AboutSectionContent = {
+  id: "about";
+  eyebrow: string;
+  title: string;
+  paragraphs: AboutParagraphSegment[][];
+  stats: AboutStat[];
+  highlights: string[];
+  image: {
+    src: string;
+    alt: string;
+  };
+  signature: string;
+  cta: CtaLink;
+};
+
 export type SectionPreview = {
-  id: string;
+  id: Exclude<SectionId, "home">;
   title: string;
   description: string;
 };
@@ -47,6 +84,8 @@ export type PortfolioContent = {
   languages: LanguageOption[];
   navigation: NavigationItem[];
   socialLinks: SocialLink[];
+  about: AboutSectionContent;
+  sections: SectionPreview[];
   hero: HeroSectionContent;
   ctas: {
     primary: CtaLink;

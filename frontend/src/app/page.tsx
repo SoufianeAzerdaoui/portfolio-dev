@@ -2,6 +2,9 @@ import { DesktopSidebar } from "@/components/layout/desktop-sidebar";
 import { MobileHeader } from "@/components/layout/mobile-header";
 import { HeroSection } from "@/components/home/hero-section";
 import { SpaceBackground } from "@/components/home/space-background";
+import { AboutSection } from "@/components/sections/about-section";
+import { ProjectsTeaserSection } from "@/components/sections/projects-teaser-section";
+import { SectionPlaceholder } from "@/components/sections/section-placeholder";
 import { portfolioContent } from "@/content/portfolio";
 
 export default function Home() {
@@ -27,6 +30,14 @@ export default function Home() {
         </div>
         <main id="main-content" className="relative min-w-0 overflow-x-clip">
           <HeroSection content={portfolioContent} />
+          <AboutSection content={portfolioContent.about} />
+          {portfolioContent.sections.map((section) =>
+            section.id === "projects" ? (
+              <ProjectsTeaserSection key={section.id} section={section} />
+            ) : (
+              <SectionPlaceholder key={section.id} section={section} />
+            ),
+          )}
         </main>
       </div>
     </>

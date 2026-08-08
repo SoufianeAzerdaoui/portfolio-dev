@@ -504,7 +504,7 @@ export function SpaceBackground() {
       },
       { threshold: 0.04 },
     );
-    const hero = document.querySelector("#accueil");
+    const hero = document.querySelector("#home");
     intersectionObserver.observe(hero ?? root);
 
     resize();
