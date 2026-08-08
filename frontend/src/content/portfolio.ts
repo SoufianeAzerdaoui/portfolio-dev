@@ -96,7 +96,7 @@ export const portfolioContent: PortfolioContent = {
       id: "projects",
       title: "Projets",
       description:
-        "Section structurelle prête pour accueillir une sélection de projets data, IA et engineering.",
+        "Une sélection courte de projets Data, IA et engineering. La page complète permet d'explorer toute la collection publiée.",
     },
     {
       id: "ai-lab",

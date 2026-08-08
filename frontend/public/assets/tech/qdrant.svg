@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" role="img" aria-labelledby="qdrant-title">
+  <title id="qdrant-title">Qdrant</title>
+  <path fill="none" stroke="#E2E8F0" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.35" d="m12 3.2 7.6 4.4v8.8L12 20.8l-7.6-4.4V7.6L12 3.2Z"/>
+  <path fill="none" stroke="#7C8CFF" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.35" d="M12 7.2v9.6M7.9 9.6l8.2 4.8M16.1 9.6l-8.2 4.8"/>
+  <circle cx="12" cy="3.2" r="1.45" fill="#7C8CFF"/>
+  <circle cx="19.6" cy="7.6" r="1.45" fill="#AAB7C8"/>
+  <circle cx="19.6" cy="16.4" r="1.45" fill="#7C8CFF"/>
+  <circle cx="12" cy="20.8" r="1.45" fill="#AAB7C8"/>
+  <circle cx="4.4" cy="16.4" r="1.45" fill="#7C8CFF"/>
+  <circle cx="4.4" cy="7.6" r="1.45" fill="#AAB7C8"/>
+</svg>
