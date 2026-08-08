@@ -17,6 +17,12 @@ export type ProjectType = (typeof projectTypes)[number];
 
 export type ProjectMediaType = "image" | "video";
 
+export type ProjectMediaRole =
+  | "cover"
+  | "architecture"
+  | "interface"
+  | "demo";
+
 export type ProjectLinkType =
   | "github"
   | "demo"
@@ -50,6 +56,7 @@ export interface ProjectContributor {
 export interface ProjectMedia {
   id: string;
   type: ProjectMediaType;
+  role?: ProjectMediaRole;
   storagePath: string;
   alt: string;
   caption?: string;
@@ -80,6 +87,7 @@ export interface ProjectCaseStudy {
   role?: string;
   approach?: string;
   architecture?: string;
+  architectureSteps?: string[];
   challenges?: string[];
   solutions?: string[];
   results?: ProjectResult[];

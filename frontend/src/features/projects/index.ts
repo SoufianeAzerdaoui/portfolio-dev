@@ -9,6 +9,7 @@ export type {
   ProjectLinkType,
   ProjectLocalizedContent,
   ProjectMedia,
+  ProjectMediaRole,
   ProjectMediaType,
   ProjectResult,
   ProjectSEO,
@@ -46,4 +47,7 @@ export {
 } from "@/features/projects/utils/project-filters";
 
 export { getProjectContent } from "@/features/projects/utils/project-localization";
-export { resolveProjectMediaUrl } from "@/features/projects/utils/project-media";
+export {
+  getProjectMediaByRole,
+  resolveProjectMediaUrl,
+} from "@/features/projects/utils/project-media";

@@ -7,8 +7,6 @@ import { motion, useReducedMotion } from "motion/react";
 
 import {
   getProjectContent,
-  getPrimaryProjectLink,
-  isExternalProjectLink,
   resolveProjectMediaUrl,
 } from "@/lib/projects";
 import type { Project, ProjectTechnology, SupportedLocale } from "@/types/project";
@@ -68,8 +66,7 @@ export function SelectedProjectRow({
   const reducedMotion = useReducedMotion();
   const content = getProjectContent(project, locale);
   const coverImage = project.coverImage;
-  const primaryLink = getPrimaryProjectLink(project);
-  const externalLink = primaryLink ? isExternalProjectLink(primaryLink.url) : false;
+  const projectHref = `/projects/${project.slug}`;
   const categories = getPriorityNames(project.categories, CATEGORY_PRIORITY, 3);
   const technologies = project.technologies
     .filter(hasTechnologyIcon)
@@ -157,14 +154,11 @@ export function SelectedProjectRow({
           ) : (
             <span aria-hidden="true" />
           )}
-          {primaryLink ? (
-            <ProjectLink
-              href={primaryLink.url}
-              label={primaryLink.label}
-              title={content.title}
-              external={externalLink}
-            />
-          ) : null}
+          <ProjectLink
+            href={projectHref}
+            label="Voir le projet"
+            title={content.title}
+          />
         </div>
       </div>
 
@@ -176,14 +170,11 @@ export function SelectedProjectRow({
         ) : (
           <span aria-hidden="true" />
         )}
-        {primaryLink ? (
-          <ProjectLink
-            href={primaryLink.url}
-            label={primaryLink.label}
-            title={content.title}
-            external={externalLink}
-          />
-        ) : null}
+        <ProjectLink
+          href={projectHref}
+          label="Voir le projet"
+          title={content.title}
+        />
       </div>
     </motion.article>
   );
@@ -228,23 +219,15 @@ function ProjectLink({
   href,
   label,
   title,
-  external,
 }: {
   href: string;
   label: string;
   title: string;
-  external: boolean;
 }) {
   return (
     <Link
       href={href}
-      target={external ? "_blank" : undefined}
-      rel={external ? "noopener noreferrer" : undefined}
-      aria-label={
-        external
-          ? `${label} du projet ${title} (nouvel onglet)`
-          : `${label} du projet ${title}`
-      }
+      aria-label={`${label} ${title}`}
       className="group/link inline-flex min-h-9 items-center gap-2 border-b border-[#7C8CFF]/42 pb-1 text-[0.82rem] font-medium text-slate-100 transition duration-200 hover:border-[#7C8CFF]/80 hover:text-white focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7C8CFF] focus-visible:ring-offset-4 focus-visible:ring-offset-[#080D1A]"
     >
       <span>{label}</span>

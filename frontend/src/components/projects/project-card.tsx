@@ -1,11 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, ExternalLink, FolderOpen, GitBranch } from "lucide-react";
+import { ArrowRight, FolderOpen } from "lucide-react";
 
 import {
   getProjectContent,
-  getPrimaryProjectLink,
-  isExternalProjectLink,
   resolveProjectMediaUrl,
 } from "@/lib/projects";
 import type { Project, ProjectViewMode, SupportedLocale } from "@/types/project";
@@ -108,25 +106,16 @@ function ProjectTechStack({ project }: { project: Project }) {
 }
 
 function ProjectAction({ project }: { project: Project }) {
-  const link = getPrimaryProjectLink(project);
-
-  if (!link) {
-    return null;
-  }
-
-  const external = isExternalProjectLink(link.url);
-  const Icon =
-    link.type === "github" ? GitBranch : external ? ExternalLink : ArrowRight;
+  const content = getProjectContent(project);
 
   return (
     <Link
-      href={link.url}
-      target={external ? "_blank" : undefined}
-      rel={external ? "noopener noreferrer" : undefined}
+      href={`/projects/${project.slug}`}
+      aria-label={`Voir le projet ${content.title}`}
       className="group/link inline-flex items-center gap-2 text-[0.78rem] font-medium text-slate-100 transition duration-200 hover:text-white focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7C8CFF] focus-visible:ring-offset-4 focus-visible:ring-offset-[#080D1A]"
     >
-      <span>{link.label}</span>
-      <Icon
+      <span>Voir le projet</span>
+      <ArrowRight
         aria-hidden="true"
         className="h-3.5 w-3.5 transition-transform duration-200 group-hover/link:translate-x-[3px] motion-reduce:transition-none"
       />

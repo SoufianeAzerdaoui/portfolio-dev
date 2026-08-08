@@ -9,6 +9,7 @@ export type {
   ProjectLinkType,
   ProjectLocalizedContent,
   ProjectMedia,
+  ProjectMediaRole,
   ProjectMediaType,
   ProjectResult,
   ProjectSEO,
