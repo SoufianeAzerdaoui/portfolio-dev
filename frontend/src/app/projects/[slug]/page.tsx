@@ -1,13 +1,18 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
-import type { ReactNode } from "react";
-import { ArrowLeft, ArrowUpRight, GitBranch } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowUpRight,
+  GitBranch,
+  Lightbulb,
+  Target,
+  Users,
+} from "lucide-react";
 import { notFound } from "next/navigation";
 
 import { SpaceBackground } from "@/components/home/space-background";
-import { ProjectMediaCarousel } from "@/components/projects/project-media-carousel";
-import { TechnologyIcon } from "@/components/projects/technology-icon";
+import { ProjectMediaViewer } from "@/components/projects/project-media-viewer";
+import { TechnologyIcon, getTechnologyIconSrc } from "@/components/projects/technology-icon";
 import {
   getProjectMediaByRole,
   getProjectBySlug,
@@ -19,22 +24,18 @@ import type {
   Project,
   ProjectCaseStudy,
   ProjectLink,
-  ProjectMedia,
+  ProjectTechnology,
 } from "@/features/projects";
 
 type ProjectCaseStudyPageProps = {
   params: Promise<{ slug: string }>;
 };
 
-const ARCHITECTURE_PIPELINE_MATCHERS = [
-  { label: "PDF", pattern: /pdf/i },
-  { label: "Extraction", pattern: /extraction/i },
-  { label: "Embeddings", pattern: /embedding/i },
-  { label: "Qdrant", pattern: /qdrant/i },
-  { label: "Hybrid Retrieval", pattern: /hybrid retrieval/i },
-  { label: "Llama 3.2", pattern: /llama/i },
-  { label: "Sources", pattern: /source/i },
-] as const;
+type InsightBlock = {
+  title: string;
+  body: string;
+  icon: typeof Target;
+};
 
 export async function generateStaticParams() {
   const projects = await getPublishedProjects();
@@ -100,20 +101,8 @@ export default async function ProjectCaseStudyPage({
   const githubLink = getProjectLink(project, "github");
   const architectureMedia = getProjectMediaByRole(project, "architecture");
   const interfaceMedia = getProjectMediaByRole(project, "interface");
-  const architectureNumber = formatSectionNumber(1);
-  const interfaceNumber = formatSectionNumber(
-    architectureMedia.length > 0 ? 2 : 1,
-  );
-  const stackNumber = formatSectionNumber(
-    1 +
-      (architectureMedia.length > 0 ? 1 : 0) +
-      (interfaceMedia.length > 0 ? 1 : 0),
-  );
-  const teamNumber = formatSectionNumber(
-    2 +
-      (architectureMedia.length > 0 ? 1 : 0) +
-      (interfaceMedia.length > 0 ? 1 : 0),
-  );
+  const metaItems = getHeroMetaItems(project, caseStudy);
+  const insights = getInsightBlocks(caseStudy, content.shortDescription, project);
 
   return (
     <>
@@ -123,412 +112,202 @@ export default async function ProjectCaseStudyPage({
       />
       <SpaceBackground />
 
-      <main
-        id="main-content"
-        className="relative z-10 min-h-svh overflow-x-clip px-5 py-8 sm:px-8 lg:px-12 xl:px-16"
-      >
-        <article className="mx-auto w-full max-w-[82rem] pb-20 pt-8 sm:pt-12">
-          <CaseStudyHero
-            project={project}
-            caseStudy={caseStudy}
-            displayTitle={displayTitle}
-            statement={content.title}
-            problem={getProblemSummary(caseStudy?.problem)}
-            solution={content.shortDescription}
-            githubLink={githubLink}
-          />
+      <main id="main-content" className="relative z-10 min-h-svh overflow-x-clip">
+        <article className="min-h-svh min-[1180px]:grid min-[1180px]:grid-cols-[minmax(0,44fr)_minmax(0,56fr)]">
+          <section
+            aria-labelledby="project-case-study-title"
+            className="border-b border-slate-400/[0.09] px-5 py-8 sm:px-8 min-[1180px]:min-h-svh min-[1180px]:border-b-0 min-[1180px]:border-r min-[1180px]:px-11 min-[1180px]:py-10 min-[1440px]:px-12 min-[1600px]:px-14"
+          >
+            <div className="mx-auto flex w-full max-w-[42rem] flex-col min-[1180px]:mx-0 min-[1180px]:min-h-[calc(100svh-5rem)]">
+              <div className="flex items-start justify-between gap-5">
+                <BackLink />
+                {githubLink ? (
+                  <ExternalProjectLink link={githubLink} label="GitHub" />
+                ) : null}
+              </div>
 
-          <div className="mt-16 lg:mt-20">
-            {architectureMedia.length > 0 ? (
-              <ArchitectureSection
-                number={architectureNumber}
-                caseStudy={caseStudy}
-                media={architectureMedia}
-              />
-            ) : null}
+              <header className="mt-11 max-w-[35rem] min-[1180px]:mt-10 min-[1366px]:mt-11">
+                <p className="text-[0.72rem] font-medium uppercase tracking-[0.2em] text-[#7C8CFF]">
+                  / Project case study
+                </p>
+                <h1
+                  id="project-case-study-title"
+                  className="mt-5 text-[clamp(2.65rem,4vw,3.38rem)] font-semibold leading-[1.06] tracking-[-0.055em] text-[#F8FAFC]"
+                >
+                  {displayTitle}
+                </h1>
+                <p className="mt-4 max-w-[33rem] text-[clamp(1.12rem,1.55vw,1.32rem)] leading-[1.47] tracking-[-0.025em] text-[#AAB7C8]">
+                  {ensureTerminalPeriod(content.title)}
+                </p>
 
-            {interfaceMedia.length > 0 ? (
-              <InterfacesSection
-                number={interfaceNumber}
-                media={interfaceMedia}
-              />
-            ) : null}
+                {metaItems.length > 0 ? (
+                  <p className="mt-5 flex flex-wrap gap-x-3 gap-y-2 text-[0.72rem] font-medium uppercase tracking-[0.2em] text-[#94A3B8]/82">
+                    {metaItems.map((item, index) => (
+                      <span key={item} className="inline-flex items-center gap-3">
+                        {index > 0 ? (
+                          <span
+                            aria-hidden="true"
+                            className="h-1 w-1 rounded-full bg-[#7C8CFF]/75"
+                          />
+                        ) : null}
+                        {item}
+                      </span>
+                    ))}
+                  </p>
+                ) : null}
+              </header>
 
-            {project.technologies.length > 0 ? (
-              <StackSection number={stackNumber} project={project} />
-            ) : null}
+              <div className="mt-8 border-t border-slate-400/[0.09]">
+                {insights.map((block) => (
+                  <ProjectInsightBlock
+                    key={block.title}
+                    block={block}
+                    contributors={project.contributors}
+                  />
+                ))}
+              </div>
 
-            {project.contributors?.length || githubLink ? (
-              <TeamSection
-                project={project}
-                githubLink={githubLink}
-                number={teamNumber}
-              />
-            ) : null}
-          </div>
+              <div className="mt-7 border-t border-slate-400/[0.09] pt-7 min-[1180px]:mt-auto">
+                <h2 className="text-[0.78rem] font-medium uppercase tracking-[0.12em] text-[#7C8CFF]">
+                  Stack principale
+                </h2>
+                <TechnologyStack technologies={project.technologies} />
+              </div>
+            </div>
+          </section>
+
+          <section
+            aria-label="Médias du projet"
+            className="px-5 py-8 sm:px-8 min-[1180px]:min-h-svh min-[1180px]:px-8 min-[1180px]:py-10 min-[1440px]:px-10"
+          >
+            <ProjectMediaViewer
+              coverImage={project.coverImage}
+              architectureMedia={architectureMedia}
+              interfaceMedia={interfaceMedia}
+            />
+          </section>
         </article>
       </main>
     </>
   );
 }
 
-function CaseStudyHero({
-  project,
-  caseStudy,
-  displayTitle,
-  statement,
-  problem,
-  solution,
-  githubLink,
-}: {
-  project: Project;
-  caseStudy?: ProjectCaseStudy;
-  displayTitle: string;
-  statement: string;
-  problem?: string;
-  solution: string;
-  githubLink?: ProjectLink;
-}) {
-  const metaItems = getHeroMetaItems(project, caseStudy);
-
+function BackLink() {
   return (
-    <header className="motion-safe:animate-[case-study-rise_620ms_cubic-bezier(0.22,1,0.36,1)_both]">
-      <Link
-        href="/projects"
-        className="group inline-flex min-h-10 items-center gap-2 rounded-[6px] border border-slate-400/10 bg-[#080D1A]/42 px-4 text-[0.8rem] font-medium text-[#AAB7C8] transition duration-200 hover:border-[#7C8CFF]/40 hover:text-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7C8CFF] focus-visible:ring-offset-2 focus-visible:ring-offset-[#080D1A] motion-reduce:transition-none"
-      >
-        <ArrowLeft
-          aria-hidden="true"
-          className="h-3.5 w-3.5 transition-transform duration-200 group-hover:-translate-x-0.5 motion-reduce:transition-none"
-        />
-        Retour aux projets
-      </Link>
-
-      <div className="mt-12 grid gap-7 lg:grid-cols-[minmax(0,1fr)_max-content] lg:items-end lg:gap-10">
-        <div>
-          <p className="text-[0.72rem] font-medium uppercase tracking-[0.32em] text-[#7C8CFF]/78">
-            / Project case study
-          </p>
-          <h1 className="mt-5 max-w-[54rem] text-[clamp(3rem,6.2vw,4rem)] font-semibold leading-[0.94] tracking-[-0.065em] text-[#F8FAFC]">
-            {displayTitle}
-          </h1>
-        </div>
-
-        {githubLink ? (
-          <div className="flex lg:justify-end lg:pb-1">
-            <ExternalProjectLink link={githubLink} label="GitHub" />
-          </div>
-        ) : null}
-      </div>
-
-      <p className="mt-8 max-w-[52rem] text-[clamp(1.28rem,2.2vw,2rem)] font-medium leading-[1.2] tracking-[-0.04em] text-[#E2E8F0]">
-        {statement}
-      </p>
-
-      {metaItems.length > 0 ? (
-        <p className="mt-6 flex max-w-[50rem] flex-wrap gap-x-3 gap-y-2 text-[0.76rem] font-medium uppercase tracking-[0.16em] text-[#94A3B8]/78">
-          {metaItems.map((item, index) => (
-            <span key={item} className="inline-flex items-center gap-3">
-              {index > 0 ? (
-                <span
-                  aria-hidden="true"
-                  className="h-1 w-1 rounded-full bg-[#7C8CFF]/55"
-                />
-              ) : null}
-              {item}
-            </span>
-          ))}
-        </p>
-      ) : null}
-
-      {project.coverImage ? (
-        <MediaFrame
-          media={project.coverImage}
-          priority
-          className="mt-10 motion-safe:animate-[case-study-rise_720ms_cubic-bezier(0.22,1,0.36,1)_100ms_both]"
-          sizes="(min-width: 1440px) 1240px, (min-width: 1024px) 88vw, 94vw"
-        />
-      ) : null}
-
-      <HeroBrief
-        subject={statement}
-        problem={problem}
-        solution={solution}
+    <Link
+      href="/projects"
+      className="group inline-flex min-h-10 items-center gap-3 text-[0.92rem] font-medium text-[#CBD5E1] transition duration-200 hover:text-[#F8FAFC] focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7C8CFF] focus-visible:ring-offset-4 focus-visible:ring-offset-[#080D1A] motion-reduce:transition-none"
+    >
+      <ArrowLeft
+        aria-hidden="true"
+        className="h-4 w-4 transition-transform duration-200 group-hover:-translate-x-0.5 motion-reduce:transition-none"
       />
-    </header>
+      Retour aux projets
+    </Link>
   );
 }
 
-function HeroBrief({
-  subject,
-  problem,
-  solution,
+function ProjectInsightBlock({
+  block,
+  contributors,
 }: {
-  subject: string;
-  problem?: string;
-  solution: string;
+  block: InsightBlock;
+  contributors?: Project["contributors"];
 }) {
-  return (
-    <div className="mt-12 grid gap-8 border-t border-slate-400/[0.08] pt-8 md:grid-cols-3 md:gap-9 lg:gap-10">
-      <SummaryColumn title="Sujet">{subject}</SummaryColumn>
-      {problem ? <SummaryColumn title="Problème">{problem}</SummaryColumn> : null}
-      <SummaryColumn title="Solution">{solution}</SummaryColumn>
-    </div>
-  );
-}
-
-function SummaryColumn({
-  title,
-  children,
-}: {
-  title: string;
-  children: string;
-}) {
-  return (
-    <div>
-      <h3 className="text-[0.72rem] font-medium uppercase tracking-[0.24em] text-[#7C8CFF]/86">
-        {title}
-      </h3>
-      <p className="mt-3 max-w-[25rem] text-[clamp(0.98rem,1.16vw,1.05rem)] leading-[1.65] text-[#CBD5E1]/88">
-        {children}
-      </p>
-    </div>
-  );
-}
-
-function ArchitectureSection({
-  number,
-  caseStudy,
-  media,
-}: {
-  number: string;
-  caseStudy?: ProjectCaseStudy;
-  media: ProjectMedia[];
-}) {
-  const pipeline = getArchitecturePipeline(caseStudy);
-  const embeddingNote = getEmbeddingNote(caseStudy);
+  const Icon = block.icon;
 
   return (
-    <CaseStudySection number={number} label="Architecture">
-      <div className="space-y-6">
-        <p className="max-w-[42rem] text-[0.98rem] leading-7 text-[#AAB7C8]/84">
-          Architecture visuelle du pipeline RAG multimodal.
+    <section className="grid grid-cols-[3rem_minmax(0,1fr)] gap-5 border-b border-slate-400/[0.09] py-7 min-[1180px]:py-6 min-[1440px]:py-7">
+      <div aria-hidden="true" className="pt-0.5 text-[#7C8CFF]">
+        <Icon className="h-6 w-6 stroke-[1.7]" />
+      </div>
+      <div>
+        <h2 className="text-[0.82rem] font-semibold uppercase tracking-[0.1em] text-[#9AA6FF]">
+          {block.title}
+        </h2>
+        <p className="mt-3 max-w-[34rem] text-[0.93rem] leading-[1.72] text-[#CBD5E1]/88">
+          {block.body}
         </p>
-
-        <ProjectMediaCarousel
-          media={media}
-          label="Galerie architecture du projet"
-        />
-
-        {pipeline.length > 0 ? (
-          <ol
-            aria-label="Pipeline d’architecture résumé"
-            className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[0.78rem] font-medium text-[#E2E8F0]/70"
-          >
-            {pipeline.map((step, index) => (
-              <li key={step} className="inline-flex items-center gap-3">
-                {index > 0 ? (
-                  <span aria-hidden="true" className="text-[#64748B]">
-                    →
-                  </span>
-                ) : null}
-                <span>{step}</span>
-              </li>
-            ))}
-          </ol>
-        ) : null}
-
-        {embeddingNote ? (
-          <p className="text-[0.78rem] leading-6 text-[#94A3B8]/62">
-            {embeddingNote}
-          </p>
+        {block.title === "Contribution" && contributors?.length ? (
+          <ContributorsList contributors={contributors} />
         ) : null}
       </div>
-    </CaseStudySection>
-  );
-}
-
-function StackSection({
-  project,
-  number,
-}: {
-  project: Project;
-  number: string;
-}) {
-  return (
-    <CaseStudySection number={number} label="Stack">
-      <ul className="grid grid-cols-2 gap-x-6 gap-y-4 rounded-[14px] border border-slate-400/[0.08] bg-[#090F1C]/18 p-5 sm:p-6 md:grid-cols-3 xl:grid-cols-5">
-        {project.technologies.map((technology) => (
-          <li
-            key={technology.id}
-            className="inline-flex min-w-0 items-center gap-2.5 text-[0.84rem] font-medium leading-snug text-[#AAB7C8] transition-colors duration-200 hover:text-[#F8FAFC] motion-reduce:transition-none sm:text-[0.86rem]"
-          >
-            <TechnologyIcon technology={technology} />
-            <span className="min-w-0">{technology.name}</span>
-          </li>
-        ))}
-      </ul>
-    </CaseStudySection>
-  );
-}
-
-function InterfacesSection({
-  media,
-  number,
-}: {
-  media: ProjectMedia[];
-  number: string;
-}) {
-  return (
-    <CaseStudySection number={number} label="Interfaces">
-      <div className="space-y-6">
-        <p className="max-w-[42rem] text-[0.98rem] leading-7 text-[#AAB7C8]/84">
-          Quelques vues de l’interface desktop et responsive de la plateforme.
-        </p>
-
-        <ProjectMediaCarousel
-          media={media}
-          label="Galerie interfaces du projet"
-        />
-      </div>
-    </CaseStudySection>
-  );
-}
-
-function TeamSection({
-  project,
-  githubLink,
-  number,
-}: {
-  project: Project;
-  githubLink?: ProjectLink;
-  number: string;
-}) {
-  return (
-    <CaseStudySection number={number} label="Team">
-      <div className="grid gap-8 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
-        {project.contributors?.length ? (
-          <ul className="flex flex-wrap items-center gap-x-4 gap-y-3">
-            {project.contributors.map((contributor, index) => (
-              <li
-                key={contributor.name}
-                className="inline-flex items-center gap-4 text-[clamp(1.12rem,1.55vw,1.36rem)] font-medium tracking-[-0.03em] text-[#E2E8F0]"
-              >
-                {index > 0 ? (
-                  <span
-                    aria-hidden="true"
-                    className="h-1 w-1 rounded-full bg-[#7C8CFF]/55"
-                  />
-                ) : null}
-                {contributor.name}
-              </li>
-            ))}
-          </ul>
-        ) : null}
-
-        <div className="flex flex-wrap gap-3">
-          {githubLink ? (
-            <ExternalProjectLink
-              link={githubLink}
-              label="Voir le code source"
-              prominent
-            />
-          ) : null}
-
-          <Link
-            href="/projects"
-            className="group inline-flex min-h-10 items-center gap-2 rounded-[6px] px-1 text-[0.82rem] font-medium text-[#AAB7C8]/82 transition duration-200 hover:text-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7C8CFF] focus-visible:ring-offset-4 focus-visible:ring-offset-[#080D1A] motion-reduce:transition-none"
-          >
-            <ArrowLeft
-              aria-hidden="true"
-              className="h-3.5 w-3.5 transition-transform duration-200 group-hover:-translate-x-0.5 motion-reduce:transition-none"
-            />
-            Retour aux projets
-          </Link>
-        </div>
-      </div>
-    </CaseStudySection>
-  );
-}
-
-function CaseStudySection({
-  number,
-  label,
-  children,
-}: {
-  number: string;
-  label: string;
-  children: ReactNode;
-}) {
-  return (
-    <section className="grid gap-7 border-t border-slate-400/[0.08] py-14 motion-safe:animate-[case-study-rise_560ms_cubic-bezier(0.22,1,0.36,1)_both] md:py-16 lg:grid-cols-[11rem_minmax(0,1fr)] lg:gap-12">
-      <h2 className="text-[0.74rem] font-medium uppercase tracking-[0.24em] text-[#7C8CFF]/72">
-        {number} / {label}
-      </h2>
-      <div>{children}</div>
     </section>
   );
 }
 
-function MediaFrame({
-  media,
-  className,
-  priority = false,
-  sizes,
+function ContributorsList({
+  contributors,
 }: {
-  media: ProjectMedia;
-  className?: string;
-  priority?: boolean;
-  sizes: string;
+  contributors: NonNullable<Project["contributors"]>;
 }) {
   return (
-    <figure
-      className={[
-        "overflow-hidden rounded-[16px] border border-slate-400/[0.1] bg-[#050912]/60 shadow-[0_20px_64px_rgba(0,0,0,0.2)]",
-        className ?? "",
-      ].join(" ")}
-    >
-      <Image
-        src={resolveProjectMediaUrl(media)}
-        alt={media.alt}
-        width={media.width ?? 1536}
-        height={media.height ?? 1024}
-        priority={priority}
-        sizes={sizes}
-        className="h-auto w-full object-contain"
-      />
-      {media.caption ? (
-        <figcaption className="border-t border-slate-400/[0.08] px-4 py-3 text-[0.82rem] text-[#94A3B8]">
-          {media.caption}
-        </figcaption>
-      ) : null}
-    </figure>
+    <ul className="mt-5 flex flex-wrap gap-x-7 gap-y-3">
+      {contributors.map((contributor) => (
+        <li
+          key={contributor.name}
+          className="inline-flex items-center gap-3 text-[0.88rem] font-medium text-[#F8FAFC]"
+        >
+          <span className="grid h-9 w-9 place-items-center rounded-full border border-[#7C8CFF]/32 bg-[#7C8CFF]/14 text-[0.76rem] text-[#C7D2FE]">
+            {getInitials(contributor.name)}
+          </span>
+          <span>{contributor.name}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function TechnologyStack({
+  technologies,
+}: {
+  technologies: ProjectTechnology[];
+}) {
+  if (technologies.length === 0) {
+    return null;
+  }
+
+  return (
+    <ul className="mt-5 grid grid-cols-3 gap-x-4 gap-y-5 sm:grid-cols-5 min-[1180px]:grid-cols-6 min-[1366px]:grid-cols-9">
+      {technologies.map((technology) => {
+        const hasIcon = Boolean(getTechnologyIconSrc(technology));
+
+        return (
+          <li key={technology.id} className="min-w-0 text-center">
+            {hasIcon ? (
+              <span className="mx-auto grid h-10 w-10 place-items-center rounded-[9px] border border-slate-400/[0.09] bg-[#0B1222]/72">
+                <TechnologyIcon technology={technology} />
+              </span>
+            ) : (
+              <span aria-hidden="true" className="mx-auto block h-10 w-10" />
+            )}
+            <span className="mt-2 block text-[0.72rem] font-medium leading-[1.18] text-[#E2E8F0]">
+              {technology.name}
+            </span>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
 function ExternalProjectLink({
   link,
   label,
-  prominent = false,
 }: {
   link: ProjectLink;
   label?: string;
-  prominent?: boolean;
 }) {
   return (
     <Link
       href={link.url}
       target="_blank"
       rel="noopener noreferrer"
-      className={[
-        "group inline-flex h-11 w-fit max-w-[11rem] items-center justify-center gap-2 whitespace-nowrap rounded-[8px] border px-4 transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7C8CFF] focus-visible:ring-offset-4 focus-visible:ring-offset-[#080D1A] motion-reduce:transition-none",
-        prominent
-          ? "max-w-none border-[#7C8CFF]/34 bg-[#7C8CFF]/[0.06] px-5 text-[0.88rem] font-medium text-[#F8FAFC] hover:border-[#7C8CFF]/58 hover:bg-[#7C8CFF]/10"
-          : "border-slate-400/[0.12] bg-transparent text-[0.82rem] font-medium text-[#AAB7C8] hover:border-[#7C8CFF]/35 hover:text-slate-50",
-      ].join(" ")}
+      aria-label={`${label ?? link.label} - ouvrir le dépôt dans un nouvel onglet`}
+      className="group inline-flex h-11 w-fit items-center justify-center gap-2 whitespace-nowrap rounded-[8px] border border-slate-400/[0.12] bg-transparent px-4 text-[0.92rem] font-medium text-[#F8FAFC] transition duration-200 hover:border-[#7C8CFF]/38 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7C8CFF] focus-visible:ring-offset-4 focus-visible:ring-offset-[#080D1A] motion-reduce:transition-none"
     >
       {link.type === "github" ? (
-        <GitBranch aria-hidden="true" className="h-4 w-4" />
+        <GitBranch aria-hidden="true" className="h-[1.05rem] w-[1.05rem]" />
       ) : null}
       <span>{label ?? link.label}</span>
       <ArrowUpRight
@@ -537,6 +316,32 @@ function ExternalProjectLink({
       />
     </Link>
   );
+}
+
+function getInsightBlocks(
+  caseStudy: ProjectCaseStudy | undefined,
+  fallbackSolution: string,
+  project: Project,
+): InsightBlock[] {
+  return [
+    {
+      title: "Problématique",
+      body: getProblemSummary(caseStudy?.problem),
+      icon: Target,
+    },
+    {
+      title: "Solution",
+      body: getSolutionSummary(caseStudy, fallbackSolution),
+      icon: Lightbulb,
+    },
+    {
+      title: "Contribution",
+      body: project.role
+        ? ensureTerminalPeriod(project.role)
+        : "Projet réalisé en binôme.",
+      icon: Users,
+    },
+  ];
 }
 
 function getProjectDisplayTitle(project: Project) {
@@ -570,42 +375,44 @@ function getCompactContextLabel(context: string | undefined) {
 
 function getProblemSummary(problem: string | undefined) {
   if (!problem) {
-    return undefined;
+    return "Les rapports PDF médicaux combinent souvent texte, tableaux, résultats et éléments visuels difficiles à exploiter automatiquement.";
   }
 
   return getSentences(problem, 2).join(" ");
 }
 
-function getSentences(value: string, limit: number) {
-  return value
-    .match(/[^.!?]+[.!?]+/g)
-    ?.slice(0, limit)
-    .map((sentence) => sentence.trim()) ?? [value];
-}
+function getSolutionSummary(
+  caseStudy: ProjectCaseStudy | undefined,
+  fallbackSolution: string,
+) {
+  const objectives = caseStudy?.objectives ?? [];
+  const hasStructuredRagObjectives =
+    objectives.some((objective) => /extraire|extraction/i.test(objective)) &&
+    objectives.some((objective) => /index/i.test(objective)) &&
+    objectives.some((objective) => /réponse|reponse|sources?/i.test(objective));
 
-function getArchitecturePipeline(caseStudy: ProjectCaseStudy | undefined) {
-  const steps = caseStudy?.architectureSteps ?? [];
-
-  return ARCHITECTURE_PIPELINE_MATCHERS.filter((matcher) =>
-    steps.some((step) => matcher.pattern.test(step)),
-  ).map((matcher) => matcher.label);
-}
-
-function getEmbeddingNote(caseStudy: ProjectCaseStudy | undefined) {
-  const approach = caseStudy?.approach ?? "";
-  const primary = approach.match(/BAAI\/bge-m3/i)?.[0];
-  const fallback = approach.match(/intfloat\/multilingual-e5-base/i)?.[0];
-
-  if (!primary && !fallback) {
-    return undefined;
+  if (hasStructuredRagObjectives) {
+    return "La plateforme extrait, structure et indexe les informations des rapports afin de permettre une recherche intelligente et des réponses contextualisées et sourcées via une architecture RAG.";
   }
 
-  return [
-    primary ? `Embeddings : ${primary}` : undefined,
-    fallback ? `fallback ${fallback}` : undefined,
-  ]
-    .filter(Boolean)
-    .join(" · ");
+  if (caseStudy?.architecture) {
+    return getSentences(caseStudy.architecture, 1).join(" ");
+  }
+
+  return fallbackSolution;
+}
+
+function getSentences(value: string, limit: number) {
+  return (
+    value
+      .match(/[^.!?]+[.!?]+/g)
+      ?.slice(0, limit)
+      .map((sentence) => sentence.trim()) ?? [value]
+  );
+}
+
+function ensureTerminalPeriod(value: string) {
+  return /[.!?]$/.test(value.trim()) ? value : `${value}.`;
 }
 
 function trimTrailingPeriod(value: string) {
@@ -616,6 +423,11 @@ function getProjectLink(project: Project, type: ProjectLink["type"]) {
   return project.links.find((link) => link.type === type);
 }
 
-function formatSectionNumber(index: number) {
-  return String(index).padStart(2, "0");
+function getInitials(name: string) {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("");
 }
