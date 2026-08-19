@@ -4,6 +4,8 @@ export type {
   ProjectCategory,
   ProjectContributor,
   ProjectCategoryFilter,
+  ProjectDomain,
+  ProjectDomainFilter,
   ProjectExplorerState,
   ProjectLink,
   ProjectLinkType,
@@ -21,6 +23,7 @@ export type {
 } from "@/features/projects/domain/project.types";
 
 export {
+  projectDomains,
   projectStatuses,
   projectTypes,
   supportedLocales,

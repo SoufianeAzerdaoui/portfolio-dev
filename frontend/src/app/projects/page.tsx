@@ -7,7 +7,7 @@ import { ProjectsExplorer } from "@/components/projects/projects-explorer";
 import { projectsPageContent } from "@/content/projects";
 import { getPublishedProjects } from "@/features/projects/queries/project.queries";
 import {
-  getAvailableProjectCategories,
+  getAvailableProjectDomains,
   parseProjectSearchParams,
 } from "@/lib/projects";
 
@@ -28,10 +28,10 @@ export const metadata: Metadata = {
 
 export default async function ProjectsPage({ searchParams }: ProjectsPageProps) {
   const publishedProjects = await getPublishedProjects();
-  const availableCategories = getAvailableProjectCategories(publishedProjects);
+  const availableDomains = getAvailableProjectDomains(publishedProjects);
   const initialState = parseProjectSearchParams(
     await searchParams,
-    availableCategories,
+    availableDomains,
   );
 
   return (
@@ -74,7 +74,7 @@ export default async function ProjectsPage({ searchParams }: ProjectsPageProps) 
 
           <ProjectsExplorer
             projects={publishedProjects}
-            categories={availableCategories}
+            domains={availableDomains}
             initialState={initialState}
           />
         </section>

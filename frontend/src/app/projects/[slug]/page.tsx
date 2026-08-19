@@ -37,12 +37,18 @@ type InsightBlock = {
   icon: typeof Target;
 };
 
+function hasProjectCaseStudy(project: Project) {
+  return Boolean(getProjectContent(project, "fr").caseStudy);
+}
+
 export async function generateStaticParams() {
   const projects = await getPublishedProjects();
 
-  return projects.map((project) => ({
-    slug: project.slug,
-  }));
+  return projects
+    .filter(hasProjectCaseStudy)
+    .map((project) => ({
+      slug: project.slug,
+    }));
 }
 
 export async function generateMetadata({
@@ -56,6 +62,11 @@ export async function generateMetadata({
   }
 
   const content = getProjectContent(project, "fr");
+
+  if (!content.caseStudy) {
+    notFound();
+  }
+
   const displayTitle = getProjectDisplayTitle(project);
   const description = content.seo?.description ?? content.shortDescription;
   const coverImage = project.coverImage;
@@ -97,6 +108,11 @@ export default async function ProjectCaseStudyPage({
 
   const content = getProjectContent(project, "fr");
   const caseStudy = content.caseStudy;
+
+  if (!caseStudy) {
+    notFound();
+  }
+
   const displayTitle = getProjectDisplayTitle(project);
   const githubLink = getProjectLink(project, "github");
   const architectureMedia = getProjectMediaByRole(project, "architecture");

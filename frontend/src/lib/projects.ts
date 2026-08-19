@@ -1,9 +1,13 @@
 export {
   createProjectSearchParams,
   filterProjects,
+  formatProjectFilterCount,
+  formatProjectFilterCountLabel,
   formatProjectsCount,
   getAvailableProjectCategories,
+  getAvailableProjectDomains,
   getAvailableProjectTechnologies,
+  getProjectDomainCounts,
   getPrimaryProjectLink,
   isExternalProjectLink,
   isProjectViewMode,

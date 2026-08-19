@@ -4,6 +4,8 @@ export type {
   ProjectCategory,
   ProjectCategoryFilter,
   ProjectContributor,
+  ProjectDomain,
+  ProjectDomainFilter,
   ProjectExplorerState,
   ProjectLink,
   ProjectLinkType,
@@ -21,10 +23,23 @@ export type {
 } from "@/features/projects/domain/project.types";
 
 export {
+  projectDomains,
   projectStatuses,
   projectTypes,
   supportedLocales,
 } from "@/features/projects/domain/project.types";
+
+export {
+  ALL_PROJECT_DOMAIN_OPTION,
+  getProjectDomainLabel,
+  isProjectDomain,
+  PROJECT_DOMAIN_OPTIONS,
+} from "@/features/projects/domain/project-domains";
+
+export type {
+  ProjectDomainFilterOption,
+  ProjectDomainOption,
+} from "@/features/projects/domain/project-domains";
 
 export {
   getFeaturedProjects,
@@ -35,9 +50,13 @@ export {
 export {
   createProjectSearchParams,
   filterProjects,
+  formatProjectFilterCount,
+  formatProjectFilterCountLabel,
   formatProjectsCount,
   getAvailableProjectCategories,
+  getAvailableProjectDomains,
   getAvailableProjectTechnologies,
+  getProjectDomainCounts,
   getPrimaryProjectLink,
   isExternalProjectLink,
   isProjectViewMode,

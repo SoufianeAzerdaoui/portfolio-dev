@@ -37,7 +37,7 @@ export function TechnologyIcon({
           width={20}
           height={20}
           unoptimized
-          className="max-h-5 max-w-5 object-contain opacity-80"
+          className="max-h-[18px] max-w-[18px] object-contain opacity-80"
         />
       ) : null}
     </span>
