@@ -75,14 +75,14 @@ function clamp(value: number, min: number, max: number) {
 function getProfile(width: number, variant: BackgroundVariant): ViewProfile {
   if (variant === "home") {
     if (width < 768) {
-      return { starCount: 8, filamentCount: 0 };
+      return { starCount: 5, filamentCount: 0 };
     }
 
     if (width < 1024) {
-      return { starCount: 12, filamentCount: 1 };
+      return { starCount: 9, filamentCount: 0 };
     }
 
-    return { starCount: 18, filamentCount: 1 };
+    return { starCount: 14, filamentCount: 1 };
   }
 
   if (width < 768) {
@@ -235,7 +235,7 @@ function createFilaments(): Filament[] {
 }
 
 function HomeTechnicalMotifs() {
-  const matrixDots = Array.from({ length: 42 }, (_, index) => index);
+  const matrixDots = Array.from({ length: 36 }, (_, index) => index);
 
   return (
     <>
@@ -251,16 +251,9 @@ function HomeTechnicalMotifs() {
           fill="none"
           stroke="var(--home-line-strong)"
           strokeWidth="1"
-          opacity="0.56"
+          opacity="0.42"
         />
-        <path
-          d="M-110 760C280 688 604 681 941 725C1282 770 1580 752 2034 634"
-          fill="none"
-          stroke="var(--home-line-muted)"
-          strokeWidth="1"
-          opacity="0.62"
-        />
-        <g className="hidden md:block" opacity="0.7">
+        <g className="hidden md:block" opacity="0.42">
           <path
             d="M672 344H812"
             stroke="var(--home-line)"
@@ -274,30 +267,10 @@ function HomeTechnicalMotifs() {
             strokeLinecap="round"
           />
           <path
-            d="M1668 338h30v30"
-            stroke="var(--home-line)"
-            strokeWidth="1"
-            strokeLinecap="round"
-          />
-          <path
             d="M604 506h92"
             stroke="var(--home-line-muted)"
             strokeWidth="1"
             strokeLinecap="round"
-          />
-          <path
-            d="M1512 502h92"
-            stroke="var(--home-line-muted)"
-            strokeWidth="1"
-            strokeLinecap="round"
-          />
-          <rect
-            x="705"
-            y="370"
-            width="9"
-            height="9"
-            stroke="var(--home-line)"
-            strokeWidth="1"
           />
           <circle
             className="home-node-breathe"
@@ -313,21 +286,14 @@ function HomeTechnicalMotifs() {
             r="2.4"
             fill="var(--home-accent)"
           />
-          <circle
-            cx="1610"
-            cy="502"
-            r="1.8"
-            fill="var(--home-accent-2)"
-            opacity="0.45"
-          />
         </g>
       </svg>
 
-      <div className="home-dot-matrix absolute right-[7vw] top-[24%] hidden grid-cols-7 gap-[11px] opacity-70 md:grid lg:right-[9vw] lg:top-[26%]">
+      <div className="home-dot-matrix absolute right-[7vw] top-[24%] hidden grid-cols-6 gap-[10px] opacity-45 md:grid lg:right-[9vw] lg:top-[26%]">
         {matrixDots.map((dot) => (
           <span
             key={dot}
-            className="h-[2px] w-[2px] rounded-full bg-[var(--home-accent-2)] opacity-[0.28]"
+            className="h-[1.5px] w-[1.5px] rounded-full bg-[var(--home-accent-2)] opacity-[0.22]"
           />
         ))}
       </div>
@@ -336,10 +302,10 @@ function HomeTechnicalMotifs() {
         aria-hidden="true"
         focusable="false"
         viewBox="0 0 520 340"
-        className="home-topographic-mask absolute -right-10 bottom-[-7rem] hidden h-[23rem] w-[35rem] opacity-80 lg:block xl:-right-8 xl:bottom-[-6rem]"
+        className="home-topographic-mask absolute -right-10 bottom-[-7.5rem] hidden h-[22rem] w-[34rem] opacity-55 lg:block xl:-right-8 xl:bottom-[-6.5rem]"
       >
-        {Array.from({ length: 8 }, (_, index) => {
-          const offset = index * 22;
+        {Array.from({ length: 5 }, (_, index) => {
+          const offset = index * 28;
 
           return (
             <path
@@ -348,7 +314,7 @@ function HomeTechnicalMotifs() {
               fill="none"
               stroke="var(--home-line-strong)"
               strokeWidth="1"
-              opacity={0.6 - index * 0.055}
+              opacity={0.34 - index * 0.045}
             />
           );
         })}
@@ -411,6 +377,12 @@ export function SpaceBackground({ variant = "space" }: SpaceBackgroundProps) {
     let finePointer = pointerQuery.matches;
     let lightTheme = document.documentElement.dataset.theme === "light";
 
+    const syncReducedMotion = () => {
+      reducedMotion =
+        document.documentElement.dataset.motion === "reduce" ||
+        motionQuery.matches;
+    };
+
     const resize = () => {
       width = Math.max(1, window.innerWidth);
       height = Math.max(1, window.innerHeight);
@@ -450,7 +422,7 @@ export function SpaceBackground({ variant = "space" }: SpaceBackgroundProps) {
         const nebulaAlpha = variant === "home"
           ? lightTheme
             ? nebula.alpha * 0.18
-            : nebula.alpha * 0.58
+            : nebula.alpha * 0.42
           : lightTheme
             ? nebula.alpha * 0.32
             : nebula.alpha;
@@ -513,7 +485,7 @@ export function SpaceBackground({ variant = "space" }: SpaceBackgroundProps) {
             ? 0
             : Math.exp(-distance / 210) * 0.018;
         const alpha = variant === "home"
-          ? clamp((star.alpha + twinkle + cursorLift) * 0.62, 0.018, 0.16)
+          ? clamp((star.alpha + twinkle + cursorLift) * 0.46, 0.014, 0.11)
           : lightTheme
           ? clamp((star.alpha + twinkle + cursorLift) * 0.34, 0.018, 0.08)
           : clamp(star.alpha + twinkle + cursorLift, 0.04, 0.32);
@@ -572,7 +544,7 @@ export function SpaceBackground({ variant = "space" }: SpaceBackgroundProps) {
         context.lineJoin = "round";
         context.lineWidth = filament.width + 1.2;
         context.strokeStyle = variant === "home"
-          ? `rgba(38, 38, 46, ${filament.alpha * 0.42})`
+          ? `rgba(38, 38, 46, ${filament.alpha * 0.28})`
           : lightTheme
           ? `rgba(80, 95, 150, ${filament.alpha * 0.2})`
           : `rgba(63, 99, 221, ${filament.alpha * 0.24})`;
@@ -581,7 +553,7 @@ export function SpaceBackground({ variant = "space" }: SpaceBackgroundProps) {
         drawCubicPath(context, points);
         context.lineWidth = filament.width;
         context.strokeStyle = variant === "home"
-          ? `rgba(139, 128, 217, ${filament.alpha * 0.48})`
+          ? `rgba(139, 128, 217, ${filament.alpha * 0.34})`
           : lightTheme
           ? `rgba(95, 103, 246, ${filament.alpha * 0.42})`
           : `rgba(124, 140, 255, ${filament.alpha})`;
@@ -590,7 +562,7 @@ export function SpaceBackground({ variant = "space" }: SpaceBackgroundProps) {
         drawCubicPath(context, points);
         context.lineWidth = Math.max(0.45, filament.width * 0.62);
         context.strokeStyle = variant === "home"
-          ? `rgba(180, 177, 194, ${filament.alpha * 0.2})`
+          ? `rgba(180, 177, 194, ${filament.alpha * 0.14})`
           : lightTheme
           ? `rgba(80, 95, 150, ${filament.alpha * 0.18})`
           : `rgba(170, 183, 200, ${filament.alpha * 0.42})`;
@@ -667,7 +639,7 @@ export function SpaceBackground({ variant = "space" }: SpaceBackgroundProps) {
     };
 
     const handleMediaChange = () => {
-      reducedMotion = motionQuery.matches;
+      syncReducedMotion();
       finePointer = pointerQuery.matches;
       pointer.targetX = 0.5;
       pointer.targetY = 0.5;
@@ -679,6 +651,7 @@ export function SpaceBackground({ variant = "space" }: SpaceBackgroundProps) {
 
     const handleThemeChange = () => {
       lightTheme = document.documentElement.dataset.theme === "light";
+      syncReducedMotion();
       syncAnimation();
     };
 
@@ -705,8 +678,10 @@ export function SpaceBackground({ variant = "space" }: SpaceBackgroundProps) {
     window.addEventListener("resize", handleResize, { passive: true });
     document.addEventListener("visibilitychange", handleVisibilityChange);
     window.addEventListener("portfolio-theme-change", handleThemeChange);
+    window.addEventListener("portfolio-preferences-change", handleThemeChange);
     motionQuery.addEventListener("change", handleMediaChange);
     pointerQuery.addEventListener("change", handleMediaChange);
+    syncReducedMotion();
     syncAnimation();
 
     return () => {
@@ -717,6 +692,7 @@ export function SpaceBackground({ variant = "space" }: SpaceBackgroundProps) {
       window.removeEventListener("resize", handleResize);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("portfolio-theme-change", handleThemeChange);
+      window.removeEventListener("portfolio-preferences-change", handleThemeChange);
       motionQuery.removeEventListener("change", handleMediaChange);
       pointerQuery.removeEventListener("change", handleMediaChange);
     };

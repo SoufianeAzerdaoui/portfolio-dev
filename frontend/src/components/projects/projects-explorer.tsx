@@ -48,6 +48,67 @@ type CountedProjectDomainFilterOption = ProjectDomainFilterOption & {
   count: number;
 };
 
+const projectsExplorerCopy = {
+  fr: {
+    searchLabel: "Rechercher un projet ou une technologie",
+    searchPlaceholder: "Rechercher un projet, technologie...",
+    clearSearch: "Effacer la recherche",
+    viewMode: "Mode d'affichage des projets",
+    gridView: "Afficher les projets en grille",
+    listView: "Afficher les projets en liste",
+    domainFilter: "Filtrer les projets par domaine",
+    allDomains: "Tous",
+    noFilteredTitle: "Aucun projet ne correspond à ces critères.",
+    noFilteredBody:
+      "Modifie la recherche ou réinitialise les filtres pour retrouver la collection complète.",
+    noProjectsTitle: "Aucun projet publié pour le moment.",
+    noProjectsBody: "Les projets publiés seront bientôt disponibles.",
+    resetFilters: "Réinitialiser les filtres",
+    pagination: "Pagination des projets",
+    previous: "Précédent",
+    next: "Suivant",
+  },
+  en: {
+    searchLabel: "Search for a project or technology",
+    searchPlaceholder: "Search for a project, technology...",
+    clearSearch: "Clear search",
+    viewMode: "Project view mode",
+    gridView: "Show projects as a grid",
+    listView: "Show projects as a list",
+    domainFilter: "Filter projects by domain",
+    allDomains: "All",
+    noFilteredTitle: "No project matches these criteria.",
+    noFilteredBody:
+      "Adjust the search or reset filters to see the full collection.",
+    noProjectsTitle: "No published project yet.",
+    noProjectsBody: "Published projects will be available soon.",
+    resetFilters: "Reset filters",
+    pagination: "Projects pagination",
+    previous: "Previous",
+    next: "Next",
+  },
+} as const satisfies Record<
+  SupportedLocale,
+  {
+    searchLabel: string;
+    searchPlaceholder: string;
+    clearSearch: string;
+    viewMode: string;
+    gridView: string;
+    listView: string;
+    domainFilter: string;
+    allDomains: string;
+    noFilteredTitle: string;
+    noFilteredBody: string;
+    noProjectsTitle: string;
+    noProjectsBody: string;
+    resetFilters: string;
+    pagination: string;
+    previous: string;
+    next: string;
+  }
+>;
+
 function hasActiveFilters(state: ProjectExplorerState) {
   return state.query.trim().length > 0 || state.domain !== "all";
 }
@@ -69,6 +130,7 @@ export function ProjectsExplorer({
   const pathname = usePathname();
   const resultsRef = useRef<HTMLDivElement>(null);
   const [state, setState] = useState<ProjectExplorerState>(initialState);
+  const copy = projectsExplorerCopy[locale];
 
   useEffect(() => {
     const handlePopState = () => {
@@ -105,10 +167,10 @@ export function ProjectsExplorer({
     () =>
       [ALL_PROJECT_DOMAIN_OPTION, ...domains].map((domain) => ({
         id: domain.id,
-        label: domain.label,
+        label: domain.id === "all" ? copy.allDomains : domain.label,
         count: domainCounts.get(domain.id) ?? 0,
       })),
-    [domainCounts, domains],
+    [copy.allDomains, domainCounts, domains],
   );
 
   const commitState = (
@@ -126,7 +188,9 @@ export function ProjectsExplorer({
     }
 
     if (shouldScroll) {
-      const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const reducedMotion =
+        document.documentElement.dataset.motion === "reduce" ||
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
       window.requestAnimationFrame(() => {
         resultsRef.current?.scrollIntoView({
@@ -166,7 +230,7 @@ export function ProjectsExplorer({
         <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center xl:justify-end">
           <div className="relative w-full sm:max-w-[28rem]">
             <label htmlFor="project-search" className="sr-only">
-              Rechercher un projet ou une technologie
+              {copy.searchLabel}
             </label>
             <Search
               aria-hidden="true"
@@ -177,7 +241,7 @@ export function ProjectsExplorer({
               type="search"
               value={state.query}
               onChange={(event) => updateQuery(event.target.value)}
-              placeholder="Rechercher un projet, technologie..."
+              placeholder={copy.searchPlaceholder}
               className="h-11 w-full rounded-[9px] border border-[var(--border-subtle)] bg-[var(--surface-elevated)] pl-11 pr-11 text-[0.82rem] text-[var(--foreground)] outline-none transition duration-200 placeholder:text-[var(--foreground-subtle)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[rgb(var(--accent-rgb)/0.1)]"
             />
             {state.query ? (
@@ -185,7 +249,7 @@ export function ProjectsExplorer({
                 type="button"
                 onClick={() => updateQuery("")}
                 className="absolute right-2.5 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-md text-[var(--foreground-muted)] transition duration-200 hover:bg-[var(--surface-soft)] hover:text-[var(--foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--focus-ring-offset)]"
-                aria-label="Effacer la recherche"
+                aria-label={copy.clearSearch}
               >
                 <X aria-hidden="true" className="h-3.5 w-3.5" />
               </button>
@@ -194,11 +258,11 @@ export function ProjectsExplorer({
 
           <div
             className="inline-flex h-11 rounded-[9px] border border-[var(--border-subtle)] bg-[var(--surface-elevated)] p-1"
-            aria-label="Mode d'affichage des projets"
+            aria-label={copy.viewMode}
           >
             <button
               type="button"
-              aria-label="Afficher les projets en grille"
+              aria-label={copy.gridView}
               aria-pressed={state.view === "grid"}
               onClick={() => updateView("grid")}
               className={[
@@ -212,7 +276,7 @@ export function ProjectsExplorer({
             </button>
             <button
               type="button"
-              aria-label="Afficher les projets en liste"
+              aria-label={copy.listView}
               aria-pressed={state.view === "list"}
               onClick={() => updateView("list")}
               className={[
@@ -231,7 +295,7 @@ export function ProjectsExplorer({
       <div className="mt-12 border-y border-[var(--border-subtle)] py-4">
         <div className="sm:hidden">
           <label htmlFor="project-domain-filter" className="sr-only">
-            Filtrer les projets par domaine
+            {copy.domainFilter}
           </label>
           <div className="relative">
             <select
@@ -245,7 +309,7 @@ export function ProjectsExplorer({
               {domainOptions.map((domain) => (
                 <option key={domain.id} value={domain.id}>
                   {domain.id === "all"
-                    ? `Tous les domaines - ${formatProjectFilterCount(domain.count)}`
+                    ? `${copy.allDomains} - ${formatProjectFilterCount(domain.count)}`
                     : `${domain.label} - ${formatProjectFilterCount(domain.count)}`}
                 </option>
               ))}
@@ -259,7 +323,7 @@ export function ProjectsExplorer({
         <div
           className="hidden flex-wrap items-center gap-x-8 gap-y-3 sm:flex lg:gap-x-10"
           role="group"
-          aria-label="Filtrer les projets par domaine"
+          aria-label={copy.domainFilter}
         >
           {domainOptions.map((domain) => {
             const isActive = state.domain === domain.id;
@@ -271,6 +335,7 @@ export function ProjectsExplorer({
                 aria-pressed={isActive}
                 aria-label={`${domain.label}, ${formatProjectFilterCountLabel(
                   domain.count,
+                  locale,
                 )}`}
                 onClick={() => updateDomain(domain.id)}
                 className={[
@@ -312,7 +377,7 @@ export function ProjectsExplorer({
           aria-live="polite"
           className="mt-5 text-[0.78rem] font-medium text-[var(--foreground-muted)]"
         >
-          {formatProjectsCount(filteredProjects.length)}
+          {formatProjectsCount(filteredProjects.length, locale)}
         </p>
 
         {pagination.items.length > 0 ? (
@@ -341,13 +406,13 @@ export function ProjectsExplorer({
             />
             <h2 className="mt-5 text-xl font-semibold tracking-[-0.03em] text-[var(--foreground)]">
               {hasActiveFilters(state)
-                ? "Aucun projet ne correspond à ces critères."
-                : "Aucun projet publié pour le moment."}
+                ? copy.noFilteredTitle
+                : copy.noProjectsTitle}
             </h2>
             <p className="mx-auto mt-3 max-w-[36rem] text-sm leading-6 text-[var(--foreground-muted)]">
               {hasActiveFilters(state)
-                ? "Modifie la recherche ou réinitialise les filtres pour retrouver la collection complète."
-                : "Les projets publiés seront bientôt disponibles."}
+                ? copy.noFilteredBody
+                : copy.noProjectsBody}
             </p>
             {hasActiveFilters(state) ? (
               <button
@@ -356,7 +421,7 @@ export function ProjectsExplorer({
                 className="mt-6 inline-flex min-h-[42px] items-center justify-center gap-2 rounded-[6px] border border-[var(--button-secondary-border)] bg-[var(--button-secondary-bg)] px-5 text-[0.82rem] font-medium text-[var(--foreground)] transition duration-200 hover:border-[var(--accent-muted)] hover:bg-[var(--button-secondary-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--focus-ring-offset)]"
               >
                 <RotateCcw aria-hidden="true" className="h-3.5 w-3.5" />
-                Réinitialiser les filtres
+                {copy.resetFilters}
               </button>
             ) : null}
           </div>
@@ -365,7 +430,7 @@ export function ProjectsExplorer({
 
       {pagination.pageCount > 1 ? (
         <nav
-          aria-label="Pagination des projets"
+          aria-label={copy.pagination}
           className="mt-8 flex flex-wrap items-center justify-center gap-2"
         >
           <button
@@ -374,7 +439,7 @@ export function ProjectsExplorer({
             disabled={pagination.currentPage === 1}
             className="min-h-10 rounded-[7px] border border-[var(--border-subtle)] px-4 text-[0.78rem] font-medium text-[var(--foreground-muted)] transition duration-200 hover:border-[var(--accent-muted)] hover:text-[var(--foreground)] disabled:cursor-not-allowed disabled:opacity-40"
           >
-            Précédent
+            {copy.previous}
           </button>
           {Array.from({ length: pagination.pageCount }, (_, index) => index + 1).map(
             (page) => (
@@ -400,7 +465,7 @@ export function ProjectsExplorer({
             disabled={pagination.currentPage === pagination.pageCount}
             className="min-h-10 rounded-[7px] border border-[var(--border-subtle)] px-4 text-[0.78rem] font-medium text-[var(--foreground-muted)] transition duration-200 hover:border-[var(--accent-muted)] hover:text-[var(--foreground)] disabled:cursor-not-allowed disabled:opacity-40"
           >
-            Suivant
+            {copy.next}
           </button>
         </nav>
       ) : null}

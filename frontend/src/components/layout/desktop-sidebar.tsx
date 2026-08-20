@@ -1,30 +1,29 @@
 "use client";
 
 import Link from "next/link";
-import { GitBranch, Link2, Mail } from "lucide-react";
+import type { MouseEvent } from "react";
 
-import { useSectionNavigation } from "@/hooks/use-section-navigation";
-import type { NavigationItem, SocialLink } from "@/types/portfolio";
-
-const socialIcons = {
-  github: GitBranch,
-  linkedin: Link2,
-  mail: Mail,
-};
+import { SocialIcon } from "@/components/layout/social-icons";
+import type { NavigationItem, SectionId, SocialLink } from "@/types/portfolio";
 
 type DesktopSidebarProps = {
   navigation: NavigationItem[];
   socialLinks: SocialLink[];
+  activeSection: SectionId;
+  onNavClick: (
+    event: MouseEvent<HTMLAnchorElement>,
+    item: NavigationItem,
+  ) => void;
 };
 
 export function DesktopSidebar({
   navigation,
   socialLinks,
+  activeSection,
+  onNavClick,
 }: DesktopSidebarProps) {
-  const { activeSection, handleNavClick } = useSectionNavigation(navigation);
-
   return (
-    <aside className="sticky top-0 z-30 hidden h-svh w-full min-w-0 bg-transparent px-5 pt-7 pb-6 lg:relative lg:grid">
+    <aside className="fixed inset-y-0 left-[5vw] z-40 hidden h-svh w-[16.25rem] min-w-0 bg-transparent px-5 pt-7 pb-6 lg:grid xl:left-[9vw] xl:w-[17.5rem] 2xl:left-[10vw] 2xl:w-[18rem]">
       <span
         aria-hidden="true"
         className="pointer-events-none absolute left-0 top-10 bottom-10 w-px bg-[var(--home-line)]"
@@ -46,7 +45,7 @@ export function DesktopSidebar({
                       type="button"
                       aria-disabled="true"
                       tabIndex={-1}
-                      className="group flex min-h-[52px] w-full cursor-default items-center gap-3 pr-3 text-left text-[15px] leading-[1.2] font-normal whitespace-nowrap text-[var(--home-muted)] opacity-50 transition-[color,opacity] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] hover:text-[var(--home-text-secondary)] hover:opacity-80 xl:text-[16px] motion-reduce:transition-none"
+                      className="group flex min-h-[52px] w-full cursor-default items-center gap-3 pr-3 text-left text-[15px] leading-[1.2] font-normal whitespace-nowrap text-[var(--home-muted)] opacity-60 transition-[color,opacity] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] hover:text-[var(--home-text-secondary)] hover:opacity-80 xl:text-[16px] motion-reduce:transition-none"
                     >
                       <span
                         aria-hidden="true"
@@ -59,12 +58,12 @@ export function DesktopSidebar({
                       href={item.href}
                       scroll={false}
                       aria-current={isActive ? "location" : undefined}
-                      onClick={(event) => handleNavClick(event, item)}
+                      onClick={(event) => onNavClick(event, item)}
                       className={[
                         "group flex min-h-[52px] w-full items-center gap-3 pr-3 text-left leading-[1.2] whitespace-nowrap transition-[color,opacity,font-size] duration-[240ms] ease-[cubic-bezier(0.22,1,0.36,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--home-accent-2)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--home-bg-0)] active:text-[var(--home-text)] motion-reduce:transition-none",
                         isActive
                           ? "text-[19px] font-medium text-[var(--home-text)] opacity-100 xl:text-[21px]"
-                          : "text-[15px] font-normal text-[var(--home-muted)] opacity-70 hover:text-[var(--home-text-secondary)] hover:opacity-100 xl:text-[16px]",
+                          : "text-[15px] font-normal text-[var(--home-muted)] opacity-[0.72] hover:text-[#B9B6C6] hover:opacity-100 xl:text-[16px]",
                       ].join(" ")}
                     >
                       <span
@@ -87,8 +86,6 @@ export function DesktopSidebar({
 
         <div className="row-start-3 flex self-end items-center gap-5 pt-10">
           {socialLinks.map((social) => {
-            const Icon = socialIcons[social.icon];
-
             return social.disabled ? (
               <button
                 key={social.label}
@@ -98,7 +95,7 @@ export function DesktopSidebar({
                 tabIndex={-1}
                 className="inline-grid h-7 w-7 place-items-center text-[var(--home-muted)] opacity-75"
               >
-                <Icon className="h-4 w-4" />
+                <SocialIcon icon={social.icon} className="h-4 w-4" />
               </button>
             ) : (
               <Link
@@ -109,7 +106,7 @@ export function DesktopSidebar({
                 aria-label={social.label}
                 className="inline-grid h-7 w-7 place-items-center text-[var(--home-muted)] transition-[color,transform] duration-150 hover:-translate-y-0.5 hover:text-[var(--home-accent-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--home-accent-2)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--home-bg-0)]"
               >
-                <Icon className="h-4 w-4" />
+                <SocialIcon icon={social.icon} className="h-4 w-4" />
               </Link>
             );
           })}

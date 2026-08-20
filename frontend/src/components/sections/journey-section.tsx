@@ -1,15 +1,25 @@
 import { ArrowUpRight } from "lucide-react";
 
 import {
-  journeyExperienceTypeLabels,
   type JourneyExperience,
+  type JourneySectionLabels,
+  type JourneyExperienceType,
 } from "@/content/journey";
+import type { SectionPreview } from "@/types/portfolio";
 
 type JourneySectionProps = {
+  section: SectionPreview;
   experiences: readonly JourneyExperience[];
+  typeLabels: Record<JourneyExperienceType, string>;
+  labels: JourneySectionLabels;
 };
 
-export function JourneySection({ experiences }: JourneySectionProps) {
+export function JourneySection({
+  section,
+  experiences,
+  typeLabels,
+  labels,
+}: JourneySectionProps) {
   return (
     <section
       id="journey"
@@ -19,20 +29,20 @@ export function JourneySection({ experiences }: JourneySectionProps) {
       <div className="mx-auto w-full max-w-[72rem] lg:-translate-x-5 xl:-translate-x-8 2xl:-translate-x-10">
         <header className="max-w-[42rem] motion-safe:animate-[journey-rise_420ms_cubic-bezier(0.22,1,0.36,1)_both]">
           <p className="text-[0.89rem] font-medium uppercase tracking-[0.42em] text-[var(--accent-muted)]">
-            / Parcours
+            / {section.title}
           </p>
-          {/* <h2
+          <h2
             id="journey-title"
-            className="mt-5 text-[clamp(2.5rem,4.8vw,4.75rem)] font-medium leading-[0.96] tracking-[-0.055em] text-[var(--foreground)]"
+            className="sr-only"
           >
-            Parcours professionnel
-          </h2> */}
+            {labels.title}
+          </h2>
         </header>
 
         <ol className="mt-12 border-b border-[var(--border-muted)] lg:mt-14">
           {experiences.map((experience, index) => {
             const experienceType = experience.experienceType
-              ? journeyExperienceTypeLabels[experience.experienceType]
+              ? typeLabels[experience.experienceType]
               : undefined;
 
             return (
@@ -65,7 +75,7 @@ export function JourneySection({ experiences }: JourneySectionProps) {
                   </div>
                   {experience.isCurrent ? (
                     <span
-                      aria-label="Expérience en cours"
+                      aria-label={labels.currentExperience}
                       className="h-1.5 w-1.5 rounded-full bg-[var(--accent)] opacity-80 shadow-[0_0_10px_rgb(var(--accent-rgb)/0.28)] md:mt-3 md:block"
                     />
                   ) : null}
@@ -91,7 +101,7 @@ export function JourneySection({ experiences }: JourneySectionProps) {
                 {experience.technologies?.length ? (
                   <ul
                     className="mt-4 flex flex-wrap gap-2"
-                    aria-label="Compétences utilisées"
+                    aria-label={labels.technologies}
                   >
                     {experience.technologies.map((technology) => (
                       <li
@@ -109,7 +119,7 @@ export function JourneySection({ experiences }: JourneySectionProps) {
                     href={experience.projectLink.href}
                     target="_blank"
                     rel="noreferrer"
-                    aria-label={`${experience.projectLink.label} — ouvre un nouvel onglet`}
+                    aria-label={`${experience.projectLink.label} - ${labels.externalProjectSuffix}`}
                     className="group/link mt-5 inline-flex items-center gap-2 border-b border-[rgb(var(--accent-rgb)/0.2)] pb-1 text-[0.78rem] font-medium tracking-[0.04em] text-[var(--accent-strong)] transition-[border-color,color] duration-200 ease-out hover:border-[rgb(var(--accent-rgb)/0.7)] hover:text-[var(--foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--focus-ring-offset)] motion-reduce:transition-none"
                   >
                     <span>{experience.projectLink.label}</span>

@@ -1,17 +1,22 @@
 export type LocaleCode = "fr" | "en";
 
-export type SocialIconKey = "github" | "linkedin" | "mail";
+export type ThemePreference = "dark" | "light" | "system";
 
-export type SectionId =
-  | "home"
-  | "about"
-  | "projects"
-  | "ai-lab"
-  | "skills"
-  | "journey"
-  | "contact";
+export type MotionPreference = "system" | "reduced";
+
+export const PORTFOLIO_SECTION_IDS = [
+  "home",
+  "about",
+  "journey",
+  "projects",
+  "ai-lab",
+] as const;
+
+export type SectionId = (typeof PORTFOLIO_SECTION_IDS)[number];
 
 export type SectionHref = `#${SectionId}`;
+
+export type SocialIconKey = "github" | "linkedin" | "instagram";
 
 export type LanguageOption = {
   code: LocaleCode;
@@ -42,7 +47,6 @@ export type HeroSectionContent = {
   eyebrow: string;
   title: string;
   description: string;
-  availability: string;
 };
 
 export type AboutParagraphSegment = {
@@ -71,7 +75,7 @@ export type AboutSectionContent = {
 };
 
 export type SectionPreview = {
-  id: Exclude<SectionId, "home">;
+  id: Exclude<SectionId, "home" | "about">;
   title: string;
   description: string;
 };

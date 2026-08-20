@@ -5,6 +5,8 @@ import { gsap } from "gsap";
 import { MotionPathPlugin } from "gsap/MotionPathPlugin";
 import { useReducedMotion } from "motion/react";
 
+import { usePreferences } from "@/components/providers/preferences-provider";
+
 gsap.registerPlugin(MotionPathPlugin);
 
 const S_ASSET_SRC = "/assets/logo-animation/sa-s-clean.png";
@@ -114,7 +116,9 @@ const orbitRadii: Record<OrbitLevel, { rx: number; ry: number; yBias: number }> 
 export function AnimatedSALogo() {
   const sceneRef = useRef<HTMLDivElement>(null);
   const shineRef = useRef<HTMLDivElement>(null);
-  const reducedMotion = useReducedMotion();
+  const systemReducedMotion = useReducedMotion();
+  const { reduceMotion } = usePreferences();
+  const reducedMotion = systemReducedMotion || reduceMotion;
 
   useLayoutEffect(() => {
     const sceneElement = sceneRef.current;
@@ -1522,7 +1526,7 @@ export function AnimatedSALogo() {
           ].join(" ")}
         >
           <div
-            className="satellite-card group rounded-[8px] border border-[var(--border-subtle)] bg-[var(--surface-elevated)] px-[9px] py-[5px] text-[11px] font-[470] tracking-[0.01em] text-[var(--foreground-muted)] transition-[border-color,background-color,color,transform] duration-200 hover:-translate-y-px hover:border-[var(--border-strong)] hover:bg-[var(--surface-soft)] hover:text-[var(--foreground)] md:text-[12px]"
+            className="satellite-card group rounded-[6px] border border-[rgb(var(--home-accent-2-rgb)/0.10)] bg-[rgb(var(--home-bg-0-rgb)/0.12)] px-[7px] py-[3px] text-[10px] font-[500] uppercase tracking-[0.075em] text-[#AAA6BC] transition-[border-color,color,opacity] duration-200 hover:border-[rgb(var(--home-accent-2-rgb)/0.18)] hover:text-[#D5D2DF] md:text-[11px]"
           >
             <span
               className={[
@@ -1530,8 +1534,8 @@ export function AnimatedSALogo() {
                 satellite.alignment === "left" ? "flex-row-reverse text-right" : "",
               ].join(" ")}
             >
-              <span className="h-px w-5 bg-[var(--border-strong)]" />
-              <span className="satellite-dot h-[4px] w-[4px] rounded-full bg-[var(--accent)] opacity-[0.84] transition-opacity duration-200 group-hover:opacity-100" />
+              <span className="h-px w-[18px] bg-[var(--home-accent-2)] opacity-45" />
+              <span className="satellite-dot h-[3px] w-[3px] rounded-full bg-[var(--home-accent-2)] opacity-75 transition-opacity duration-200 group-hover:opacity-100" />
               <span>{satellite.label}</span>
             </span>
           </div>

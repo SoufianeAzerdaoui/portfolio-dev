@@ -68,7 +68,7 @@ export function ThemeToggle({ className = "" }: ThemeToggleProps) {
         applyTheme(nextTheme);
       }}
       className={[
-        "theme-toggle relative inline-grid h-9 w-9 place-items-center rounded-full border border-[var(--home-line)] bg-transparent text-[var(--home-muted)] transition duration-200 hover:border-[var(--home-accent)] hover:bg-[var(--home-button-secondary-hover)] hover:text-[var(--home-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--home-accent-2)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--home-bg-0)] motion-reduce:transition-none",
+        "theme-toggle relative inline-grid h-10 w-10 place-items-center rounded-full border border-[var(--home-line)] bg-transparent text-[var(--home-muted)] transition duration-200 hover:border-[var(--home-accent-2)] hover:bg-[var(--home-button-secondary-hover)] hover:text-[var(--home-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--home-accent-2)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--home-bg-0)] motion-reduce:transition-none",
         className,
       ]
         .join(" ")

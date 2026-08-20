@@ -2,15 +2,41 @@ import Link from "next/link";
 import { ArrowRight, FolderOpen } from "lucide-react";
 
 import { SelectedProjectRow } from "@/components/projects/selected-project-row";
-import { getFeaturedProjects } from "@/features/projects/queries/project.queries";
 import type { SectionPreview } from "@/types/portfolio";
+import type { Project, SupportedLocale } from "@/types/project";
 
 type ProjectsTeaserSectionProps = {
   section: SectionPreview;
+  projects: Project[];
+  locale: SupportedLocale;
 };
 
-export async function ProjectsTeaserSection({ section }: ProjectsTeaserSectionProps) {
-  const featuredProjects = await getFeaturedProjects(3);
+const projectsTeaserCopy = {
+  fr: {
+    kicker: "/ Projets",
+    allProjects: "Voir tous les projets",
+    emptyTitle: "Sélection en préparation",
+  },
+  en: {
+    kicker: "/ Projects",
+    allProjects: "View all projects",
+    emptyTitle: "Selection in progress",
+  },
+} as const satisfies Record<
+  SupportedLocale,
+  {
+    kicker: string;
+    allProjects: string;
+    emptyTitle: string;
+  }
+>;
+
+export function ProjectsTeaserSection({
+  section,
+  projects,
+  locale,
+}: ProjectsTeaserSectionProps) {
+  const copy = projectsTeaserCopy[locale];
 
   return (
     <section
@@ -22,7 +48,7 @@ export async function ProjectsTeaserSection({ section }: ProjectsTeaserSectionPr
         <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-[42rem]">
             <p className="text-[0.89rem] font-medium uppercase tracking-[0.42em] text-[var(--accent-muted)]">
-              / Projets
+              {copy.kicker}
             </p>
             <h2 id="projects-title" className="sr-only">
               {section.title}
@@ -33,18 +59,19 @@ export async function ProjectsTeaserSection({ section }: ProjectsTeaserSectionPr
             href="/projects"
             className="group inline-flex min-h-[46px] w-fit items-center justify-center gap-2 rounded-[6px] border border-[var(--button-secondary-border)] bg-[var(--button-secondary-bg)] px-6 py-2.5 text-[0.83rem] font-medium text-[var(--foreground)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition duration-200 hover:-translate-y-px hover:border-[var(--accent-muted)] hover:bg-[var(--button-secondary-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--focus-ring-offset)] active:translate-y-0 motion-reduce:transition-none"
           >
-            Voir tous les projets
+            {copy.allProjects}
             <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-[3px] motion-reduce:transition-none" />
           </Link>
         </div>
 
-        {featuredProjects.length > 0 ? (
+        {projects.length > 0 ? (
           <div className="mt-10 lg:mt-12">
-            {featuredProjects.map((project, index) => (
+            {projects.map((project, index) => (
               <SelectedProjectRow
                 key={project.slug}
                 project={project}
                 index={index}
+                locale={locale}
               />
             ))}
           </div>
@@ -59,7 +86,7 @@ export async function ProjectsTeaserSection({ section }: ProjectsTeaserSectionPr
               </div>
               <div>
                 <h3 className="text-lg font-semibold tracking-[-0.03em] text-[var(--foreground)]">
-                  Sélection en préparation
+                  {copy.emptyTitle}
                 </h3>
               </div>
             </div>

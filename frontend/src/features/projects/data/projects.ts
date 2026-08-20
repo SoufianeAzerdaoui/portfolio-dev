@@ -270,6 +270,11 @@ export const PROJECTS = [
           results: [],
         },
       },
+      en: {
+        title: "SyndiSmart AI",
+        shortDescription:
+          "AI assistant for classifying and prioritizing WhatsApp messages for a property manager, then generating contextualized, sourced responses with RAG.",
+      },
     },
     categories: [
       {
@@ -404,6 +409,11 @@ export const PROJECTS = [
           ],
           results: [],
         },
+      },
+      en: {
+        title: "Call Center AI - Frustration Detection",
+        shortDescription:
+          "NLP solution for detecting frustration in call center conversations, summarizing exchanges and suggesting contextualized responses from customer history.",
       },
     },
     categories: [
@@ -569,6 +579,11 @@ export const PROJECTS = [
           results: [],
         },
       },
+      en: {
+        title: "Real-time E-commerce Activity Tracking",
+        shortDescription:
+          "Real-time tracking system for user interactions on an e-commerce site, combining React, Flask, Kafka and Spark to collect and process navigation events.",
+      },
     },
     categories: [
       {
@@ -663,6 +678,11 @@ export const PROJECTS = [
         title: "Personalized Recommendation System",
         shortDescription:
           "Plateforme de recommandation personnalisée combinant traitement batch et streaming pour générer des recommandations en temps réel et analyser leurs performances.",
+      },
+      en: {
+        title: "Personalized Recommendation System",
+        shortDescription:
+          "Personalized recommendation platform combining batch and streaming processing to generate real-time recommendations and analyze their performance.",
       },
     },
     categories: [
@@ -792,6 +812,11 @@ export const PROJECTS = [
         shortDescription:
           "Système d’aide à la décision pour estimer l’acceptation d’un crédit à partir de données préparées et analysées, avec des modèles de machine learning servis via Flask.",
       },
+      en: {
+        title: "Bank Credit Decision Support System",
+        shortDescription:
+          "Decision support system for estimating credit approval from prepared and analyzed data, using machine learning models served through Flask.",
+      },
     },
     categories: [
       {
@@ -888,6 +913,11 @@ export const PROJECTS = [
         title: "Alcohol Consumption & Academic Performance Analysis",
         shortDescription:
           "Analyse statistique de données scolaires pour étudier les relations entre consommation d’alcool, facteurs socio-démographiques et performance académique.",
+      },
+      en: {
+        title: "Alcohol Consumption & Academic Performance Analysis",
+        shortDescription:
+          "Statistical analysis of school data studying relationships between alcohol consumption, socio-demographic factors and academic performance.",
       },
     },
     categories: [
@@ -1016,6 +1046,11 @@ export const PROJECTS = [
         title: "Nutrition & Atherosclerosis Data Analysis",
         shortDescription:
           "Analyse de données de santé étudiant le lien entre nutrition et athérosclérose à travers statistiques, modèles prédictifs, clustering et recommandation personnalisée.",
+      },
+      en: {
+        title: "Nutrition & Atherosclerosis Data Analysis",
+        shortDescription:
+          "Health data analysis studying the link between nutrition and atherosclerosis through statistics, predictive models, clustering and personalized recommendation.",
       },
     },
     categories: [
@@ -1165,6 +1200,11 @@ export const PROJECTS = [
         shortDescription:
           "Projet de machine learning visant à prédire la direction des mouvements boursiers à partir de données historiques et d’indicateurs techniques.",
       },
+      en: {
+        title: "Algorithmic Trading ML",
+        shortDescription:
+          "Machine learning project focused on predicting stock movement direction from historical data and technical indicators.",
+      },
     },
     categories: [
       {
@@ -1279,6 +1319,11 @@ export const PROJECTS = [
         title: "Blood Donation Platform",
         shortDescription:
           "Application full-stack facilitant la recherche de donneurs de sang et la gestion des initiatives de don grâce à React, Laravel et MongoDB.",
+      },
+      en: {
+        title: "Blood Donation Platform",
+        shortDescription:
+          "Full-stack application that supports blood donor search and donation initiative management with React, Laravel and MongoDB.",
       },
     },
     categories: [

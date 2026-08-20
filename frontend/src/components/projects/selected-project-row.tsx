@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowUpRight, FolderOpen } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 
+import { usePreferences } from "@/components/providers/preferences-provider";
 import {
   getProjectContent,
   resolveProjectMediaUrl,
@@ -29,6 +30,30 @@ const CATEGORY_PRIORITY = [
 ] as const;
 
 const MAX_HOME_TECHNOLOGIES = 4;
+
+const selectedProjectCopy = {
+  fr: {
+    categories: "Catégories principales",
+    technologies: "Technologies principales",
+    actionFallback: "Voir le projet",
+    externalProjectSuffix:
+      "ouvrir le dépôt GitHub dans un nouvel onglet",
+  },
+  en: {
+    categories: "Main categories",
+    technologies: "Main technologies",
+    actionFallback: "View project",
+    externalProjectSuffix: "open the GitHub repository in a new tab",
+  },
+} as const satisfies Record<
+  SupportedLocale,
+  {
+    categories: string;
+    technologies: string;
+    actionFallback: string;
+    externalProjectSuffix: string;
+  }
+>;
 
 function getPriorityNames<T extends { name: string; slug: string }>(
   items: readonly T[],
@@ -57,7 +82,10 @@ export function SelectedProjectRow({
   index,
   locale = "fr",
 }: SelectedProjectRowProps) {
-  const reducedMotion = useReducedMotion();
+  const systemReducedMotion = useReducedMotion();
+  const { reduceMotion } = usePreferences();
+  const reducedMotion = systemReducedMotion || reduceMotion;
+  const copy = selectedProjectCopy[locale];
   const content = getProjectContent(project, locale);
   const coverImage = project.coverImage;
   const githubLink = project.links.find((link) => link.type === "github");
@@ -136,7 +164,7 @@ export function SelectedProjectRow({
 
         {categories.length > 0 ? (
           <p
-            aria-label="Catégories principales"
+            aria-label={copy.categories}
             className="mt-4 text-[0.78rem] font-medium tracking-[0.06em] text-[var(--accent-muted)]"
           >
             {categories.join(" · ")}
@@ -144,7 +172,10 @@ export function SelectedProjectRow({
         ) : null}
 
         {technologies.length > 0 ? (
-          <TechnologyLogoRow technologies={technologies} />
+          <TechnologyLogoRow
+            technologies={technologies}
+            ariaLabel={copy.technologies}
+          />
         ) : null}
 
         <div className="mt-5 flex items-center justify-between gap-6 lg:hidden">
@@ -155,12 +186,13 @@ export function SelectedProjectRow({
           ) : (
             <span aria-hidden="true" />
           )}
-          <ProjectLink
-            href={projectHref}
-            label={githubLink?.label ?? "Voir le projet"}
-            title={content.title}
-            target={projectLinkTarget}
-          />
+            <ProjectLink
+              href={projectHref}
+              label={githubLink?.label ?? copy.actionFallback}
+              title={content.title}
+              target={projectLinkTarget}
+              externalSuffix={copy.externalProjectSuffix}
+            />
         </div>
       </div>
 
@@ -174,9 +206,10 @@ export function SelectedProjectRow({
         )}
         <ProjectLink
           href={projectHref}
-          label={githubLink?.label ?? "Voir le projet"}
+          label={githubLink?.label ?? copy.actionFallback}
           title={content.title}
           target={projectLinkTarget}
+          externalSuffix={copy.externalProjectSuffix}
         />
       </div>
     </motion.article>
@@ -185,12 +218,14 @@ export function SelectedProjectRow({
 
 function TechnologyLogoRow({
   technologies,
+  ariaLabel,
 }: {
   technologies: ProjectTechnology[];
+  ariaLabel: string;
 }) {
   return (
     <ul
-      aria-label="Technologies principales"
+      aria-label={ariaLabel}
       className="mt-3 flex flex-wrap items-center gap-x-3.5 gap-y-2"
     >
       {technologies.map((technology) => {
@@ -228,11 +263,13 @@ function ProjectLink({
   label,
   title,
   target,
+  externalSuffix,
 }: {
   href: string;
   label: string;
   title: string;
   target: "github" | "details";
+  externalSuffix: string;
 }) {
   const isExternal = target === "github";
 
@@ -243,7 +280,7 @@ function ProjectLink({
       rel={isExternal ? "noopener noreferrer" : undefined}
       aria-label={
         isExternal
-          ? `${label} du projet ${title} - ouvrir le dépôt GitHub dans un nouvel onglet`
+          ? `${label} - ${title} - ${externalSuffix}`
           : `${label} ${title}`
       }
       className="group/link inline-flex min-h-9 items-center gap-2 border-b border-[rgb(var(--accent-rgb)/0.42)] pb-1 text-[0.82rem] font-medium text-[var(--foreground)] transition duration-200 hover:border-[rgb(var(--accent-rgb)/0.8)] hover:text-[var(--accent-strong)] focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--focus-ring-offset)]"

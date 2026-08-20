@@ -1,25 +1,31 @@
 "use client";
 
 import Link from "next/link";
-import { GitBranch, Link2, Mail, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { MouseEvent } from "react";
 
-import { LanguageSwitcher } from "@/components/layout/language-switcher";
-import { ThemeToggle } from "@/components/layout/theme-toggle";
-import { useSectionNavigation } from "@/hooks/use-section-navigation";
+import { PreferencesPanel } from "@/components/layout/preferences-panel";
+import { SocialIcon } from "@/components/layout/social-icons";
+import { usePreferences } from "@/components/providers/preferences-provider";
 import type {
-  LanguageOption,
   NavigationItem,
   SectionId,
   SocialLink,
 } from "@/types/portfolio";
 
-const socialIcons = {
-  github: GitBranch,
-  linkedin: Link2,
-  mail: Mail,
-};
+const mobileCopy = {
+  fr: {
+    openMenu: "Ouvrir le menu",
+    closeMenu: "Fermer le menu",
+    navigation: "Navigation mobile",
+  },
+  en: {
+    openMenu: "Open menu",
+    closeMenu: "Close menu",
+    navigation: "Mobile navigation",
+  },
+} as const;
 
 type MobileHeaderProps = {
   identity: {
@@ -28,19 +34,22 @@ type MobileHeaderProps = {
   };
   navigation: NavigationItem[];
   socialLinks: SocialLink[];
-  languages: LanguageOption[];
+  activeSection: SectionId;
+  navigateToSection: (sectionId: SectionId) => void;
 };
 
 export function MobileHeader({
   identity,
   navigation,
   socialLinks,
-  languages,
+  activeSection,
+  navigateToSection,
 }: MobileHeaderProps) {
   const [open, setOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const { activeSection, navigateToSection } = useSectionNavigation(navigation);
+  const { locale } = usePreferences();
+  const copy = mobileCopy[locale];
 
   const handleMobileNavigation = (
     event: MouseEvent<HTMLAnchorElement>,
@@ -62,10 +71,11 @@ export function MobileHeader({
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
-    const focusable = panelRef.current?.querySelectorAll<HTMLElement>(
-      'a[href], button:not([disabled])',
-    );
-    focusable?.[0]?.focus();
+    const getFocusable = () =>
+      panelRef.current?.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled])',
+      );
+    getFocusable()?.[0]?.focus();
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -73,6 +83,8 @@ export function MobileHeader({
         triggerRef.current?.focus();
         return;
       }
+
+      const focusable = getFocusable();
 
       if (event.key !== "Tab" || !focusable || focusable.length === 0) {
         return;
@@ -119,14 +131,13 @@ export function MobileHeader({
         </Link>
 
         <div className="flex items-center gap-2">
-          <LanguageSwitcher languages={languages} className="hidden sm:inline-flex" />
-          <ThemeToggle className="h-11 w-11" />
+          <PreferencesPanel />
           <button
             ref={triggerRef}
             type="button"
             aria-expanded={open}
             aria-controls="mobile-navigation"
-            aria-label={open ? "Fermer le menu" : "Ouvrir le menu"}
+            aria-label={open ? copy.closeMenu : copy.openMenu}
             onClick={() => setOpen((value) => !value)}
             className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--home-line)] bg-transparent text-[var(--home-text)] transition hover:border-[var(--home-accent)] hover:bg-[var(--home-button-secondary-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--home-accent-2)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--home-bg-0)]"
           >
@@ -143,10 +154,7 @@ export function MobileHeader({
             className="ml-auto flex h-full w-[min(90vw,24rem)] flex-col border-l border-[var(--home-line)] bg-[var(--home-bg-0)] px-6 py-6"
           >
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <LanguageSwitcher languages={languages} />
-                <ThemeToggle className="h-11 w-11" />
-              </div>
+              <PreferencesPanel />
               <button
                 type="button"
                 onClick={() => {
@@ -154,13 +162,13 @@ export function MobileHeader({
                   triggerRef.current?.focus();
                 }}
                 className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--home-line)] bg-transparent text-[var(--home-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--home-accent-2)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--home-bg-0)]"
-                aria-label="Fermer le menu"
+                aria-label={copy.closeMenu}
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
-            <nav aria-label="Navigation mobile" className="mt-10">
+            <nav aria-label={copy.navigation} className="mt-10">
               <ul className="space-y-3">
                 {navigation.map((item) => (
                   <li key={`${item.label}-${item.href}`}>
@@ -198,8 +206,6 @@ export function MobileHeader({
 
             <div className="mt-auto flex items-center gap-3 pt-8">
               {socialLinks.map((social) => {
-                const Icon = socialIcons[social.icon];
-
                 return social.disabled ? (
                   <button
                     key={social.label}
@@ -208,7 +214,7 @@ export function MobileHeader({
                     aria-disabled="true"
                     className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--home-line)] bg-transparent text-[var(--home-muted)] opacity-60"
                   >
-                    <Icon className="h-4 w-4" />
+                    <SocialIcon icon={social.icon} className="h-4 w-4" />
                   </button>
                 ) : (
                   <Link
@@ -220,7 +226,7 @@ export function MobileHeader({
                     onClick={() => setOpen(false)}
                     className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--home-line)] bg-transparent text-[var(--home-muted)] transition hover:text-[var(--home-accent-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--home-accent-2)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--home-bg-0)]"
                   >
-                    <Icon className="h-4 w-4" />
+                    <SocialIcon icon={social.icon} className="h-4 w-4" />
                   </Link>
                 );
               })}

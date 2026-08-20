@@ -1,7 +1,9 @@
 import type { SectionPreview } from "@/types/portfolio";
+import type { SupportedLocale } from "@/types/project";
 
 type AiLabSectionProps = {
   section: SectionPreview;
+  locale: SupportedLocale;
 };
 
 const aiLabCopy = {
@@ -13,9 +15,11 @@ const aiLabCopy = {
     status: "Coming soon",
     body: "A space dedicated to my AI experiments, prototypes and research is currently in preparation.",
   },
-} as const;
+} as const satisfies Record<SupportedLocale, { status: string; body: string }>;
 
-export function AiLabSection({ section }: AiLabSectionProps) {
+export function AiLabSection({ section, locale }: AiLabSectionProps) {
+  const copy = aiLabCopy[locale];
+
   return (
     <section
       id={section.id}
@@ -37,7 +41,7 @@ export function AiLabSection({ section }: AiLabSectionProps) {
           <div className="mt-10 max-w-[35rem]">
             <div className="flex items-center gap-4">
               <p className="whitespace-nowrap text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
-                {aiLabCopy.fr.status}
+                {copy.status}
               </p>
               <span
                 aria-hidden="true"
@@ -45,10 +49,7 @@ export function AiLabSection({ section }: AiLabSectionProps) {
               />
             </div>
             <p className="mt-5 text-[clamp(1rem,1.05vw,1.08rem)] leading-8 text-[var(--foreground-muted)]">
-              {aiLabCopy.fr.body}
-            </p>
-            <p className="sr-only" lang="en">
-              {aiLabCopy.en.status}. {aiLabCopy.en.body}
+              {copy.body}
             </p>
           </div>
         </div>

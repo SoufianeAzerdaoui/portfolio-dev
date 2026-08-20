@@ -1,8 +1,7 @@
 "use client";
 
-import { useState } from "react";
-
-import type { LanguageOption, LocaleCode } from "@/types/portfolio";
+import { usePreferences } from "@/components/providers/preferences-provider";
+import type { LanguageOption } from "@/types/portfolio";
 
 type LanguageSwitcherProps = {
   languages: LanguageOption[];
@@ -15,7 +14,9 @@ export function LanguageSwitcher({
   className = "",
   variant = "default",
 }: LanguageSwitcherProps) {
-  const [active, setActive] = useState<LocaleCode>("fr");
+  const { locale: active, setLocale } = usePreferences();
+  const groupLabel =
+    active === "fr" ? "Sélection de langue" : "Language selection";
 
   return (
     <div
@@ -28,7 +29,7 @@ export function LanguageSwitcher({
       ]
         .join(" ")
         .trim()}
-      aria-label="Selection de langue"
+      aria-label={groupLabel}
       role="group"
     >
       {languages.map((language) => {
@@ -38,7 +39,7 @@ export function LanguageSwitcher({
           <button
             key={language.code}
             type="button"
-            onClick={() => setActive(language.code)}
+            onClick={() => setLocale(language.code)}
             aria-pressed={isActive}
             className={[
               variant === "minimal"

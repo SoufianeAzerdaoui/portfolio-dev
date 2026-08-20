@@ -1,6 +1,4 @@
 import { HeroActions } from "@/components/home/hero-actions";
-import { LanguageSwitcher } from "@/components/layout/language-switcher";
-import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { HeroLogo } from "@/components/home/hero-logo";
 import { ScrollIndicator } from "@/components/home/scroll-indicator";
 import type { PortfolioContent } from "@/types/portfolio";
@@ -15,21 +13,11 @@ export function HeroSection({ content }: HeroSectionProps) {
       id="home"
       className="relative grid min-h-[100svh] place-items-center overflow-hidden px-5 pt-[clamp(5rem,6vh,5.75rem)] pb-[clamp(4rem,8vh,5rem)] sm:px-8 lg:px-[clamp(2rem,4vw,4.5rem)]"
     >
-      <div className="pointer-events-none absolute left-1/2 top-[18%] -z-10 h-[26.25rem] w-[38.75rem] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgb(var(--home-accent-rgb)/0.055),transparent_68%)] blur-[110px]" />
+      <div className="pointer-events-none absolute left-1/2 top-[17%] -z-10 h-[26.25rem] w-[38.75rem] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgb(var(--home-accent-rgb)/0.038),transparent_68%)] blur-[110px]" />
 
       <div className="relative mx-auto flex h-full w-full max-w-[120rem] flex-col">
-        <div className="pointer-events-none absolute inset-x-0 top-0 hidden h-16 lg:block">
-          <div className="pointer-events-auto absolute right-[clamp(1.25rem,3vw,2.5rem)] top-7 z-10 flex items-center gap-4">
-            <LanguageSwitcher
-              languages={content.languages}
-              variant="minimal"
-            />
-            <ThemeToggle />
-          </div>
-        </div>
-
         <div className="flex flex-1 items-center justify-center">
-          <div className="relative z-10 flex w-full max-w-[57.5rem] flex-col items-center text-center lg:-translate-x-5 lg:translate-y-3 xl:-translate-x-8 xl:translate-y-4 2xl:-translate-x-10 2xl:translate-y-5">
+          <div className="relative z-10 flex w-full max-w-[57.5rem] flex-col items-center text-center lg:-translate-x-5 lg:-translate-y-[4vh] xl:-translate-x-8 xl:-translate-y-[5vh] 2xl:-translate-x-10 2xl:-translate-y-[5vh]">
             <HeroLogo
               name={content.identity.name}
               role={content.identity.role}
@@ -43,23 +31,16 @@ export function HeroSection({ content }: HeroSectionProps) {
               {" "}
               intelligentes.
             </h1> */}
-            <p className="mt-4 max-w-[41.25rem] text-pretty text-[clamp(0.88rem,1vw,1rem)] leading-[1.65] text-[var(--home-text-secondary)] md:mt-5">
+            <p className="mt-4 max-w-[38.75rem] text-pretty text-[clamp(0.88rem,1vw,1rem)] leading-[1.58] text-[var(--home-text-secondary)] md:mt-5">
               {content.hero.description}
             </p>
             <div className="mt-5 w-full max-w-[39rem] md:mt-6">
               <HeroActions ctas={content.ctas} />
             </div>
-            <p className="mt-4 flex items-center justify-center gap-2 text-center text-[0.76rem] leading-[1.4] text-[var(--home-muted)] md:mt-4">
-              <span
-                aria-hidden="true"
-                className="h-[5px] w-[5px] shrink-0 rounded-full bg-[var(--home-accent-2)] shadow-[0_0_8px_rgb(var(--home-accent-2-rgb)/0.26)]"
-              />
-              <span>{content.hero.availability}</span>
-            </p>
           </div>
         </div>
 
-        <div className="pointer-events-none absolute inset-x-0 bottom-4 hidden lg:flex lg:justify-center">
+        <div className="pointer-events-none absolute inset-x-0 bottom-6 hidden lg:flex lg:justify-center">
           <div className="pointer-events-auto">
             <ScrollIndicator href="#about" />
           </div>

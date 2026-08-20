@@ -3,10 +3,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { MouseEvent } from "react";
 
-import type { NavigationItem, SectionId } from "@/types/portfolio";
+import {
+  PORTFOLIO_SECTION_IDS,
+  type NavigationItem,
+  type SectionId,
+} from "@/types/portfolio";
 
 const DEFAULT_SECTION_ID: SectionId = "home";
-const ACTIVE_SECTION_ROOT_MARGIN = "-35% 0px -55% 0px";
+const ACTIVE_SECTION_ROOT_MARGIN = "-30% 0px -60% 0px";
 const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
 
 function isSectionId(value: string, sectionIds: readonly SectionId[]) {
@@ -27,7 +31,12 @@ function getScrollBehavior(): ScrollBehavior {
     return "auto";
   }
 
-  return window.matchMedia(REDUCED_MOTION_QUERY).matches ? "auto" : "smooth";
+  const userReducedMotion =
+    document.documentElement.dataset.motion === "reduce";
+
+  return userReducedMotion || window.matchMedia(REDUCED_MOTION_QUERY).matches
+    ? "auto"
+    : "smooth";
 }
 
 function updateHash(sectionId: SectionId) {
@@ -51,7 +60,10 @@ type NavigateOptions = {
 
 export function useSectionNavigation(navigation: NavigationItem[]) {
   const sectionIds = useMemo(
-    () => navigation.map((item) => item.id),
+    () =>
+      PORTFOLIO_SECTION_IDS.filter((sectionId) =>
+        navigation.some((item) => item.id === sectionId && !item.disabled),
+      ),
     [navigation],
   );
   const [activeSection, setActiveSection] =

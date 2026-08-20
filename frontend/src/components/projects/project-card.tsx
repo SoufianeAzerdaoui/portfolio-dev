@@ -14,15 +14,45 @@ type ProjectCardProps = {
   locale?: SupportedLocale;
 };
 
+const projectCardCopy = {
+  fr: {
+    featured: "Projet phare",
+    categories: "Catégories du projet",
+    technologies: "Technologies principales",
+    actionFallback: "Voir le projet",
+    externalProjectSuffix:
+      "ouvrir le dépôt GitHub dans un nouvel onglet",
+  },
+  en: {
+    featured: "Featured project",
+    categories: "Project categories",
+    technologies: "Main technologies",
+    actionFallback: "View project",
+    externalProjectSuffix: "open the GitHub repository in a new tab",
+  },
+} as const satisfies Record<
+  SupportedLocale,
+  {
+    featured: string;
+    categories: string;
+    technologies: string;
+    actionFallback: string;
+    externalProjectSuffix: string;
+  }
+>;
+
 function ProjectPreview({
   project,
   view,
+  locale,
 }: {
   project: Project;
   view: ProjectViewMode;
+  locale: SupportedLocale;
 }) {
   const coverImage = project.coverImage;
   const isList = view === "list";
+  const copy = projectCardCopy[locale];
 
   return (
     <div
@@ -65,7 +95,7 @@ function ProjectPreview({
       />
       {project.featured ? (
         <div className="absolute left-3 top-3 rounded-full border border-[rgb(var(--accent-rgb)/0.22)] bg-[var(--surface-elevated)] px-2 py-0.5 text-[0.52rem] font-medium uppercase tracking-[0.13em] text-[var(--foreground-muted)] backdrop-blur-sm">
-          Projet phare
+          {copy.featured}
         </div>
       ) : null}
     </div>
@@ -75,9 +105,11 @@ function ProjectPreview({
 function ProjectTags({
   project,
   compact = false,
+  locale,
 }: {
   project: Project;
   compact?: boolean;
+  locale: SupportedLocale;
 }) {
   const visibleCategories = project.categories.slice(0, 3);
   const hiddenCount = Math.max(0, project.categories.length - visibleCategories.length);
@@ -88,7 +120,7 @@ function ProjectTags({
 
   return (
     <ul
-      aria-label="Catégories du projet"
+      aria-label={projectCardCopy[locale].categories}
       className={["flex flex-wrap", compact ? "gap-1.5" : "gap-2"].join(" ")}
     >
       {visibleCategories.map((category) => (
@@ -119,9 +151,11 @@ function ProjectTags({
 function ProjectTechStack({
   project,
   compact = false,
+  locale,
 }: {
   project: Project;
   compact?: boolean;
+  locale: SupportedLocale;
 }) {
   const visibleTech = project.technologies.slice(0, 4);
   const hiddenCount = Math.max(0, project.technologies.length - visibleTech.length);
@@ -132,7 +166,7 @@ function ProjectTechStack({
 
   return (
     <ul
-      aria-label="Technologies principales"
+      aria-label={projectCardCopy[locale].technologies}
       className={["flex flex-wrap", compact ? "gap-1.5" : "gap-2"].join(" ")}
     >
       {visibleTech.map((technology) => (
@@ -163,15 +197,18 @@ function ProjectTechStack({
 function ProjectAction({
   project,
   compact = false,
+  locale,
 }: {
   project: Project;
   compact?: boolean;
+  locale: SupportedLocale;
 }) {
-  const content = getProjectContent(project);
+  const copy = projectCardCopy[locale];
+  const content = getProjectContent(project, locale);
   const githubLink = project.links.find((link) => link.type === "github");
   const href = githubLink?.url ?? `/projects/${project.slug}`;
   const isExternal = Boolean(githubLink);
-  const label = githubLink?.label ?? "Voir le projet";
+  const label = githubLink?.label ?? copy.actionFallback;
 
   return (
     <Link
@@ -180,7 +217,7 @@ function ProjectAction({
       rel={isExternal ? "noopener noreferrer" : undefined}
       aria-label={
         isExternal
-          ? `${label} du projet ${content.title} - ouvrir le dépôt GitHub dans un nouvel onglet`
+          ? `${label} - ${content.title} - ${copy.externalProjectSuffix}`
           : `${label} ${content.title}`
       }
       className={[
@@ -213,10 +250,10 @@ export function ProjectCard({ project, view, locale = "fr" }: ProjectCardProps) 
           : "flex h-full min-h-[27rem] flex-col rounded-[13px] p-2.5",
       ].join(" ")}
     >
-      <ProjectPreview project={project} view={view} />
+      <ProjectPreview project={project} view={view} locale={locale} />
 
       <div className={isList ? "flex min-w-0 flex-col py-1" : "flex flex-1 min-w-0 flex-col px-2 pb-2 pt-3"}>
-        <ProjectTags project={project} compact={!isList} />
+        <ProjectTags project={project} compact={!isList} locale={locale} />
 
         <h2
           className={[
@@ -241,7 +278,11 @@ export function ProjectCard({ project, view, locale = "fr" }: ProjectCardProps) 
         </p>
 
         <div className={isList ? "mt-3.5 flex flex-1 flex-col justify-end gap-4" : "mt-auto flex flex-col gap-3 pt-5"}>
-          <ProjectTechStack project={project} compact={!isList} />
+          <ProjectTechStack
+            project={project}
+            compact={!isList}
+            locale={locale}
+          />
           <div className="flex items-center justify-between gap-4">
             {project.year ? (
               <p
@@ -255,7 +296,11 @@ export function ProjectCard({ project, view, locale = "fr" }: ProjectCardProps) 
             ) : (
               <span aria-hidden="true" />
             )}
-            <ProjectAction project={project} compact={!isList} />
+            <ProjectAction
+              project={project}
+              compact={!isList}
+              locale={locale}
+            />
           </div>
         </div>
       </div>
