@@ -3,6 +3,21 @@ import localFont from "next/font/local";
 import "./globals.css";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+const themeStorageKey = "portfolio-theme";
+const themeInitScript = `
+(function(){
+  try {
+    var stored = localStorage.getItem("${themeStorageKey}");
+    var theme = stored === "light" || stored === "dark" ? stored : "dark";
+    var root = document.documentElement;
+    root.setAttribute("data-theme", theme);
+    root.style.colorScheme = theme;
+  } catch (error) {
+    document.documentElement.setAttribute("data-theme", "dark");
+    document.documentElement.style.colorScheme = "dark";
+  }
+})();
+`;
 
 const geistSans = localFont({
   src: [
@@ -70,12 +85,17 @@ export default function RootLayout({
   return (
     <html
       lang="fr"
+      data-theme="dark"
+      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
       <body className="min-h-full flex flex-col bg-[var(--background)] text-[var(--text-primary)]">
         <a
           href="#main-content"
-          className="skip-link sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-full focus:bg-slate-50 focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-slate-950 focus:outline-none"
+          className="skip-link sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-full focus:bg-[var(--foreground)] focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-[var(--background)] focus:outline-none"
         >
           Aller au contenu
         </a>

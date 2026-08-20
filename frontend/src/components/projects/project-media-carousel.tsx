@@ -129,7 +129,7 @@ export function ProjectMediaCarousel({
       aria-describedby={descriptionId}
       tabIndex={0}
       onKeyDown={handleKeyDown}
-      className="group/carousel outline-none focus-visible:rounded-[16px] focus-visible:ring-2 focus-visible:ring-[#7C8CFF] focus-visible:ring-offset-4 focus-visible:ring-offset-[#080D1A]"
+      className="group/carousel outline-none focus-visible:rounded-[16px] focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--focus-ring-offset)]"
     >
       <p id={descriptionId} className="sr-only">
         Utilisez les flèches gauche et droite lorsque la galerie est focalisée
@@ -138,7 +138,7 @@ export function ProjectMediaCarousel({
 
       {canNavigate ? (
         <div className="mb-3 hidden items-center justify-end gap-4 md:flex">
-          <p className="text-[0.72rem] font-medium uppercase tracking-[0.18em] text-[#94A3B8]/72">
+          <p className="text-[0.72rem] font-medium uppercase tracking-[0.18em] text-[var(--foreground-muted)]">
             {formatCounter(activeIndex + 1)} / {formatCounter(count)}
           </p>
         </div>
@@ -158,10 +158,10 @@ export function ProjectMediaCarousel({
           onPointerDown={handlePointerDown}
           onPointerUp={handlePointerUp}
           onPointerCancel={handlePointerCancel}
-          className="relative overflow-hidden rounded-[16px] border border-slate-400/[0.1] bg-[#090F1C]/42 p-3 shadow-[0_20px_64px_rgba(0,0,0,0.18)] sm:p-4 lg:p-[18px]"
+          className="relative overflow-hidden rounded-[16px] border border-[var(--border-subtle)] bg-[var(--surface-elevated)] p-3 shadow-[var(--shadow-soft)] sm:p-4 lg:p-[18px]"
         >
           <div
-            className="relative overflow-hidden rounded-[11px] bg-[#050912]/35 ring-1 ring-inset ring-slate-400/[0.05]"
+            className="relative overflow-hidden rounded-[11px] bg-[var(--media-frame-soft)] ring-1 ring-inset ring-[var(--border-muted)]"
             style={{ aspectRatio: getAspectRatio(media[0]) }}
           >
             <div
@@ -191,7 +191,7 @@ export function ProjectMediaCarousel({
       </div>
 
       {activeMedia.caption ? (
-        <p className="mt-3 text-center text-[0.82rem] leading-6 text-[#94A3B8]">
+        <p className="mt-3 text-center text-[0.82rem] leading-6 text-[var(--foreground-muted)]">
           {activeMedia.caption}
         </p>
       ) : null}
@@ -203,7 +203,7 @@ export function ProjectMediaCarousel({
             label="Image précédente"
             onClick={goToPrevious}
           />
-          <p className="text-[0.72rem] font-medium uppercase tracking-[0.18em] text-[#94A3B8]/72">
+          <p className="text-[0.72rem] font-medium uppercase tracking-[0.18em] text-[var(--foreground-muted)]">
             {formatCounter(activeIndex + 1)} / {formatCounter(count)}
           </p>
           <CarouselButton
@@ -236,7 +236,7 @@ function CarouselButton({
       aria-label={label}
       onClick={onClick}
       className={[
-        "inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-400/[0.12] bg-[#080D1A]/82 text-[#CBD5E1] backdrop-blur-sm transition duration-200 hover:border-[#7C8CFF]/35 hover:text-[#F8FAFC] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7C8CFF] focus-visible:ring-offset-4 focus-visible:ring-offset-[#080D1A] motion-reduce:transition-none md:h-10 md:w-10",
+        "inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--border-subtle)] bg-[var(--surface-elevated)] text-[var(--foreground-secondary)] backdrop-blur-sm transition duration-200 hover:border-[var(--accent-muted)] hover:text-[var(--foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--focus-ring-offset)] motion-reduce:transition-none md:h-10 md:w-10",
         className,
       ].join(" ")}
     >

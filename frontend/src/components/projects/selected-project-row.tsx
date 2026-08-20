@@ -82,21 +82,21 @@ export function SelectedProjectRow({
         ease: [0.22, 1, 0.36, 1],
         delay: reducedMotion ? 0 : index * 0.06,
       }}
-      className="group/project grid border-t border-slate-400/[0.08] py-[1.625rem] md:grid-cols-[2.75rem_minmax(12rem,15.5rem)_minmax(0,1fr)] md:gap-x-6 lg:grid-cols-[3.5rem_minmax(14rem,18rem)_minmax(0,1fr)_8rem] lg:items-start lg:gap-x-7 xl:grid-cols-[3.5rem_minmax(15rem,19.5rem)_minmax(0,1fr)_8.5rem]"
+      className="group/project grid border-t border-[var(--border-muted)] py-[1.625rem] md:grid-cols-[2.75rem_minmax(12rem,15.5rem)_minmax(0,1fr)] md:gap-x-6 lg:grid-cols-[3.5rem_minmax(14rem,18rem)_minmax(0,1fr)_8rem] lg:items-start lg:gap-x-7 xl:grid-cols-[3.5rem_minmax(15rem,19.5rem)_minmax(0,1fr)_8.5rem]"
     >
       <div className="mb-5 flex items-center justify-between md:mb-0 md:block">
-        <p className="text-[1.15rem] font-normal leading-none tracking-[-0.02em] text-[#7C8CFF]/85 md:text-[1.28rem]">
+        <p className="text-[1.15rem] font-normal leading-none tracking-[-0.02em] text-[var(--accent-muted)] md:text-[1.28rem]">
           {formatProjectIndex(index)}
         </p>
         {project.year ? (
-          <p className="text-[0.72rem] font-medium tracking-[0.08em] text-[#94A3B8]/68 md:hidden">
+          <p className="text-[0.72rem] font-medium tracking-[0.08em] text-[var(--foreground-muted)] opacity-70 md:hidden">
             {project.year}
           </p>
         ) : null}
       </div>
 
       <div className="mb-6 md:mb-0">
-        <div className="relative overflow-hidden rounded-[9px] border border-slate-400/[0.11] bg-[#040815]/80">
+        <div className="relative overflow-hidden rounded-[9px] border border-[var(--border-subtle)] bg-[var(--media-frame)]">
           <div className="relative aspect-[16/9]">
             {coverImage ? (
               <>
@@ -109,14 +109,15 @@ export function SelectedProjectRow({
                 />
                 <div
                   aria-hidden="true"
-                  className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(8,13,26,0.07)_0%,rgba(8,13,26,0.02)_45%,rgba(8,13,26,0.12)_100%)]"
+                  className="pointer-events-none absolute inset-0"
+                  style={{ background: "var(--cover-overlay)" }}
                 />
               </>
             ) : (
               <div className="grid h-full place-items-center">
                 <FolderOpen
                   aria-hidden="true"
-                  className="h-7 w-7 text-[#7C8CFF]/42"
+                  className="h-7 w-7 text-[var(--accent-muted)] opacity-45"
                 />
               </div>
             )}
@@ -125,18 +126,18 @@ export function SelectedProjectRow({
       </div>
 
       <div className="min-w-0 md:pr-4 lg:pr-0">
-        <h3 className="max-w-[38rem] text-[clamp(1.38rem,4.6vw,1.62rem)] font-semibold leading-[1.18] tracking-[-0.035em] text-[#F8FAFC] transition-colors duration-200 group-hover/project:text-white motion-reduce:transition-none lg:text-[clamp(1.35rem,1.7vw,1.55rem)]">
+        <h3 className="max-w-[38rem] text-[clamp(1.38rem,4.6vw,1.62rem)] font-semibold leading-[1.18] tracking-[-0.035em] text-[var(--foreground)] transition-colors duration-200 group-hover/project:text-[var(--foreground)] motion-reduce:transition-none lg:text-[clamp(1.35rem,1.7vw,1.55rem)]">
           {content.title}
         </h3>
 
-        <p className="mt-3 max-w-[38rem] text-[0.94rem] leading-[1.62] text-[#94A3B8]">
+        <p className="mt-3 max-w-[38rem] text-[0.94rem] leading-[1.62] text-[var(--foreground-muted)]">
           {content.shortDescription}
         </p>
 
         {categories.length > 0 ? (
           <p
             aria-label="Catégories principales"
-            className="mt-4 text-[0.78rem] font-medium tracking-[0.06em] text-[#7C8CFF]/86"
+            className="mt-4 text-[0.78rem] font-medium tracking-[0.06em] text-[var(--accent-muted)]"
           >
             {categories.join(" · ")}
           </p>
@@ -148,7 +149,7 @@ export function SelectedProjectRow({
 
         <div className="mt-5 flex items-center justify-between gap-6 lg:hidden">
           {project.year ? (
-            <p className="hidden text-[0.72rem] font-medium tracking-[0.08em] text-[#94A3B8]/68 md:block">
+            <p className="hidden text-[0.72rem] font-medium tracking-[0.08em] text-[var(--foreground-muted)] opacity-70 md:block">
               {project.year}
             </p>
           ) : (
@@ -165,7 +166,7 @@ export function SelectedProjectRow({
 
       <div className="hidden h-full flex-col items-end justify-between gap-8 pt-1 lg:flex">
         {project.year ? (
-          <p className="text-[0.72rem] font-medium tracking-[0.08em] text-[#94A3B8]/68">
+          <p className="text-[0.72rem] font-medium tracking-[0.08em] text-[var(--foreground-muted)] opacity-70">
             {project.year}
           </p>
         ) : (
@@ -201,12 +202,12 @@ function TechnologyLogoRow({
             aria-label={technology.name}
             title={technology.name}
             tabIndex={0}
-            className="group/tech relative flex min-h-5 min-w-5 items-center rounded-[4px] text-[#AAB7C8]/70 outline-none transition duration-200 hover:-translate-y-px hover:text-[#E2E8F0] focus-visible:-translate-y-px focus-visible:ring-2 focus-visible:ring-[#7C8CFF] focus-visible:ring-offset-4 focus-visible:ring-offset-[#080D1A] motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:focus-visible:translate-y-0"
+            className="group/tech relative flex min-h-5 min-w-5 items-center rounded-[4px] text-[var(--foreground-muted)] outline-none transition duration-200 hover:-translate-y-px hover:text-[var(--foreground)] focus-visible:-translate-y-px focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--focus-ring-offset)] motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:focus-visible:translate-y-0"
           >
             {iconSrc ? (
               <>
                 <TechnologyIcon technology={technology} />
-                <span className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 hidden -translate-x-1/2 whitespace-nowrap rounded-[6px] border border-slate-400/[0.10] bg-[#080D1A]/95 px-2 py-1 text-[0.68rem] font-medium text-[#E2E8F0]/88 shadow-[0_8px_24px_rgba(0,0,0,0.24)] group-hover/tech:block group-focus-visible/tech:block">
+                <span className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 hidden -translate-x-1/2 whitespace-nowrap rounded-[6px] border border-[var(--border-subtle)] bg-[var(--surface)] px-2 py-1 text-[0.68rem] font-medium text-[var(--foreground)] shadow-[var(--shadow-soft)] group-hover/tech:block group-focus-visible/tech:block">
                   {technology.name}
                 </span>
               </>
@@ -245,7 +246,7 @@ function ProjectLink({
           ? `${label} du projet ${title} - ouvrir le dépôt GitHub dans un nouvel onglet`
           : `${label} ${title}`
       }
-      className="group/link inline-flex min-h-9 items-center gap-2 border-b border-[#7C8CFF]/42 pb-1 text-[0.82rem] font-medium text-slate-100 transition duration-200 hover:border-[#7C8CFF]/80 hover:text-white focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7C8CFF] focus-visible:ring-offset-4 focus-visible:ring-offset-[#080D1A]"
+      className="group/link inline-flex min-h-9 items-center gap-2 border-b border-[rgb(var(--accent-rgb)/0.42)] pb-1 text-[0.82rem] font-medium text-[var(--foreground)] transition duration-200 hover:border-[rgb(var(--accent-rgb)/0.8)] hover:text-[var(--accent-strong)] focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--focus-ring-offset)]"
     >
       <span>{label}</span>
       <ArrowUpRight

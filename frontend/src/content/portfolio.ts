@@ -80,7 +80,7 @@ export const portfolioContent: PortfolioContent = {
     ],
     highlights: ["Data Science", "Machine Learning", "Deep Learning", "NLP"],
     image: {
-      src: "/assets/propos_image.jpg",
+      src: "/assets/profile_pic.png",
       alt: "Portrait de Soufiane Azerdaoui",
     },
     signature: "Soufiane Azerdaoui",

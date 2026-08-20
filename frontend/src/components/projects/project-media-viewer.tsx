@@ -271,7 +271,7 @@ export function ProjectMediaViewer({
       <div
         role="tablist"
         aria-label="Galerie du projet"
-        className="flex min-w-0 items-center gap-8 border-b border-slate-400/[0.1] text-[0.84rem] font-medium text-[#AAB7C8] sm:gap-12 sm:text-[0.9rem]"
+        className="flex min-w-0 items-center gap-8 border-b border-[var(--border-subtle)] text-[0.84rem] font-medium text-[var(--foreground-secondary)] sm:gap-12 sm:text-[0.9rem]"
       >
         {tabs.map((tab, index) => {
           const selected = tab.id === activeTab;
@@ -291,17 +291,17 @@ export function ProjectMediaViewer({
               onClick={() => selectTab(tab.id)}
               onKeyDown={(event) => handleTabKeyDown(event, index)}
               className={[
-                "relative min-h-14 whitespace-nowrap px-1 text-left transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7C8CFF] focus-visible:ring-offset-4 focus-visible:ring-offset-[#080D1A] motion-reduce:transition-none",
+                "relative min-h-14 whitespace-nowrap px-1 text-left transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--focus-ring-offset)] motion-reduce:transition-none",
                 selected
-                  ? "text-[#9AA6FF]"
-                  : "text-[#AAB7C8] hover:text-[#F8FAFC]",
+                  ? "text-[var(--accent-strong)]"
+                  : "text-[var(--foreground-secondary)] hover:text-[var(--foreground)]",
               ].join(" ")}
             >
               {tab.label}
               <span
                 aria-hidden="true"
                 className={[
-                  "absolute inset-x-0 bottom-0 h-px origin-left bg-[#7C8CFF] transition duration-200 motion-reduce:transition-none",
+                  "absolute inset-x-0 bottom-0 h-px origin-left bg-[var(--accent)] transition duration-200 motion-reduce:transition-none",
                   selected ? "scale-x-100 opacity-100" : "scale-x-0 opacity-0",
                 ].join(" ")}
               />
@@ -316,12 +316,12 @@ export function ProjectMediaViewer({
         aria-labelledby={`${componentId}-${activeTabConfig.id}-tab`}
         tabIndex={0}
         onKeyDown={handlePanelKeyDown}
-        className="mt-8 outline-none focus-visible:rounded-[14px] focus-visible:ring-2 focus-visible:ring-[#7C8CFF] focus-visible:ring-offset-4 focus-visible:ring-offset-[#080D1A] min-[1180px]:mt-9 min-[1180px]:flex-1"
+        className="mt-8 outline-none focus-visible:rounded-[14px] focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--focus-ring-offset)] min-[1180px]:mt-9 min-[1180px]:flex-1"
       >
-        <div className="relative flex min-h-[23rem] flex-col overflow-hidden rounded-[14px] border border-slate-400/[0.11] bg-[#060B15]/36 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)] sm:min-h-[31rem] sm:p-5 min-[1180px]:h-full min-[1180px]:min-h-[34rem] min-[1180px]:p-6">
+        <div className="relative flex min-h-[23rem] flex-col overflow-hidden rounded-[14px] border border-[var(--border-subtle)] bg-[var(--surface-elevated)] p-4 shadow-[var(--shadow-soft)] sm:min-h-[31rem] sm:p-5 min-[1180px]:h-full min-[1180px]:min-h-[34rem] min-[1180px]:p-6">
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute inset-x-[12%] top-[12%] h-[28%] rounded-full bg-[#7C8CFF]/[0.035] blur-3xl"
+            className="pointer-events-none absolute inset-x-[12%] top-[12%] h-[28%] rounded-full bg-[var(--accent-faint)] blur-3xl"
           />
 
           <div
@@ -345,7 +345,7 @@ export function ProjectMediaViewer({
                 />
               </div>
             ) : (
-              <div className="flex h-full min-h-[18rem] items-center justify-center rounded-[10px] border border-dashed border-slate-400/[0.13] px-6 text-center text-[0.88rem] text-[#94A3B8]">
+              <div className="flex h-full min-h-[18rem] items-center justify-center rounded-[10px] border border-dashed border-[var(--border-subtle)] px-6 text-center text-[0.88rem] text-[var(--foreground-muted)]">
                 Aucun média disponible pour cette catégorie.
               </div>
             )}
@@ -372,7 +372,7 @@ export function ProjectMediaViewer({
             </div>
 
             {canNavigate ? (
-              <p className="text-center text-[0.72rem] font-medium uppercase tracking-[0.18em] text-[#94A3B8]/70">
+              <p className="text-center text-[0.72rem] font-medium uppercase tracking-[0.18em] text-[var(--foreground-muted)]">
                 {formatSlideLabel(activeIndex)} /{" "}
                 {formatSlideTotal(activeMediaList.length)}
               </p>
@@ -394,7 +394,7 @@ export function ProjectMediaViewer({
                   type="button"
                   aria-label="Agrandir l’image active"
                   onClick={() => setExpanded(true)}
-                  className="ml-auto inline-flex h-10 w-10 items-center justify-center rounded-[8px] border border-slate-400/[0.08] bg-[#080D1A]/42 text-[#94A3B8] transition duration-200 hover:border-[#7C8CFF]/26 hover:text-[#F8FAFC] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7C8CFF] focus-visible:ring-offset-4 focus-visible:ring-offset-[#080D1A] motion-reduce:transition-none"
+                  className="ml-auto inline-flex h-10 w-10 items-center justify-center rounded-[8px] border border-[var(--border-muted)] bg-[var(--surface-elevated)] text-[var(--foreground-muted)] transition duration-200 hover:border-[var(--accent-muted)] hover:text-[var(--foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--focus-ring-offset)] motion-reduce:transition-none"
                 >
                   <Maximize2 aria-hidden="true" className="h-4 w-4" />
                 </button>
@@ -410,7 +410,7 @@ export function ProjectMediaViewer({
           role="dialog"
           aria-modal="true"
           aria-label="Aperçu agrandi du média projet"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-[#030711]/92 p-4 backdrop-blur-md sm:p-8"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[rgb(var(--background-rgb)/0.92)] p-4 backdrop-blur-md sm:p-8"
           onMouseDown={(event) => {
             if (event.target === event.currentTarget) {
               setExpanded(false);
@@ -422,7 +422,7 @@ export function ProjectMediaViewer({
             type="button"
             aria-label="Fermer l’aperçu agrandi"
             onClick={() => setExpanded(false)}
-            className="absolute right-4 top-4 inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-400/[0.12] bg-[#080D1A]/82 text-[#CBD5E1] transition duration-200 hover:border-[#7C8CFF]/35 hover:text-[#F8FAFC] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7C8CFF] focus-visible:ring-offset-4 focus-visible:ring-offset-[#030711] motion-reduce:transition-none"
+            className="absolute right-4 top-4 inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--border-subtle)] bg-[var(--surface-elevated)] text-[var(--foreground-secondary)] transition duration-200 hover:border-[var(--accent-muted)] hover:text-[var(--foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--focus-ring-offset)] motion-reduce:transition-none"
           >
             <X aria-hidden="true" className="h-5 w-5" />
           </button>
@@ -454,10 +454,10 @@ function MediaCatalog({
   onSelect: (index: number) => void;
 }) {
   return (
-    <div className="mt-4 border-t border-slate-400/[0.08] pt-4">
+    <div className="mt-4 border-t border-[var(--border-muted)] pt-4">
       <div
         aria-label={`Catalogue ${tabLabel}`}
-        className="flex gap-3 overflow-x-auto pb-1 [scrollbar-width:thin] [scrollbar-color:rgba(148,163,184,0.22)_transparent]"
+        className="flex gap-3 overflow-x-auto pb-1 [scrollbar-width:thin] [scrollbar-color:var(--scrollbar-thumb)_transparent]"
       >
         {media.map((item, index) => {
           const selected = index === activeIndex;
@@ -470,13 +470,13 @@ function MediaCatalog({
               aria-current={selected ? "true" : undefined}
               onClick={() => onSelect(index)}
               className={[
-                "group/catalog min-w-[6.75rem] rounded-[9px] border bg-[#080D1A]/34 p-1.5 text-left transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7C8CFF] focus-visible:ring-offset-4 focus-visible:ring-offset-[#080D1A] motion-reduce:transition-none sm:min-w-[7.8rem]",
+                "group/catalog min-w-[6.75rem] rounded-[9px] border bg-[var(--surface-elevated)] p-1.5 text-left transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--focus-ring-offset)] motion-reduce:transition-none sm:min-w-[7.8rem]",
                 selected
-                  ? "border-[#7C8CFF]/58 bg-[#7C8CFF]/[0.075]"
-                  : "border-slate-400/[0.09] hover:border-[#7C8CFF]/30 hover:bg-[#101827]/45",
+                  ? "border-[rgb(var(--accent-rgb)/0.58)] bg-[var(--accent-soft)]"
+                  : "border-[var(--border-muted)] hover:border-[var(--accent-muted)] hover:bg-[var(--surface-soft)]",
               ].join(" ")}
             >
-              <span className="relative block aspect-[16/9] overflow-hidden rounded-[6px] bg-[#030711]/60 ring-1 ring-inset ring-slate-400/[0.05]">
+              <span className="relative block aspect-[16/9] overflow-hidden rounded-[6px] bg-[var(--media-frame)] ring-1 ring-inset ring-[var(--border-muted)]">
                 <Image
                   src={resolveProjectMediaUrl(item)}
                   alt=""
@@ -488,14 +488,14 @@ function MediaCatalog({
                   aria-hidden="true"
                   className={[
                     "absolute inset-0 rounded-[6px] ring-1 ring-inset transition duration-200 motion-reduce:transition-none",
-                    selected ? "ring-[#7C8CFF]/60" : "ring-transparent",
+                    selected ? "ring-[var(--accent)]" : "ring-transparent",
                   ].join(" ")}
                 />
               </span>
               <span
                 className={[
                   "mt-2 block text-[0.68rem] font-medium uppercase tracking-[0.16em] transition duration-200 motion-reduce:transition-none",
-                  selected ? "text-[#F8FAFC]" : "text-[#94A3B8]/70",
+                  selected ? "text-[var(--foreground)]" : "text-[var(--foreground-muted)]",
                 ].join(" ")}
               >
                 {formatSlideLabel(index)}
@@ -524,7 +524,7 @@ function ViewerButton({
       type="button"
       aria-label={label}
       onClick={onClick}
-      className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-400/[0.08] bg-[#111827]/54 text-[#CBD5E1] transition duration-200 hover:border-[#7C8CFF]/30 hover:text-[#F8FAFC] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7C8CFF] focus-visible:ring-offset-4 focus-visible:ring-offset-[#080D1A] motion-reduce:transition-none"
+      className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--border-muted)] bg-[var(--surface-elevated)] text-[var(--foreground-secondary)] transition duration-200 hover:border-[var(--accent-muted)] hover:text-[var(--foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--focus-ring-offset)] motion-reduce:transition-none"
     >
       <Icon aria-hidden="true" className="h-4 w-4" />
     </button>

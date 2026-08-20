@@ -2,16 +2,184 @@
 
 :root {
   --background: #080d1a;
+  --background-rgb: 8 13 26;
   --background-elevated: #080e19;
-  --surface: #0f172a;
+  --surface: #090f1c;
+  --surface-rgb: 9 15 28;
+  --surface-elevated: rgba(9, 15, 28, 0.58);
+  --surface-soft: rgba(15, 23, 42, 0.42);
+  --surface-strong: #0b1222;
   --silver: #e2e8f0;
   --silver-muted: #94a3b8;
   --primary-blue: #0c2465;
   --accent-blue: #4f6bff;
-  --accent-violet: #7c5cfc;
+  --accent-violet: #7c8cff;
+  --accent: #7c8cff;
+  --accent-rgb: 124 140 255;
+  --accent-strong: #a5b4fc;
+  --accent-muted: rgba(124, 140, 255, 0.78);
+  --accent-soft: rgba(124, 140, 255, 0.1);
+  --accent-faint: rgba(124, 140, 255, 0.035);
   --text-primary: #f8fafc;
+  --foreground: #f8fafc;
+  --foreground-secondary: #cbd5e1;
+  --foreground-muted: #94a3b8;
+  --foreground-subtle: #64748b;
   --text-secondary: #9ca3af;
   --border: rgba(226, 232, 240, 0.14);
+  --border-subtle: rgba(148, 163, 184, 0.1);
+  --border-muted: rgba(148, 163, 184, 0.08);
+  --border-strong: rgba(226, 232, 240, 0.3);
+  --button-primary-bg: linear-gradient(135deg, #3f63dd, #654ee8);
+  --button-primary-border: #506de8;
+  --button-primary-hover: #6f78ff;
+  --button-primary-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    0 10px 24px rgba(79, 107, 255, 0.16);
+  --button-secondary-bg: rgba(8, 13, 26, 0.5);
+  --button-secondary-hover: rgba(255, 255, 255, 0.05);
+  --button-secondary-border: rgba(226, 232, 240, 0.3);
+  --focus-ring: #7c8cff;
+  --focus-ring-offset: #080d1a;
+  --hero-glow: rgba(12, 36, 101, 0.08);
+  --media-frame: #050912;
+  --media-frame-soft: rgba(5, 9, 18, 0.35);
+  --cover-overlay: linear-gradient(
+    180deg,
+    rgba(8, 13, 26, 0.04) 0%,
+    transparent 42%,
+    rgba(8, 13, 26, 0.36) 100%
+  );
+  --portrait-overlay: linear-gradient(
+    180deg,
+    rgba(8, 13, 26, 0.07) 0%,
+    rgba(8, 13, 26, 0.04) 48%,
+    rgba(8, 13, 26, 0.24) 100%
+  );
+  --shadow-soft: 0 18px 54px rgba(0, 0, 0, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.035);
+  --shadow-portrait: 0 22px 60px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.035);
+  --selection-bg: rgba(226, 232, 240, 0.24);
+  --selection-color: #f8fafc;
+  --scrollbar-thumb: rgba(148, 163, 184, 0.28);
+  --home-bg-0: #17161c;
+  --home-bg-0-rgb: 23 22 28;
+  --home-bg-1: #191a1f;
+  --home-bg-1-rgb: 25 26 31;
+  --home-bg-2: #202126;
+  --home-bg-2-rgb: 32 33 38;
+  --home-bg-3: #26262e;
+  --home-bg-3-rgb: 38 38 46;
+  --home-accent: #6155b9;
+  --home-accent-rgb: 97 85 185;
+  --home-accent-2: #8b80d9;
+  --home-accent-2-rgb: 139 128 217;
+  --home-text: #f1f0f5;
+  --home-text-secondary: #a7a5af;
+  --home-muted: #777681;
+  --home-line: rgba(180, 177, 194, 0.12);
+  --home-line-strong: rgba(139, 128, 217, 0.28);
+  --home-line-muted: rgba(180, 177, 194, 0.08);
+  --home-button-primary-bg: #6155b9;
+  --home-button-primary-hover: #7165c7;
+  --home-button-primary-border: rgba(139, 128, 217, 0.55);
+  --home-button-primary-shadow: 0 8px 30px rgba(97, 85, 185, 0.12);
+  --home-button-secondary-bg: rgba(255, 255, 255, 0.015);
+  --home-button-secondary-hover: rgba(97, 85, 185, 0.08);
+  --home-button-secondary-border: rgba(186, 183, 199, 0.28);
+  --home-button-secondary-text: #e7e5ed;
+  --home-button-secondary-hover-text: #f3f2f7;
+  color-scheme: dark;
+}
+
+html[data-theme="light"] {
+  --background: #f7f8fb;
+  --background-rgb: 247 248 251;
+  --background-elevated: #ffffff;
+  --surface: #ffffff;
+  --surface-rgb: 255 255 255;
+  --surface-elevated: rgba(255, 255, 255, 0.78);
+  --surface-soft: #f3f5f9;
+  --surface-strong: #ffffff;
+  --silver: #475467;
+  --silver-muted: #667085;
+  --primary-blue: #e8ebff;
+  --accent-blue: #5f67f6;
+  --accent-violet: #6670f6;
+  --accent: #5f67f6;
+  --accent-rgb: 95 103 246;
+  --accent-strong: #4f56d8;
+  --accent-muted: rgba(95, 103, 246, 0.72);
+  --accent-soft: rgba(95, 103, 246, 0.08);
+  --accent-faint: rgba(95, 103, 246, 0.035);
+  --text-primary: #101828;
+  --foreground: #101828;
+  --foreground-secondary: #344054;
+  --foreground-muted: #667085;
+  --foreground-subtle: #98a2b3;
+  --text-secondary: #667085;
+  --border: #e6eaf0;
+  --border-subtle: rgba(16, 24, 40, 0.1);
+  --border-muted: rgba(16, 24, 40, 0.075);
+  --border-strong: #d7ddea;
+  --button-primary-bg: #5f67f6;
+  --button-primary-border: #5f67f6;
+  --button-primary-hover: #555de8;
+  --button-primary-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 8px 30px rgba(16, 24, 40, 0.04);
+  --button-secondary-bg: #ffffff;
+  --button-secondary-hover: #f3f5f9;
+  --button-secondary-border: #d7ddea;
+  --focus-ring: #6670f6;
+  --focus-ring-offset: #f7f8fb;
+  --hero-glow: rgba(95, 103, 246, 0.06);
+  --media-frame: #f3f5f9;
+  --media-frame-soft: #ffffff;
+  --cover-overlay: linear-gradient(
+    180deg,
+    rgba(247, 248, 251, 0.02) 0%,
+    transparent 46%,
+    rgba(247, 248, 251, 0.1) 100%
+  );
+  --portrait-overlay: linear-gradient(
+    180deg,
+    rgba(247, 248, 251, 0.02) 0%,
+    transparent 48%,
+    rgba(16, 24, 40, 0.08) 100%
+  );
+  --shadow-soft: 0 8px 30px rgba(16, 24, 40, 0.04);
+  --shadow-portrait: 0 8px 30px rgba(16, 24, 40, 0.045);
+  --selection-bg: rgba(95, 103, 246, 0.18);
+  --selection-color: #101828;
+  --scrollbar-thumb: #c7cdd8;
+  --home-bg-0: #f7f8fb;
+  --home-bg-0-rgb: 247 248 251;
+  --home-bg-1: #ffffff;
+  --home-bg-1-rgb: 255 255 255;
+  --home-bg-2: #f3f5f9;
+  --home-bg-2-rgb: 243 245 249;
+  --home-bg-3: #e9edf5;
+  --home-bg-3-rgb: 233 237 245;
+  --home-accent: #5f67f6;
+  --home-accent-rgb: 95 103 246;
+  --home-accent-2: #6670f6;
+  --home-accent-2-rgb: 102 112 246;
+  --home-text: #101828;
+  --home-text-secondary: #344054;
+  --home-muted: #667085;
+  --home-line: rgba(16, 24, 40, 0.1);
+  --home-line-strong: rgba(95, 103, 246, 0.24);
+  --home-line-muted: rgba(16, 24, 40, 0.06);
+  --home-button-primary-bg: #5f67f6;
+  --home-button-primary-hover: #555de8;
+  --home-button-primary-border: rgba(95, 103, 246, 0.5);
+  --home-button-primary-shadow: 0 8px 30px rgba(16, 24, 40, 0.04);
+  --home-button-secondary-bg: rgba(255, 255, 255, 0.58);
+  --home-button-secondary-hover: #f3f5f9;
+  --home-button-secondary-border: #d7ddea;
+  --home-button-secondary-text: #344054;
+  --home-button-secondary-hover-text: #101828;
+  color-scheme: light;
 }
 
 @theme inline {
@@ -44,8 +212,147 @@ body {
 }
 
 ::selection {
-  background: rgba(226, 232, 240, 0.24);
-  color: #f8fafc;
+  background: var(--selection-bg);
+  color: var(--selection-color);
+}
+
+* {
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+.home-background-base {
+  background:
+    radial-gradient(
+      circle at 61% 29%,
+      rgb(var(--home-bg-3-rgb) / 0.34) 0%,
+      rgb(var(--home-bg-2-rgb) / 0.16) 24%,
+      transparent 48%
+    ),
+    radial-gradient(
+      ellipse at 84% 78%,
+      rgb(var(--home-accent-rgb) / 0.055) 0%,
+      rgb(var(--home-bg-2-rgb) / 0.09) 30%,
+      transparent 56%
+    ),
+    radial-gradient(
+      ellipse at 12% 82%,
+      rgb(var(--home-bg-1-rgb) / 0.5) 0%,
+      transparent 48%
+    ),
+    linear-gradient(
+      115deg,
+      var(--home-bg-0) 0%,
+      var(--home-bg-1) 42%,
+      var(--home-bg-2) 100%
+    );
+}
+
+html[data-theme="light"] .home-background-base {
+  background:
+    radial-gradient(
+      circle at 61% 29%,
+      rgb(var(--home-bg-3-rgb) / 0.34) 0%,
+      rgb(var(--home-bg-2-rgb) / 0.22) 24%,
+      transparent 48%
+    ),
+    radial-gradient(
+      ellipse at 84% 78%,
+      rgb(var(--home-accent-rgb) / 0.035) 0%,
+      rgb(var(--home-bg-2-rgb) / 0.24) 30%,
+      transparent 56%
+    ),
+    linear-gradient(
+      115deg,
+      var(--home-bg-0) 0%,
+      var(--home-bg-1) 48%,
+      var(--home-bg-2) 100%
+    );
+}
+
+.home-technical-background {
+  color: var(--home-accent-2);
+}
+
+.home-technical-background::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      90deg,
+      rgb(var(--home-bg-0-rgb) / 0.42),
+      transparent 18%,
+      transparent 82%,
+      rgb(var(--home-bg-0-rgb) / 0.36)
+    ),
+    radial-gradient(
+      ellipse at center,
+      transparent 28%,
+      rgb(var(--home-bg-0-rgb) / 0.16) 100%
+    );
+}
+
+.home-dot-matrix {
+  -webkit-mask-image: radial-gradient(circle at center, black 0%, transparent 72%);
+  mask-image: radial-gradient(circle at center, black 0%, transparent 72%);
+}
+
+.home-topographic-mask {
+  -webkit-mask-image: linear-gradient(135deg, transparent 0%, black 34%, black 72%, transparent 100%);
+  mask-image: linear-gradient(135deg, transparent 0%, black 34%, black 72%, transparent 100%);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .home-orbit-drift {
+    animation: home-orbit-drift 36s ease-in-out infinite;
+  }
+
+  .home-node-breathe {
+    animation: home-node-breathe 7.5s ease-in-out infinite;
+  }
+}
+
+@keyframes home-orbit-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+
+  50% {
+    transform: translate3d(-10px, 4px, 0);
+  }
+}
+
+@keyframes home-node-breathe {
+  0%,
+  100% {
+    opacity: 0.42;
+  }
+
+  50% {
+    opacity: 0.68;
+  }
+}
+
+html[data-theme="dark"] .theme-toggle__sun {
+  opacity: 1;
+  transform: rotate(0deg) scale(1);
+}
+
+html[data-theme="dark"] .theme-toggle__moon {
+  opacity: 0;
+  transform: rotate(-18deg) scale(0.82);
+}
+
+html[data-theme="light"] .theme-toggle__sun {
+  opacity: 0;
+  transform: rotate(18deg) scale(0.82);
+}
+
+html[data-theme="light"] .theme-toggle__moon {
+  opacity: 1;
+  transform: rotate(0deg) scale(1);
 }
 
 @keyframes case-study-rise {

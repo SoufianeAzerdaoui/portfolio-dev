@@ -27,12 +27,12 @@ function ProjectPreview({
   return (
     <div
       className={[
-        "relative w-full overflow-hidden rounded-[10px] border border-slate-400/8 bg-[#050912]",
+        "relative w-full overflow-hidden rounded-[10px] border border-[var(--border-muted)] bg-[var(--media-frame)]",
       ].join(" ")}
     >
       <div
         className={[
-          "relative grid place-items-center bg-[radial-gradient(circle_at_50%_20%,rgba(124,140,255,0.08),transparent_34%),linear-gradient(135deg,rgba(15,23,42,0.48),rgba(5,10,20,0.62))]",
+          "relative grid place-items-center bg-[radial-gradient(circle_at_50%_20%,rgb(var(--accent-rgb)/0.08),transparent_34%),linear-gradient(135deg,var(--surface-soft),var(--media-frame))]",
           isList
             ? "aspect-[3/2]"
             : "aspect-[16/9] md:h-[9.75rem] md:aspect-auto xl:h-[10.25rem] 2xl:h-[10.75rem]",
@@ -54,14 +54,17 @@ function ProjectPreview({
           <div className="grid h-full place-items-center">
             <FolderOpen
               aria-hidden="true"
-              className="h-8 w-8 text-[#7C8CFF]/42"
+              className="h-8 w-8 text-[var(--accent-muted)] opacity-45"
             />
           </div>
         )}
       </div>
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(8,13,26,0.04)_0%,transparent_42%,rgba(8,13,26,0.36)_100%)]" />
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{ background: "var(--cover-overlay)" }}
+      />
       {project.featured ? (
-        <div className="absolute left-3 top-3 rounded-full border border-[#7C8CFF]/28 bg-[#080D1A]/68 px-2 py-0.5 text-[0.52rem] font-medium uppercase tracking-[0.13em] text-[#E2E8F0]/82 backdrop-blur-sm">
+        <div className="absolute left-3 top-3 rounded-full border border-[rgb(var(--accent-rgb)/0.22)] bg-[var(--surface-elevated)] px-2 py-0.5 text-[0.52rem] font-medium uppercase tracking-[0.13em] text-[var(--foreground-muted)] backdrop-blur-sm">
           Projet phare
         </div>
       ) : null}
@@ -92,7 +95,7 @@ function ProjectTags({
         <li
           key={category.id}
           className={[
-            "rounded-full border border-slate-400/8 bg-slate-900/35 font-medium uppercase tracking-[0.12em] text-[#AAB7C8]/75",
+            "rounded-full border border-[var(--border-muted)] bg-[var(--surface-elevated)] font-medium uppercase tracking-[0.12em] text-[var(--accent-muted)]",
             compact ? "px-2 py-0.5 text-[0.58rem]" : "px-2.5 py-1 text-[0.62rem]",
           ].join(" ")}
         >
@@ -102,7 +105,7 @@ function ProjectTags({
       {hiddenCount > 0 ? (
         <li
           className={[
-            "rounded-full border border-slate-400/8 bg-slate-900/35 font-medium text-[#AAB7C8]/70",
+            "rounded-full border border-[var(--border-muted)] bg-[var(--surface-elevated)] font-medium text-[var(--accent-muted)]",
             compact ? "px-2 py-0.5 text-[0.58rem]" : "px-2.5 py-1 text-[0.62rem]",
           ].join(" ")}
         >
@@ -136,7 +139,7 @@ function ProjectTechStack({
         <li
           key={technology.id}
           className={[
-            "rounded-full bg-slate-400/[0.07] font-medium text-[#CBD5E1]/72",
+            "rounded-full bg-[var(--surface-soft)] font-medium text-[var(--foreground-secondary)]",
             compact ? "px-2 py-0.5 text-[0.64rem]" : "px-2.5 py-1 text-[0.7rem]",
           ].join(" ")}
         >
@@ -146,7 +149,7 @@ function ProjectTechStack({
       {hiddenCount > 0 ? (
         <li
           className={[
-            "rounded-full bg-slate-400/[0.07] font-medium text-[#CBD5E1]/68",
+            "rounded-full bg-[var(--surface-soft)] font-medium text-[var(--foreground-secondary)]",
             compact ? "px-2 py-0.5 text-[0.64rem]" : "px-2.5 py-1 text-[0.7rem]",
           ].join(" ")}
         >
@@ -181,7 +184,7 @@ function ProjectAction({
           : `${label} ${content.title}`
       }
       className={[
-        "group/link inline-flex items-center gap-2 font-medium text-slate-100 transition duration-200 hover:text-white focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7C8CFF] focus-visible:ring-offset-4 focus-visible:ring-offset-[#080D1A]",
+        "group/link inline-flex items-center gap-2 font-medium text-[var(--foreground)] transition duration-200 hover:text-[var(--accent-strong)] focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--focus-ring-offset)]",
         compact ? "text-[0.76rem]" : "text-[0.78rem]",
       ].join(" ")}
     >
@@ -204,7 +207,7 @@ export function ProjectCard({ project, view, locale = "fr" }: ProjectCardProps) 
   return (
     <article
       className={[
-        "group relative overflow-hidden border border-slate-400/11 bg-[#090F1C]/58 shadow-[0_18px_54px_rgba(0,0,0,0.12),inset_0_1px_0_rgba(255,255,255,0.035)] transition duration-200 hover:-translate-y-0.5 hover:border-[#7C8CFF]/28 hover:bg-[#0B1222]/70 motion-reduce:transition-none",
+        "group relative overflow-hidden border border-[var(--border-subtle)] bg-[var(--surface-elevated)] shadow-[var(--shadow-soft)] transition duration-200 hover:-translate-y-0.5 hover:border-[rgb(var(--accent-rgb)/0.22)] hover:bg-[var(--surface-strong)] motion-reduce:transition-none",
         isList
           ? "grid gap-5 rounded-[14px] p-3 md:grid-cols-[minmax(13rem,0.34fr)_minmax(0,1fr)]"
           : "flex h-full min-h-[27rem] flex-col rounded-[13px] p-2.5",
@@ -217,7 +220,7 @@ export function ProjectCard({ project, view, locale = "fr" }: ProjectCardProps) 
 
         <h2
           className={[
-            "font-semibold leading-[1.16] tracking-[-0.025em] text-slate-50",
+            "font-semibold leading-[1.16] tracking-[-0.025em] text-[var(--foreground)]",
             isList
               ? "mt-2 text-[clamp(1.25rem,2.2vw,1.55rem)]"
               : "mt-2 line-clamp-2 text-[clamp(1.12rem,1.34vw,1.24rem)] leading-[1.22]",
@@ -228,7 +231,7 @@ export function ProjectCard({ project, view, locale = "fr" }: ProjectCardProps) 
 
         <p
           className={[
-            "text-[#94A3B8]",
+            "text-[var(--foreground-muted)]",
             isList
               ? "mt-2 line-clamp-4 text-[0.9rem] leading-6"
               : "mt-2.5 line-clamp-3 text-[0.86rem] leading-[1.6]",
@@ -243,7 +246,7 @@ export function ProjectCard({ project, view, locale = "fr" }: ProjectCardProps) 
             {project.year ? (
               <p
                 className={[
-                  "font-medium tracking-[0.12em] text-[#64748B]",
+                  "font-medium tracking-[0.12em] text-[var(--foreground-subtle)]",
                   isList ? "text-[0.72rem]" : "text-[0.7rem]",
                 ].join(" ")}
               >

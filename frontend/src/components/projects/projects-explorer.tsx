@@ -170,7 +170,7 @@ export function ProjectsExplorer({
             </label>
             <Search
               aria-hidden="true"
-              className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#94A3B8]/72"
+              className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--foreground-subtle)]"
             />
             <input
               id="project-search"
@@ -178,13 +178,13 @@ export function ProjectsExplorer({
               value={state.query}
               onChange={(event) => updateQuery(event.target.value)}
               placeholder="Rechercher un projet, technologie..."
-              className="h-11 w-full rounded-[9px] border border-slate-400/12 bg-[#080D1A]/58 pl-11 pr-11 text-[0.82rem] text-slate-100 outline-none transition duration-200 placeholder:text-[#64748B] focus:border-[#7C8CFF]/70 focus:ring-2 focus:ring-[#7C8CFF]/10"
+              className="h-11 w-full rounded-[9px] border border-[var(--border-subtle)] bg-[var(--surface-elevated)] pl-11 pr-11 text-[0.82rem] text-[var(--foreground)] outline-none transition duration-200 placeholder:text-[var(--foreground-subtle)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[rgb(var(--accent-rgb)/0.1)]"
             />
             {state.query ? (
               <button
                 type="button"
                 onClick={() => updateQuery("")}
-                className="absolute right-2.5 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-md text-[#94A3B8] transition duration-200 hover:bg-slate-400/10 hover:text-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7C8CFF] focus-visible:ring-offset-2 focus-visible:ring-offset-[#080D1A]"
+                className="absolute right-2.5 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-md text-[var(--foreground-muted)] transition duration-200 hover:bg-[var(--surface-soft)] hover:text-[var(--foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--focus-ring-offset)]"
                 aria-label="Effacer la recherche"
               >
                 <X aria-hidden="true" className="h-3.5 w-3.5" />
@@ -193,7 +193,7 @@ export function ProjectsExplorer({
           </div>
 
           <div
-            className="inline-flex h-11 rounded-[9px] border border-slate-400/12 bg-[#080D1A]/52 p-1"
+            className="inline-flex h-11 rounded-[9px] border border-[var(--border-subtle)] bg-[var(--surface-elevated)] p-1"
             aria-label="Mode d'affichage des projets"
           >
             <button
@@ -202,10 +202,10 @@ export function ProjectsExplorer({
               aria-pressed={state.view === "grid"}
               onClick={() => updateView("grid")}
               className={[
-                "grid h-9 w-10 place-items-center rounded-[7px] transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7C8CFF] focus-visible:ring-offset-2 focus-visible:ring-offset-[#080D1A]",
+                "grid h-9 w-10 place-items-center rounded-[7px] transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--focus-ring-offset)]",
                 state.view === "grid"
-                  ? "border border-[#7C8CFF]/45 bg-[#7C8CFF]/12 text-slate-50"
-                  : "text-[#94A3B8] hover:text-slate-50",
+                  ? "border border-[rgb(var(--accent-rgb)/0.45)] bg-[var(--accent-soft)] text-[var(--foreground)]"
+                  : "text-[var(--foreground-muted)] hover:text-[var(--foreground)]",
               ].join(" ")}
             >
               <Grid2X2 aria-hidden="true" className="h-4 w-4" />
@@ -216,10 +216,10 @@ export function ProjectsExplorer({
               aria-pressed={state.view === "list"}
               onClick={() => updateView("list")}
               className={[
-                "grid h-9 w-10 place-items-center rounded-[7px] transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7C8CFF] focus-visible:ring-offset-2 focus-visible:ring-offset-[#080D1A]",
+                "grid h-9 w-10 place-items-center rounded-[7px] transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--focus-ring-offset)]",
                 state.view === "list"
-                  ? "border border-[#7C8CFF]/45 bg-[#7C8CFF]/12 text-slate-50"
-                  : "text-[#94A3B8] hover:text-slate-50",
+                  ? "border border-[rgb(var(--accent-rgb)/0.45)] bg-[var(--accent-soft)] text-[var(--foreground)]"
+                  : "text-[var(--foreground-muted)] hover:text-[var(--foreground)]",
               ].join(" ")}
             >
               <List aria-hidden="true" className="h-4 w-4" />
@@ -228,7 +228,7 @@ export function ProjectsExplorer({
         </div>
       </div>
 
-      <div className="mt-12 border-y border-slate-400/10 py-4">
+      <div className="mt-12 border-y border-[var(--border-subtle)] py-4">
         <div className="sm:hidden">
           <label htmlFor="project-domain-filter" className="sr-only">
             Filtrer les projets par domaine
@@ -240,7 +240,7 @@ export function ProjectsExplorer({
               onChange={(event) =>
                 updateDomain(resolveSelectedDomain(event.target.value))
               }
-              className="h-11 w-full appearance-none rounded-[8px] border border-slate-400/12 bg-[#080D1A]/58 px-4 pr-10 text-[0.88rem] font-medium text-[#E2E8F0] outline-none transition duration-200 focus:border-[#7C8CFF]/70 focus:ring-2 focus:ring-[#7C8CFF]/10"
+              className="h-11 w-full appearance-none rounded-[8px] border border-[var(--border-subtle)] bg-[var(--surface-elevated)] px-4 pr-10 text-[0.88rem] font-medium text-[var(--foreground)] outline-none transition duration-200 focus:border-[var(--accent)] focus:ring-2 focus:ring-[rgb(var(--accent-rgb)/0.1)]"
             >
               {domainOptions.map((domain) => (
                 <option key={domain.id} value={domain.id}>
@@ -252,7 +252,7 @@ export function ProjectsExplorer({
             </select>
             <ChevronDown
               aria-hidden="true"
-              className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#94A3B8]"
+              className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--foreground-muted)]"
             />
           </div>
         </div>
@@ -274,10 +274,10 @@ export function ProjectsExplorer({
                 )}`}
                 onClick={() => updateDomain(domain.id)}
                 className={[
-                  "group/domain relative inline-flex min-h-9 items-center gap-2 whitespace-nowrap pb-2 text-[0.84rem] font-medium transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7C8CFF] focus-visible:ring-offset-4 focus-visible:ring-offset-[#080D1A] md:text-[0.88rem]",
+                  "group/domain relative inline-flex min-h-9 items-center gap-2 whitespace-nowrap pb-2 text-[0.84rem] font-medium transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--focus-ring-offset)] md:text-[0.88rem]",
                   isActive
-                    ? "text-[#F8FAFC]"
-                    : "text-[#94A3B8]/75 hover:text-[#CBD5E1]",
+                    ? "text-[var(--foreground)]"
+                    : "text-[var(--foreground-muted)] hover:text-[var(--foreground-secondary)]",
                 ].join(" ")}
               >
                 <span>{domain.label}</span>
@@ -286,8 +286,8 @@ export function ProjectsExplorer({
                   className={[
                     "text-[0.66rem] font-normal tracking-[0.04em] tabular-nums transition duration-200",
                     isActive
-                      ? "text-[#CBD5E1]/78"
-                      : "text-[#94A3B8]/50 group-hover/domain:text-[#CBD5E1]/64",
+                      ? "text-[var(--foreground-secondary)] opacity-80"
+                      : "text-[var(--foreground-subtle)] opacity-60 group-hover/domain:text-[var(--foreground-secondary)]",
                   ].join(" ")}
                 >
                   {formatProjectFilterCount(domain.count)}
@@ -295,7 +295,7 @@ export function ProjectsExplorer({
                 <span
                   aria-hidden="true"
                   className={[
-                    "pointer-events-none absolute inset-x-0 bottom-0 h-px origin-left rounded-full bg-[#7C8CFF] transition duration-200",
+                    "pointer-events-none absolute inset-x-0 bottom-0 h-px origin-left rounded-full bg-[var(--accent)] transition duration-200",
                     isActive
                       ? "scale-x-100 opacity-100"
                       : "scale-x-0 opacity-0 group-hover/domain:scale-x-100 group-hover/domain:opacity-45",
@@ -310,7 +310,7 @@ export function ProjectsExplorer({
       <div ref={resultsRef} className="scroll-mt-8">
         <p
           aria-live="polite"
-          className="mt-5 text-[0.78rem] font-medium text-[#94A3B8]"
+          className="mt-5 text-[0.78rem] font-medium text-[var(--foreground-muted)]"
         >
           {formatProjectsCount(filteredProjects.length)}
         </p>
@@ -334,17 +334,17 @@ export function ProjectsExplorer({
             ))}
           </div>
         ) : (
-          <div className="mt-5 rounded-[14px] border border-slate-400/11 bg-[#090F1C]/45 px-6 py-14 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
+          <div className="mt-5 rounded-[14px] border border-[var(--border-subtle)] bg-[var(--surface-elevated)] px-6 py-14 text-center shadow-[var(--shadow-soft)]">
             <FolderOpen
               aria-hidden="true"
-              className="mx-auto h-9 w-9 text-[#7C8CFF]/55"
+              className="mx-auto h-9 w-9 text-[var(--accent-muted)]"
             />
-            <h2 className="mt-5 text-xl font-semibold tracking-[-0.03em] text-slate-50">
+            <h2 className="mt-5 text-xl font-semibold tracking-[-0.03em] text-[var(--foreground)]">
               {hasActiveFilters(state)
                 ? "Aucun projet ne correspond à ces critères."
                 : "Aucun projet publié pour le moment."}
             </h2>
-            <p className="mx-auto mt-3 max-w-[36rem] text-sm leading-6 text-[#94A3B8]">
+            <p className="mx-auto mt-3 max-w-[36rem] text-sm leading-6 text-[var(--foreground-muted)]">
               {hasActiveFilters(state)
                 ? "Modifie la recherche ou réinitialise les filtres pour retrouver la collection complète."
                 : "Les projets publiés seront bientôt disponibles."}
@@ -353,7 +353,7 @@ export function ProjectsExplorer({
               <button
                 type="button"
                 onClick={resetFilters}
-                className="mt-6 inline-flex min-h-[42px] items-center justify-center gap-2 rounded-[6px] border border-[#7C8CFF]/36 bg-[rgba(8,13,26,0.5)] px-5 text-[0.82rem] font-medium text-slate-100 transition duration-200 hover:border-[#7C8CFF]/70 hover:bg-[#3F63DD]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7C8CFF] focus-visible:ring-offset-2 focus-visible:ring-offset-[#080D1A]"
+                className="mt-6 inline-flex min-h-[42px] items-center justify-center gap-2 rounded-[6px] border border-[var(--button-secondary-border)] bg-[var(--button-secondary-bg)] px-5 text-[0.82rem] font-medium text-[var(--foreground)] transition duration-200 hover:border-[var(--accent-muted)] hover:bg-[var(--button-secondary-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--focus-ring-offset)]"
               >
                 <RotateCcw aria-hidden="true" className="h-3.5 w-3.5" />
                 Réinitialiser les filtres
@@ -372,7 +372,7 @@ export function ProjectsExplorer({
             type="button"
             onClick={() => updatePage(pagination.currentPage - 1)}
             disabled={pagination.currentPage === 1}
-            className="min-h-10 rounded-[7px] border border-slate-400/12 px-4 text-[0.78rem] font-medium text-[#AAB7C8] transition duration-200 hover:border-[#7C8CFF]/45 hover:text-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+            className="min-h-10 rounded-[7px] border border-[var(--border-subtle)] px-4 text-[0.78rem] font-medium text-[var(--foreground-muted)] transition duration-200 hover:border-[var(--accent-muted)] hover:text-[var(--foreground)] disabled:cursor-not-allowed disabled:opacity-40"
           >
             Précédent
           </button>
@@ -386,8 +386,8 @@ export function ProjectsExplorer({
                 className={[
                   "grid h-10 w-10 place-items-center rounded-[7px] border text-[0.78rem] font-medium transition duration-200",
                   pagination.currentPage === page
-                    ? "border-[#7C8CFF]/45 bg-[#7C8CFF]/16 text-slate-50"
-                    : "border-slate-400/12 text-[#AAB7C8] hover:border-[#7C8CFF]/45 hover:text-slate-50",
+                    ? "border-[rgb(var(--accent-rgb)/0.45)] bg-[var(--accent-soft)] text-[var(--foreground)]"
+                    : "border-[var(--border-subtle)] text-[var(--foreground-muted)] hover:border-[var(--accent-muted)] hover:text-[var(--foreground)]",
                 ].join(" ")}
               >
                 {page}
@@ -398,7 +398,7 @@ export function ProjectsExplorer({
             type="button"
             onClick={() => updatePage(pagination.currentPage + 1)}
             disabled={pagination.currentPage === pagination.pageCount}
-            className="min-h-10 rounded-[7px] border border-slate-400/12 px-4 text-[0.78rem] font-medium text-[#AAB7C8] transition duration-200 hover:border-[#7C8CFF]/45 hover:text-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+            className="min-h-10 rounded-[7px] border border-[var(--border-subtle)] px-4 text-[0.78rem] font-medium text-[var(--foreground-muted)] transition duration-200 hover:border-[var(--accent-muted)] hover:text-[var(--foreground)] disabled:cursor-not-allowed disabled:opacity-40"
           >
             Suivant
           </button>

@@ -124,7 +124,7 @@ export default async function ProjectCaseStudyPage({
     <>
       <div
         aria-hidden="true"
-        className="pointer-events-none fixed inset-0 -z-10 bg-[#080D1A]"
+        className="pointer-events-none fixed inset-0 -z-10 bg-[var(--background)]"
       />
       <SpaceBackground />
 
@@ -132,7 +132,7 @@ export default async function ProjectCaseStudyPage({
         <article className="min-h-svh min-[1180px]:grid min-[1180px]:grid-cols-[minmax(0,44fr)_minmax(0,56fr)]">
           <section
             aria-labelledby="project-case-study-title"
-            className="border-b border-slate-400/[0.09] px-5 py-8 sm:px-8 min-[1180px]:min-h-svh min-[1180px]:border-b-0 min-[1180px]:border-r min-[1180px]:px-11 min-[1180px]:py-10 min-[1440px]:px-12 min-[1600px]:px-14"
+            className="border-b border-[var(--border-subtle)] px-5 py-8 sm:px-8 min-[1180px]:min-h-svh min-[1180px]:border-b-0 min-[1180px]:border-r min-[1180px]:px-11 min-[1180px]:py-10 min-[1440px]:px-12 min-[1600px]:px-14"
           >
             <div className="mx-auto flex w-full max-w-[42rem] flex-col min-[1180px]:mx-0 min-[1180px]:min-h-[calc(100svh-5rem)]">
               <div className="flex items-start justify-between gap-5">
@@ -143,27 +143,27 @@ export default async function ProjectCaseStudyPage({
               </div>
 
               <header className="mt-11 max-w-[35rem] min-[1180px]:mt-10 min-[1366px]:mt-11">
-                <p className="text-[0.72rem] font-medium uppercase tracking-[0.2em] text-[#7C8CFF]">
+                <p className="text-[0.72rem] font-medium uppercase tracking-[0.2em] text-[var(--accent)]">
                   / Project case study
                 </p>
                 <h1
                   id="project-case-study-title"
-                  className="mt-5 text-[clamp(2.65rem,4vw,3.38rem)] font-semibold leading-[1.06] tracking-[-0.055em] text-[#F8FAFC]"
+                  className="mt-5 text-[clamp(2.65rem,4vw,3.38rem)] font-semibold leading-[1.06] tracking-[-0.055em] text-[var(--foreground)]"
                 >
                   {displayTitle}
                 </h1>
-                <p className="mt-4 max-w-[33rem] text-[clamp(1.12rem,1.55vw,1.32rem)] leading-[1.47] tracking-[-0.025em] text-[#AAB7C8]">
+                <p className="mt-4 max-w-[33rem] text-[clamp(1.12rem,1.55vw,1.32rem)] leading-[1.47] tracking-[-0.025em] text-[var(--foreground-secondary)]">
                   {ensureTerminalPeriod(content.title)}
                 </p>
 
                 {metaItems.length > 0 ? (
-                  <p className="mt-5 flex flex-wrap gap-x-3 gap-y-2 text-[0.72rem] font-medium uppercase tracking-[0.2em] text-[#94A3B8]/82">
+                  <p className="mt-5 flex flex-wrap gap-x-3 gap-y-2 text-[0.72rem] font-medium uppercase tracking-[0.2em] text-[var(--foreground-muted)]">
                     {metaItems.map((item, index) => (
                       <span key={item} className="inline-flex items-center gap-3">
                         {index > 0 ? (
                           <span
                             aria-hidden="true"
-                            className="h-1 w-1 rounded-full bg-[#7C8CFF]/75"
+                            className="h-1 w-1 rounded-full bg-[var(--accent)] opacity-75"
                           />
                         ) : null}
                         {item}
@@ -173,7 +173,7 @@ export default async function ProjectCaseStudyPage({
                 ) : null}
               </header>
 
-              <div className="mt-8 border-t border-slate-400/[0.09]">
+              <div className="mt-8 border-t border-[var(--border-subtle)]">
                 {insights.map((block) => (
                   <ProjectInsightBlock
                     key={block.title}
@@ -183,8 +183,8 @@ export default async function ProjectCaseStudyPage({
                 ))}
               </div>
 
-              <div className="mt-7 border-t border-slate-400/[0.09] pt-7 min-[1180px]:mt-auto">
-                <h2 className="text-[0.78rem] font-medium uppercase tracking-[0.12em] text-[#7C8CFF]">
+              <div className="mt-7 border-t border-[var(--border-subtle)] pt-7 min-[1180px]:mt-auto">
+                <h2 className="text-[0.78rem] font-medium uppercase tracking-[0.12em] text-[var(--accent)]">
                   Stack principale
                 </h2>
                 <TechnologyStack technologies={project.technologies} />
@@ -212,7 +212,7 @@ function BackLink() {
   return (
     <Link
       href="/projects"
-      className="group inline-flex min-h-10 items-center gap-3 text-[0.92rem] font-medium text-[#CBD5E1] transition duration-200 hover:text-[#F8FAFC] focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7C8CFF] focus-visible:ring-offset-4 focus-visible:ring-offset-[#080D1A] motion-reduce:transition-none"
+      className="group inline-flex min-h-10 items-center gap-3 text-[0.92rem] font-medium text-[var(--foreground-secondary)] transition duration-200 hover:text-[var(--foreground)] focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--focus-ring-offset)] motion-reduce:transition-none"
     >
       <ArrowLeft
         aria-hidden="true"
@@ -233,15 +233,15 @@ function ProjectInsightBlock({
   const Icon = block.icon;
 
   return (
-    <section className="grid grid-cols-[3rem_minmax(0,1fr)] gap-5 border-b border-slate-400/[0.09] py-7 min-[1180px]:py-6 min-[1440px]:py-7">
-      <div aria-hidden="true" className="pt-0.5 text-[#7C8CFF]">
+    <section className="grid grid-cols-[3rem_minmax(0,1fr)] gap-5 border-b border-[var(--border-subtle)] py-7 min-[1180px]:py-6 min-[1440px]:py-7">
+      <div aria-hidden="true" className="pt-0.5 text-[var(--accent)]">
         <Icon className="h-6 w-6 stroke-[1.7]" />
       </div>
       <div>
-        <h2 className="text-[0.82rem] font-semibold uppercase tracking-[0.1em] text-[#9AA6FF]">
+        <h2 className="text-[0.82rem] font-semibold uppercase tracking-[0.1em] text-[var(--accent-strong)]">
           {block.title}
         </h2>
-        <p className="mt-3 max-w-[34rem] text-[0.93rem] leading-[1.72] text-[#CBD5E1]/88">
+        <p className="mt-3 max-w-[34rem] text-[0.93rem] leading-[1.72] text-[var(--foreground-secondary)]">
           {block.body}
         </p>
         {block.title === "Contribution" && contributors?.length ? (
@@ -262,9 +262,9 @@ function ContributorsList({
       {contributors.map((contributor) => (
         <li
           key={contributor.name}
-          className="inline-flex items-center gap-3 text-[0.88rem] font-medium text-[#F8FAFC]"
+          className="inline-flex items-center gap-3 text-[0.88rem] font-medium text-[var(--foreground)]"
         >
-          <span className="grid h-9 w-9 place-items-center rounded-full border border-[#7C8CFF]/32 bg-[#7C8CFF]/14 text-[0.76rem] text-[#C7D2FE]">
+          <span className="grid h-9 w-9 place-items-center rounded-full border border-[rgb(var(--accent-rgb)/0.32)] bg-[var(--accent-soft)] text-[0.76rem] text-[var(--accent-strong)]">
             {getInitials(contributor.name)}
           </span>
           <span>{contributor.name}</span>
@@ -291,13 +291,13 @@ function TechnologyStack({
         return (
           <li key={technology.id} className="min-w-0 text-center">
             {hasIcon ? (
-              <span className="mx-auto grid h-10 w-10 place-items-center rounded-[9px] border border-slate-400/[0.09] bg-[#0B1222]/72">
+              <span className="mx-auto grid h-10 w-10 place-items-center rounded-[9px] border border-[var(--border-subtle)] bg-[var(--surface-elevated)]">
                 <TechnologyIcon technology={technology} />
               </span>
             ) : (
               <span aria-hidden="true" className="mx-auto block h-10 w-10" />
             )}
-            <span className="mt-2 block text-[0.72rem] font-medium leading-[1.18] text-[#E2E8F0]">
+            <span className="mt-2 block text-[0.72rem] font-medium leading-[1.18] text-[var(--foreground)]">
               {technology.name}
             </span>
           </li>
@@ -320,7 +320,7 @@ function ExternalProjectLink({
       target="_blank"
       rel="noopener noreferrer"
       aria-label={`${label ?? link.label} - ouvrir le dépôt dans un nouvel onglet`}
-      className="group inline-flex h-11 w-fit items-center justify-center gap-2 whitespace-nowrap rounded-[8px] border border-slate-400/[0.12] bg-transparent px-4 text-[0.92rem] font-medium text-[#F8FAFC] transition duration-200 hover:border-[#7C8CFF]/38 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7C8CFF] focus-visible:ring-offset-4 focus-visible:ring-offset-[#080D1A] motion-reduce:transition-none"
+      className="group inline-flex h-11 w-fit items-center justify-center gap-2 whitespace-nowrap rounded-[8px] border border-[var(--border-subtle)] bg-transparent px-4 text-[0.92rem] font-medium text-[var(--foreground)] transition duration-200 hover:border-[var(--accent-muted)] hover:text-[var(--accent-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--focus-ring-offset)] motion-reduce:transition-none"
     >
       {link.type === "github" ? (
         <GitBranch aria-hidden="true" className="h-[1.05rem] w-[1.05rem]" />

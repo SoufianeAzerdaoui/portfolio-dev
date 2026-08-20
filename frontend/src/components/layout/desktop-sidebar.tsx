@@ -24,7 +24,15 @@ export function DesktopSidebar({
   const { activeSection, handleNavClick } = useSectionNavigation(navigation);
 
   return (
-    <aside className="sticky top-0 z-30 hidden h-svh w-full min-w-0 bg-transparent px-5 pt-7 pb-6 lg:grid">
+    <aside className="sticky top-0 z-30 hidden h-svh w-full min-w-0 bg-transparent px-5 pt-7 pb-6 lg:relative lg:grid">
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute left-0 top-10 bottom-10 w-px bg-[var(--home-line)]"
+      />
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute left-0 top-[13.5rem] h-1 w-1 -translate-x-1/2 rounded-full bg-[var(--home-accent-2)] opacity-70"
+      />
       <div className="grid h-full w-full max-w-[14.5rem] grid-rows-[1fr_auto_1fr]">
         <nav aria-label="Navigation principale" className="row-start-2 w-full self-center pl-3">
           <ul className="flex flex-col gap-1">
@@ -38,11 +46,11 @@ export function DesktopSidebar({
                       type="button"
                       aria-disabled="true"
                       tabIndex={-1}
-                      className="group flex min-h-[52px] w-full cursor-default items-center gap-3 pr-3 text-left text-[15px] leading-[1.2] font-normal whitespace-nowrap text-[#94A3B8] opacity-50 transition-[color,opacity] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] hover:text-[#CBD5E1] hover:opacity-80 xl:text-[16px] motion-reduce:transition-none"
+                      className="group flex min-h-[52px] w-full cursor-default items-center gap-3 pr-3 text-left text-[15px] leading-[1.2] font-normal whitespace-nowrap text-[var(--home-muted)] opacity-50 transition-[color,opacity] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] hover:text-[var(--home-text-secondary)] hover:opacity-80 xl:text-[16px] motion-reduce:transition-none"
                     >
                       <span
                         aria-hidden="true"
-                        className="mt-px h-px w-11 shrink-0 origin-left scale-x-[0.45] rounded-full bg-[#64748B] opacity-45 transition-[transform,background-color,opacity] duration-[260ms] ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-x-[0.65] group-hover:bg-[#7C8CFF] group-hover:opacity-70 motion-reduce:transition-none"
+                        className="mt-px h-px w-11 shrink-0 origin-left scale-x-[0.45] rounded-full bg-[var(--home-line)] opacity-75 transition-[transform,background-color,opacity] duration-[260ms] ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-x-[0.65] group-hover:bg-[var(--home-accent-2)] group-hover:opacity-80 motion-reduce:transition-none"
                       />
                       <span>{item.label}</span>
                     </button>
@@ -53,10 +61,10 @@ export function DesktopSidebar({
                       aria-current={isActive ? "location" : undefined}
                       onClick={(event) => handleNavClick(event, item)}
                       className={[
-                        "group flex min-h-[52px] w-full items-center gap-3 pr-3 text-left leading-[1.2] whitespace-nowrap transition-[color,opacity,font-size] duration-[240ms] ease-[cubic-bezier(0.22,1,0.36,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7C8CFF] focus-visible:ring-offset-4 focus-visible:ring-offset-[#050912] active:text-[#F8FAFC] motion-reduce:transition-none",
+                        "group flex min-h-[52px] w-full items-center gap-3 pr-3 text-left leading-[1.2] whitespace-nowrap transition-[color,opacity,font-size] duration-[240ms] ease-[cubic-bezier(0.22,1,0.36,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--home-accent-2)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--home-bg-0)] active:text-[var(--home-text)] motion-reduce:transition-none",
                         isActive
-                          ? "text-[19px] font-medium text-[#F8FAFC] opacity-100 xl:text-[21px]"
-                          : "text-[15px] font-normal text-[#94A3B8] opacity-50 hover:text-[#CBD5E1] hover:opacity-80 xl:text-[16px]",
+                          ? "text-[19px] font-medium text-[var(--home-text)] opacity-100 xl:text-[21px]"
+                          : "text-[15px] font-normal text-[var(--home-muted)] opacity-70 hover:text-[var(--home-text-secondary)] hover:opacity-100 xl:text-[16px]",
                       ].join(" ")}
                     >
                       <span
@@ -64,8 +72,8 @@ export function DesktopSidebar({
                         className={[
                           "mt-px h-px w-11 shrink-0 origin-left rounded-full transition-[transform,background-color,opacity] duration-[260ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
                           isActive
-                            ? "scale-x-100 bg-[#7C8CFF] opacity-95 group-hover:opacity-100"
-                            : "scale-x-[0.45] bg-[#64748B] opacity-45 group-hover:scale-x-[0.65] group-hover:bg-[#7C8CFF] group-hover:opacity-75",
+                            ? "scale-x-100 bg-[var(--home-accent-2)] opacity-95 group-hover:opacity-100"
+                            : "scale-x-[0.45] bg-[var(--home-line)] opacity-75 group-hover:scale-x-[0.65] group-hover:bg-[var(--home-accent-2)] group-hover:opacity-80",
                         ].join(" ")}
                       />
                       <span>{item.label}</span>
@@ -88,7 +96,7 @@ export function DesktopSidebar({
                 aria-label={social.label}
                 aria-disabled="true"
                 tabIndex={-1}
-                className="inline-grid h-7 w-7 place-items-center text-[#64748B]"
+                className="inline-grid h-7 w-7 place-items-center text-[var(--home-muted)] opacity-75"
               >
                 <Icon className="h-4 w-4" />
               </button>
@@ -99,7 +107,7 @@ export function DesktopSidebar({
                 target={social.external ? "_blank" : undefined}
                 rel={social.external ? "noopener noreferrer" : undefined}
                 aria-label={social.label}
-                className="inline-grid h-7 w-7 place-items-center text-[#94A3B8] transition-[color,transform] duration-150 hover:-translate-y-0.5 hover:text-[#E2E8F0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7C8CFF] focus-visible:ring-offset-4 focus-visible:ring-offset-[#050912]"
+                className="inline-grid h-7 w-7 place-items-center text-[var(--home-muted)] transition-[color,transform] duration-150 hover:-translate-y-0.5 hover:text-[var(--home-accent-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--home-accent-2)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--home-bg-0)]"
               >
                 <Icon className="h-4 w-4" />
               </Link>
