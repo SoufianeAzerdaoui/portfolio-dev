@@ -3,8 +3,10 @@ import { MobileHeader } from "@/components/layout/mobile-header";
 import { HeroSection } from "@/components/home/hero-section";
 import { SpaceBackground } from "@/components/home/space-background";
 import { AboutSection } from "@/components/sections/about-section";
+import { JourneySection } from "@/components/sections/journey-section";
 import { ProjectsTeaserSection } from "@/components/sections/projects-teaser-section";
 import { SectionPlaceholder } from "@/components/sections/section-placeholder";
+import { journeyExperiences } from "@/content/journey";
 import { portfolioContent } from "@/content/portfolio";
 
 export default function Home() {
@@ -34,6 +36,11 @@ export default function Home() {
           {portfolioContent.sections.map((section) =>
             section.id === "projects" ? (
               <ProjectsTeaserSection key={section.id} section={section} />
+            ) : section.id === "journey" ? (
+              <JourneySection
+                key={section.id}
+                experiences={journeyExperiences}
+              />
             ) : (
               <SectionPlaceholder key={section.id} section={section} />
             ),

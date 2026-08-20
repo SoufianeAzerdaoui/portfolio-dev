@@ -2,16 +2,26 @@ import type {
   Project,
   ProjectCategory,
   ProjectCategoryFilter,
+  ProjectDomain,
+  ProjectDomainFilter,
   ProjectExplorerState,
   ProjectLink,
   ProjectViewMode,
   SupportedLocale,
 } from "@/features/projects/domain/project.types";
+import {
+  getProjectDomainLabel,
+  isProjectDomain,
+  PROJECT_DOMAIN_OPTIONS,
+  type ProjectDomainOption,
+} from "@/features/projects/domain/project-domains";
 import { getProjectContent } from "@/features/projects/utils/project-localization";
 
 export const PROJECTS_PER_PAGE = 6;
 
 type RawSearchParams = Record<string, string | string[] | undefined>;
+
+export type ProjectDomainCounts = ReadonlyMap<ProjectDomainFilter, number>;
 
 export function normalizeProjectText(value: string) {
   return value
@@ -33,6 +43,34 @@ export function getAvailableProjectCategories(projects: readonly Project[]) {
   });
 
   return Array.from(categories.values());
+}
+
+export function getAvailableProjectDomains(projects: readonly Project[]) {
+  const availableDomains = new Set<ProjectDomain>(
+    projects.map((project) => project.domain),
+  );
+
+  return PROJECT_DOMAIN_OPTIONS.filter((domain) =>
+    availableDomains.has(domain.id),
+  );
+}
+
+export function getProjectDomainCounts(
+  projects: readonly Project[],
+): ProjectDomainCounts {
+  const counts = new Map<ProjectDomainFilter, number>();
+
+  counts.set("all", projects.length);
+
+  PROJECT_DOMAIN_OPTIONS.forEach((domain) => {
+    counts.set(domain.id, 0);
+  });
+
+  projects.forEach((project) => {
+    counts.set(project.domain, (counts.get(project.domain) ?? 0) + 1);
+  });
+
+  return counts;
 }
 
 export function getAvailableProjectTechnologies(projects: readonly Project[]) {
@@ -60,6 +98,21 @@ export function resolveProjectCategory(
   return categories.some((category) => category.slug === value) ? value : "all";
 }
 
+export function resolveProjectDomain(
+  value: string | null | undefined,
+  domains: readonly ProjectDomainOption[],
+): ProjectDomainFilter {
+  if (!value || value === "all") {
+    return "all";
+  }
+
+  if (!isProjectDomain(value)) {
+    return "all";
+  }
+
+  return domains.some((domain) => domain.id === value) ? value : "all";
+}
+
 export function resolveProjectView(value: string | null | undefined) {
   return value === "list" ? "list" : "grid";
 }
@@ -72,7 +125,7 @@ export function resolveProjectPage(value: string | null | undefined) {
 
 export function filterProjects(
   projects: readonly Project[],
-  state: Pick<ProjectExplorerState, "query" | "category"> & {
+  state: Pick<ProjectExplorerState, "query" | "domain"> & {
     locale?: SupportedLocale;
   },
 ) {
@@ -80,11 +133,9 @@ export function filterProjects(
   const locale = state.locale ?? "fr";
 
   return projects.filter((project) => {
-    const matchesCategory =
-      state.category === "all" ||
-      project.categories.some((category) => category.slug === state.category);
+    const matchesDomain = state.domain === "all" || project.domain === state.domain;
 
-    if (!matchesCategory) {
+    if (!matchesDomain) {
       return false;
     }
 
@@ -104,6 +155,9 @@ export function filterProjects(
         technology.name,
         technology.slug,
       ]),
+      ...(project.searchKeywords ?? []),
+      getProjectDomainLabel(project.domain),
+      project.domain,
       project.year?.toString() ?? "",
       project.role ?? "",
       project.organization ?? "",
@@ -135,19 +189,27 @@ export function formatProjectsCount(count: number) {
   return count === 1 ? "1 projet trouvé" : `${count} projets trouvés`;
 }
 
+export function formatProjectFilterCount(count: number) {
+  return String(count).padStart(2, "0");
+}
+
+export function formatProjectFilterCountLabel(count: number) {
+  return count === 1 ? "1 projet" : `${count} projets`;
+}
+
 function getFirstParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
 }
 
 export function parseProjectSearchParams(
   searchParams: RawSearchParams,
-  categories: readonly ProjectCategory[],
+  domains: readonly ProjectDomainOption[] = [],
 ): ProjectExplorerState {
   const query = getFirstParam(searchParams.q) ?? "";
 
   return {
     query,
-    category: resolveProjectCategory(getFirstParam(searchParams.category), categories),
+    domain: resolveProjectDomain(getFirstParam(searchParams.domain), domains),
     view: resolveProjectView(getFirstParam(searchParams.view)),
     page: resolveProjectPage(getFirstParam(searchParams.page)),
   };
@@ -155,11 +217,11 @@ export function parseProjectSearchParams(
 
 export function parseProjectUrlSearchParams(
   searchParams: URLSearchParams,
-  categories: readonly ProjectCategory[],
+  domains: readonly ProjectDomainOption[] = [],
 ): ProjectExplorerState {
   return {
     query: searchParams.get("q") ?? "",
-    category: resolveProjectCategory(searchParams.get("category"), categories),
+    domain: resolveProjectDomain(searchParams.get("domain"), domains),
     view: resolveProjectView(searchParams.get("view")),
     page: resolveProjectPage(searchParams.get("page")),
   };
@@ -173,8 +235,8 @@ export function createProjectSearchParams(state: ProjectExplorerState) {
     searchParams.set("q", query);
   }
 
-  if (state.category !== "all") {
-    searchParams.set("category", state.category);
+  if (state.domain !== "all") {
+    searchParams.set("domain", state.domain);
   }
 
   if (state.view !== "grid") {

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  ChevronDown,
   FolderOpen,
   Grid2X2,
   List,
@@ -13,16 +14,22 @@ import {
 
 import { ProjectCard } from "@/components/projects/project-card";
 import {
+  ALL_PROJECT_DOMAIN_OPTION,
+  type ProjectDomainFilterOption,
+  type ProjectDomainOption,
+} from "@/features/projects/domain/project-domains";
+import {
   createProjectSearchParams,
   filterProjects,
+  formatProjectFilterCount,
+  formatProjectFilterCountLabel,
   formatProjectsCount,
+  getProjectDomainCounts,
   paginateProjects,
   parseProjectUrlSearchParams,
 } from "@/lib/projects";
 import type {
   Project,
-  ProjectCategory,
-  ProjectCategoryFilter,
   ProjectExplorerState,
   ProjectViewMode,
   SupportedLocale,
@@ -30,20 +37,19 @@ import type {
 
 type ProjectsExplorerProps = {
   projects: Project[];
-  categories: ProjectCategory[];
+  domains: ProjectDomainOption[];
   initialState: ProjectExplorerState;
   locale?: SupportedLocale;
 };
 
 type CommitMode = "push" | "replace";
 
-const allCategory = {
-  slug: "all",
-  name: "Tous",
-} satisfies { slug: ProjectCategoryFilter; name: string };
+type CountedProjectDomainFilterOption = ProjectDomainFilterOption & {
+  count: number;
+};
 
 function hasActiveFilters(state: ProjectExplorerState) {
-  return state.query.trim().length > 0 || state.category !== "all";
+  return state.query.trim().length > 0 || state.domain !== "all";
 }
 
 function buildHref(pathname: string, state: ProjectExplorerState) {
@@ -55,7 +61,7 @@ function buildHref(pathname: string, state: ProjectExplorerState) {
 
 export function ProjectsExplorer({
   projects,
-  categories,
+  domains,
   initialState,
   locale = "fr",
 }: ProjectsExplorerProps) {
@@ -66,7 +72,12 @@ export function ProjectsExplorer({
 
   useEffect(() => {
     const handlePopState = () => {
-      setState(parseProjectUrlSearchParams(new URLSearchParams(window.location.search), categories));
+      setState(
+        parseProjectUrlSearchParams(
+          new URLSearchParams(window.location.search),
+          domains,
+        ),
+      );
     };
 
     window.addEventListener("popstate", handlePopState);
@@ -74,30 +85,30 @@ export function ProjectsExplorer({
     return () => {
       window.removeEventListener("popstate", handlePopState);
     };
-  }, [categories]);
+  }, [domains]);
 
   const filteredProjects = useMemo(
     () =>
       filterProjects(projects, {
-        category: state.category,
+        domain: state.domain,
         locale,
         query: state.query,
       }),
-    [locale, projects, state.category, state.query],
+    [locale, projects, state.domain, state.query],
   );
   const pagination = useMemo(
     () => paginateProjects(filteredProjects, state.page),
     [filteredProjects, state.page],
   );
-  const categoryOptions = useMemo(
-    () => [
-      allCategory,
-      ...categories.map((category) => ({
-        slug: category.slug,
-        name: category.name,
+  const domainCounts = useMemo(() => getProjectDomainCounts(projects), [projects]);
+  const domainOptions = useMemo<CountedProjectDomainFilterOption[]>(
+    () =>
+      [ALL_PROJECT_DOMAIN_OPTION, ...domains].map((domain) => ({
+        id: domain.id,
+        label: domain.label,
+        count: domainCounts.get(domain.id) ?? 0,
       })),
-    ],
-    [categories],
+    [domainCounts, domains],
   );
 
   const commitState = (
@@ -130,8 +141,8 @@ export function ProjectsExplorer({
     commitState({ ...state, query, page: 1 }, "replace");
   };
 
-  const updateCategory = (category: ProjectCategoryFilter) => {
-    commitState({ ...state, category, page: 1 }, "push");
+  const updateDomain = (domain: ProjectDomainFilterOption["id"]) => {
+    commitState({ ...state, domain, page: 1 }, "push");
   };
 
   const updateView = (view: ProjectViewMode) => {
@@ -143,8 +154,11 @@ export function ProjectsExplorer({
   };
 
   const resetFilters = () => {
-    commitState({ query: "", category: "all", view: state.view, page: 1 }, "replace");
+    commitState({ query: "", domain: "all", view: state.view, page: 1 }, "replace");
   };
+
+  const resolveSelectedDomain = (value: string) =>
+    domainOptions.find((domain) => domain.id === value)?.id ?? "all";
 
   return (
     <div className="mt-10">
@@ -214,29 +228,79 @@ export function ProjectsExplorer({
         </div>
       </div>
 
-      <div className="mt-12 overflow-x-auto border-y border-slate-400/10 py-3">
+      <div className="mt-12 border-y border-slate-400/10 py-4">
+        <div className="sm:hidden">
+          <label htmlFor="project-domain-filter" className="sr-only">
+            Filtrer les projets par domaine
+          </label>
+          <div className="relative">
+            <select
+              id="project-domain-filter"
+              value={state.domain}
+              onChange={(event) =>
+                updateDomain(resolveSelectedDomain(event.target.value))
+              }
+              className="h-11 w-full appearance-none rounded-[8px] border border-slate-400/12 bg-[#080D1A]/58 px-4 pr-10 text-[0.88rem] font-medium text-[#E2E8F0] outline-none transition duration-200 focus:border-[#7C8CFF]/70 focus:ring-2 focus:ring-[#7C8CFF]/10"
+            >
+              {domainOptions.map((domain) => (
+                <option key={domain.id} value={domain.id}>
+                  {domain.id === "all"
+                    ? `Tous les domaines - ${formatProjectFilterCount(domain.count)}`
+                    : `${domain.label} - ${formatProjectFilterCount(domain.count)}`}
+                </option>
+              ))}
+            </select>
+            <ChevronDown
+              aria-hidden="true"
+              className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#94A3B8]"
+            />
+          </div>
+        </div>
         <div
-          className="flex min-w-max gap-2"
+          className="hidden flex-wrap items-center gap-x-8 gap-y-3 sm:flex lg:gap-x-10"
           role="group"
-          aria-label="Filtrer les projets par catégorie"
+          aria-label="Filtrer les projets par domaine"
         >
-          {categoryOptions.map((category) => {
-            const isActive = state.category === category.slug;
+          {domainOptions.map((domain) => {
+            const isActive = state.domain === domain.id;
 
             return (
               <button
-                key={category.slug}
+                key={domain.id}
                 type="button"
                 aria-pressed={isActive}
-                onClick={() => updateCategory(category.slug)}
+                aria-label={`${domain.label}, ${formatProjectFilterCountLabel(
+                  domain.count,
+                )}`}
+                onClick={() => updateDomain(domain.id)}
                 className={[
-                  "inline-flex h-10 items-center rounded-[8px] border px-4 text-[0.78rem] font-medium transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7C8CFF] focus-visible:ring-offset-2 focus-visible:ring-offset-[#080D1A]",
+                  "group/domain relative inline-flex min-h-9 items-center gap-2 whitespace-nowrap pb-2 text-[0.84rem] font-medium transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7C8CFF] focus-visible:ring-offset-4 focus-visible:ring-offset-[#080D1A] md:text-[0.88rem]",
                   isActive
-                    ? "border-[#7C8CFF]/50 bg-[#7C8CFF]/10 text-[#E2E8F0]"
-                    : "border-transparent text-[#AAB7C8]/78 hover:text-slate-50",
+                    ? "text-[#F8FAFC]"
+                    : "text-[#94A3B8]/75 hover:text-[#CBD5E1]",
                 ].join(" ")}
               >
-                {category.name}
+                <span>{domain.label}</span>
+                <span
+                  aria-hidden="true"
+                  className={[
+                    "text-[0.66rem] font-normal tracking-[0.04em] tabular-nums transition duration-200",
+                    isActive
+                      ? "text-[#CBD5E1]/78"
+                      : "text-[#94A3B8]/50 group-hover/domain:text-[#CBD5E1]/64",
+                  ].join(" ")}
+                >
+                  {formatProjectFilterCount(domain.count)}
+                </span>
+                <span
+                  aria-hidden="true"
+                  className={[
+                    "pointer-events-none absolute inset-x-0 bottom-0 h-px origin-left rounded-full bg-[#7C8CFF] transition duration-200",
+                    isActive
+                      ? "scale-x-100 opacity-100"
+                      : "scale-x-0 opacity-0 group-hover/domain:scale-x-100 group-hover/domain:opacity-45",
+                  ].join(" ")}
+                />
               </button>
             );
           })}
@@ -244,7 +308,10 @@ export function ProjectsExplorer({
       </div>
 
       <div ref={resultsRef} className="scroll-mt-8">
-        <p className="mt-5 text-[0.78rem] font-medium text-[#94A3B8]">
+        <p
+          aria-live="polite"
+          className="mt-5 text-[0.78rem] font-medium text-[#94A3B8]"
+        >
           {formatProjectsCount(filteredProjects.length)}
         </p>
 
@@ -253,7 +320,7 @@ export function ProjectsExplorer({
             className={[
               "mt-5",
               state.view === "grid"
-                ? "grid gap-5 md:grid-cols-2 xl:grid-cols-3"
+                ? "grid items-stretch gap-5 md:grid-cols-2 xl:grid-cols-3"
                 : "grid gap-5",
             ].join(" ")}
           >
@@ -274,7 +341,7 @@ export function ProjectsExplorer({
             />
             <h2 className="mt-5 text-xl font-semibold tracking-[-0.03em] text-slate-50">
               {hasActiveFilters(state)
-                ? "Aucun projet ne correspond à votre recherche."
+                ? "Aucun projet ne correspond à ces critères."
                 : "Aucun projet publié pour le moment."}
             </h2>
             <p className="mx-auto mt-3 max-w-[36rem] text-sm leading-6 text-[#94A3B8]">

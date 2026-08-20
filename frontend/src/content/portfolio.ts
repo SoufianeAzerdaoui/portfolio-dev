@@ -12,11 +12,9 @@ export const portfolioContent: PortfolioContent = {
   navigation: [
     { id: "home", href: "#home", label: "Accueil" },
     { id: "about", href: "#about", label: "À propos" },
+    { id: "journey", href: "#journey", label: "Parcours" },
     { id: "projects", href: "#projects", label: "Projets" },
     { id: "ai-lab", href: "#ai-lab", label: "AI Lab" },
-    { id: "skills", href: "#skills", label: "Compétences" },
-    { id: "journey", href: "#journey", label: "Parcours" },
-    { id: "contact", href: "#contact", label: "Contact" },
   ],
   socialLinks: [
     {

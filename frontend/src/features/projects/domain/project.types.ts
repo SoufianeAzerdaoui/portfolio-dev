@@ -15,7 +15,24 @@ export const projectTypes = [
 
 export type ProjectType = (typeof projectTypes)[number];
 
+export const projectDomains = [
+  "ai-ml",
+  "data-analytics",
+  "data-engineering",
+  "software-engineering",
+] as const;
+
+export type ProjectDomain = (typeof projectDomains)[number];
+
+export type ProjectDomainFilter = "all" | ProjectDomain;
+
 export type ProjectMediaType = "image" | "video";
+
+export type ProjectMediaRole =
+  | "cover"
+  | "architecture"
+  | "interface"
+  | "demo";
 
 export type ProjectLinkType =
   | "github"
@@ -50,6 +67,7 @@ export interface ProjectContributor {
 export interface ProjectMedia {
   id: string;
   type: ProjectMediaType;
+  role?: ProjectMediaRole;
   storagePath: string;
   alt: string;
   caption?: string;
@@ -80,6 +98,7 @@ export interface ProjectCaseStudy {
   role?: string;
   approach?: string;
   architecture?: string;
+  architectureSteps?: string[];
   challenges?: string[];
   solutions?: string[];
   results?: ProjectResult[];
@@ -106,12 +125,14 @@ export interface Project {
   slug: string;
   status: ProjectStatus;
   type?: ProjectType;
+  domain: ProjectDomain;
   content: {
     fr: ProjectLocalizedContent;
     en?: ProjectLocalizedContent;
   };
   categories: ProjectCategory[];
   technologies: ProjectTechnology[];
+  searchKeywords?: string[];
   coverImage: ProjectMedia | null;
   gallery: ProjectMedia[];
   links: ProjectLink[];
@@ -129,7 +150,7 @@ export interface Project {
 
 export interface ProjectExplorerState {
   query: string;
-  category: ProjectCategoryFilter;
+  domain: ProjectDomainFilter;
   view: ProjectViewMode;
   page: number;
 }

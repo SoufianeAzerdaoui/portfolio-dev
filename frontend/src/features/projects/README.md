@@ -19,6 +19,7 @@ Each project must include:
 - `id`
 - `slug` in lowercase kebab-case
 - `status`
+- `domain`
 - `content.fr.title`
 - `content.fr.shortDescription`
 - `categories`
@@ -33,6 +34,23 @@ Each project must include:
 When provided, dates are ISO strings, not `Date` objects, so data stays
 serializable across Server and Client Components. Do not invent `createdAt`,
 `updatedAt`, or `publishedAt` when the real date is unknown.
+
+Use optional `searchKeywords` only for real, documented project terms that
+should be searchable but should not be displayed as UI metadata.
+
+## Primary Domain vs Technical Categories
+
+Each project has exactly one primary `domain`, used by the public `/projects`
+filter navigation:
+
+- `ai-ml`
+- `data-analytics`
+- `data-engineering`
+- `software-engineering`
+
+The `categories` array remains the technical tag list shown on project cards
+and indexed by search. Do not derive `domain` automatically from categories:
+choose the dominant project axis explicitly.
 
 ## Status
 
