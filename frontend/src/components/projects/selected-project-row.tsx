@@ -110,10 +110,10 @@ export function SelectedProjectRow({
         ease: [0.22, 1, 0.36, 1],
         delay: reducedMotion ? 0 : index * 0.06,
       }}
-      className="group/project grid border-t border-[var(--border-muted)] py-[1.625rem] md:grid-cols-[2.75rem_minmax(12rem,15.5rem)_minmax(0,1fr)] md:gap-x-6 lg:grid-cols-[3.5rem_minmax(14rem,18rem)_minmax(0,1fr)_8rem] lg:items-start lg:gap-x-7 xl:grid-cols-[3.5rem_minmax(15rem,19.5rem)_minmax(0,1fr)_8.5rem]"
+      className="editorial-interactive-row -mx-4 grid cursor-default px-4 py-[1.625rem] md:grid-cols-[2.75rem_minmax(12rem,15.5rem)_minmax(0,1fr)] md:gap-x-6 lg:-mx-5 lg:grid-cols-[3.5rem_minmax(14rem,18rem)_minmax(0,1fr)_8rem] lg:items-start lg:gap-x-7 lg:px-5 xl:grid-cols-[3.5rem_minmax(15rem,19.5rem)_minmax(0,1fr)_8.5rem]"
     >
       <div className="mb-5 flex items-center justify-between md:mb-0 md:block">
-        <p className="text-[1.15rem] font-normal leading-none tracking-[-0.02em] text-[var(--accent-muted)] md:text-[1.28rem]">
+        <p className="selected-project-index text-[1.15rem] font-normal leading-none tracking-[-0.02em] text-[var(--accent-muted)] md:text-[1.28rem]">
           {formatProjectIndex(index)}
         </p>
         {project.year ? (
@@ -133,7 +133,7 @@ export function SelectedProjectRow({
                   alt={coverImage.alt}
                   fill
                   sizes="(min-width: 1280px) 300px, (min-width: 768px) 240px, 92vw"
-                  className="object-contain opacity-[0.9] brightness-[0.96] contrast-[0.98] transition duration-300 group-hover/project:scale-[1.012] group-hover/project:opacity-[0.96] motion-reduce:transition-none motion-reduce:group-hover/project:scale-100"
+                  className="object-contain opacity-[0.92] brightness-[0.96] contrast-[0.98]"
                 />
                 <div
                   aria-hidden="true"
@@ -153,8 +153,8 @@ export function SelectedProjectRow({
         </div>
       </div>
 
-      <div className="min-w-0 md:pr-4 lg:pr-0">
-        <h3 className="max-w-[38rem] text-[clamp(1.38rem,4.6vw,1.62rem)] font-semibold leading-[1.18] tracking-[-0.035em] text-[var(--foreground)] transition-colors duration-200 group-hover/project:text-[var(--foreground)] motion-reduce:transition-none lg:text-[clamp(1.35rem,1.7vw,1.55rem)]">
+      <div className="editorial-interactive-content min-w-0 md:pr-4 lg:pr-0">
+        <h3 className="max-w-[38rem] text-[clamp(1.38rem,4.6vw,1.62rem)] font-semibold leading-[1.18] tracking-[-0.035em] text-[var(--foreground)] lg:text-[clamp(1.35rem,1.7vw,1.55rem)]">
           {content.title}
         </h3>
 
@@ -186,13 +186,13 @@ export function SelectedProjectRow({
           ) : (
             <span aria-hidden="true" />
           )}
-            <ProjectLink
-              href={projectHref}
-              label={githubLink?.label ?? copy.actionFallback}
-              title={content.title}
-              target={projectLinkTarget}
-              externalSuffix={copy.externalProjectSuffix}
-            />
+          <ProjectLink
+            href={projectHref}
+            label={githubLink?.label ?? copy.actionFallback}
+            title={content.title}
+            target={projectLinkTarget}
+            externalSuffix={copy.externalProjectSuffix}
+          />
         </div>
       </div>
 
@@ -236,13 +236,12 @@ function TechnologyLogoRow({
             key={technology.id}
             aria-label={technology.name}
             title={technology.name}
-            tabIndex={0}
-            className="group/tech relative flex min-h-5 min-w-5 items-center rounded-[4px] text-[var(--foreground-muted)] outline-none transition duration-200 hover:-translate-y-px hover:text-[var(--foreground)] focus-visible:-translate-y-px focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--focus-ring-offset)] motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:focus-visible:translate-y-0"
+            className="group/tech relative flex min-h-5 min-w-5 items-center rounded-[4px] text-[var(--foreground-muted)] transition duration-200 hover:-translate-y-px hover:text-[var(--foreground)] motion-reduce:transition-none motion-reduce:hover:translate-y-0"
           >
             {iconSrc ? (
               <>
                 <TechnologyIcon technology={technology} />
-                <span className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 hidden -translate-x-1/2 whitespace-nowrap rounded-[6px] border border-[var(--border-subtle)] bg-[var(--surface)] px-2 py-1 text-[0.68rem] font-medium text-[var(--foreground)] shadow-[var(--shadow-soft)] group-hover/tech:block group-focus-visible/tech:block">
+                <span className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 hidden -translate-x-1/2 whitespace-nowrap rounded-[6px] border border-[var(--border-subtle)] bg-[var(--surface)] px-2 py-1 text-[0.68rem] font-medium text-[var(--foreground)] shadow-[var(--shadow-soft)] group-hover/tech:block">
                   {technology.name}
                 </span>
               </>
@@ -283,12 +282,12 @@ function ProjectLink({
           ? `${label} - ${title} - ${externalSuffix}`
           : `${label} ${title}`
       }
-      className="group/link inline-flex min-h-9 items-center gap-2 border-b border-[rgb(var(--accent-rgb)/0.42)] pb-1 text-[0.82rem] font-medium text-[var(--foreground)] transition duration-200 hover:border-[rgb(var(--accent-rgb)/0.8)] hover:text-[var(--accent-strong)] focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--focus-ring-offset)]"
+      className="selected-project-link inline-flex min-h-9 items-center gap-2 border-b border-[rgb(var(--accent-rgb)/0.42)] pb-1 text-[0.82rem] font-medium text-[var(--foreground)] focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--focus-ring-offset)]"
     >
       <span>{label}</span>
       <ArrowUpRight
         aria-hidden="true"
-        className="h-3.5 w-3.5 transition-transform duration-200 group-hover/link:translate-x-[2px] group-hover/link:-translate-y-[2px] motion-reduce:transition-none"
+        className="selected-project-link-icon h-3.5 w-3.5"
       />
     </Link>
   );

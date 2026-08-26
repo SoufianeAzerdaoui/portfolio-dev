@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  ArrowLeft,
   Activity,
   Languages,
   RotateCcw,
@@ -13,11 +14,15 @@ import {
   useId,
   useRef,
   useState,
+  type CSSProperties,
   type KeyboardEvent as ReactKeyboardEvent,
+  type MutableRefObject,
+  type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react";
 
 import { usePreferences } from "@/components/providers/preferences-provider";
+import { FEATURES } from "@/config/features";
 import type {
   LocaleCode,
   MotionPreference,
@@ -31,6 +36,8 @@ type PreferenceOption<T extends string> = {
 };
 
 type MainSector = "language" | "appearance" | "motion" | "reset";
+type ConfigSector = Exclude<MainSector, "reset">;
+type PreferenceAvailability = "available" | "coming-soon";
 
 type RadialCopy = {
   button: string;
@@ -47,6 +54,16 @@ type RadialCopy = {
 const HOVER_OPEN_DELAY = 180;
 const CLOSE_DELAY = 260;
 const EXIT_DURATION = 150;
+const LIGHT_FEEDBACK_DURATION = 1200;
+const ACTION_RADIUS = 50;
+const SUB_OPTION_RADIUS = 50;
+const ARC_HALF_ANGLE = 15;
+
+const THEME_AVAILABILITY = {
+  dark: "available",
+  light: FEATURES.lightTheme ? "available" : "coming-soon",
+  system: "available",
+} satisfies Record<ThemePreference, PreferenceAvailability>;
 
 const copyByLocale = {
   fr: {
@@ -93,26 +110,39 @@ const copyByLocale = {
   },
 } satisfies Record<LocaleCode, RadialCopy>;
 
-const arcRotationBySector = {
-  language: -112,
-  appearance: -22,
-  motion: 68,
-  reset: 158,
-} satisfies Record<MainSector, number>;
-
 type SectorDefinition = {
   id: MainSector;
   label: string;
   Icon: LucideIcon;
-  className: string;
+  angle: number;
 };
+
+type RadialStyle = CSSProperties & {
+  "--radial-x": string;
+  "--radial-y": string;
+};
+
+type RadialContext = {
+  label: string;
+  value?: string;
+  tone?: "default" | "coming-soon";
+};
+
+function getPolarStyle(angle: number, radius: number): RadialStyle {
+  const radians = (angle * Math.PI) / 180;
+
+  return {
+    "--radial-x": `${Number((Math.cos(radians) * radius).toFixed(3))}px`,
+    "--radial-y": `${Number((Math.sin(radians) * radius).toFixed(3))}px`,
+  };
+}
 
 function DialIcon() {
   return (
     <svg
       aria-hidden="true"
       viewBox="0 0 20 20"
-      className="h-[18px] w-[18px]"
+      className="h-4 w-4"
       fill="none"
     >
       <circle cx="10" cy="10" r="3.1" stroke="currentColor" strokeWidth="1.45" />
@@ -135,7 +165,7 @@ function CenterMark() {
     <svg
       aria-hidden="true"
       viewBox="0 0 42 42"
-      className="h-6 w-6 text-[#8B80D9]"
+      className="h-5 w-5 text-[#8B80D9]"
       fill="none"
     >
       <circle cx="21" cy="21" r="6.5" stroke="currentColor" strokeWidth="1.2" />
@@ -150,73 +180,111 @@ function CenterMark() {
   );
 }
 
-function RadialOptionGroup<T extends string>({
-  sector,
+function getOptionLabel<T extends string>(
+  options: PreferenceOption<T>[],
+  value: T,
+) {
+  return options.find((option) => option.value === value)?.label ?? value;
+}
+
+function getDisplayTheme(theme: ThemePreference): ThemePreference {
+  return theme === "light" && !FEATURES.lightTheme ? "dark" : theme;
+}
+
+function getLightComingSoonCopy(locale: LocaleCode) {
+  return locale === "fr"
+    ? {
+        label: "Mode clair",
+        value: "bientôt disponible",
+        ariaLabel: "Mode clair, bientôt disponible",
+      }
+    : {
+        label: "Light mode",
+        value: "coming soon",
+        ariaLabel: "Light mode, coming soon",
+      };
+}
+
+function getSubModeLabel(mode: ConfigSector) {
+  return mode === "language"
+    ? "LANG"
+    : mode === "appearance"
+      ? "THEME"
+      : "MOTION";
+}
+
+function RadialSubModeOptions<T extends string>({
   label,
   options,
   value,
-  onChange,
-  onSelect,
-  className,
+  optionAngles,
+  optionRefs,
+  onFocusOption,
+  onSelectOption,
+  getAvailability,
+  getOptionAriaLabel,
+  statusId,
 }: {
-  sector: MainSector;
   label: string;
   options: PreferenceOption<T>[];
   value: T;
-  onChange: (value: T) => void;
-  onSelect: () => void;
-  className: string;
+  optionAngles: number[];
+  optionRefs: MutableRefObject<Array<HTMLButtonElement | null>>;
+  onFocusOption: (index: number) => void;
+  onSelectOption: (value: T, index: number) => void;
+  getAvailability?: (value: T) => PreferenceAvailability;
+  getOptionAriaLabel?: (
+    option: PreferenceOption<T>,
+    availability: PreferenceAvailability,
+  ) => string;
+  statusId?: string;
 }) {
-  const handleKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
-    if (
-      event.key !== "ArrowLeft" &&
-      event.key !== "ArrowRight" &&
-      event.key !== "ArrowUp" &&
-      event.key !== "ArrowDown"
-    ) {
-      return;
-    }
-
-    event.preventDefault();
-    event.stopPropagation();
-
-    const direction =
-      event.key === "ArrowRight" || event.key === "ArrowDown" ? 1 : -1;
-    const currentIndex = options.findIndex((option) => option.value === value);
-    const nextIndex =
-      (currentIndex + direction + options.length) % options.length;
-    onChange(options[nextIndex].value);
-  };
-
   return (
     <div
       aria-label={label}
       role="group"
-      data-sector={sector}
-      onKeyDown={handleKeyDown}
-      className={[
-        "radial-submenu absolute z-20 flex items-center gap-1.5",
-        className,
-      ].join(" ")}
+      className="radial-submode-layer absolute inset-0 z-30"
     >
-      {options.map((option) => {
+      {options.map((option, index) => {
         const selected = option.value === value;
+        const availability = getAvailability?.(option.value) ?? "available";
+        const ariaLabel =
+          getOptionAriaLabel?.(option, availability) ?? option.label;
 
         return (
           <button
             key={option.value}
+            ref={(node) => {
+              optionRefs.current[index] = node;
+            }}
             type="button"
             role="menuitemradio"
             aria-checked={selected}
+            aria-describedby={
+              availability === "coming-soon" ? statusId : undefined
+            }
+            aria-label={ariaLabel}
+            data-availability={availability}
             data-selected={selected ? "true" : undefined}
+            onFocus={() => onFocusOption(index)}
+            onMouseEnter={() => onFocusOption(index)}
             onClick={() => {
-              onChange(option.value);
-              onSelect();
+              onSelectOption(option.value, index);
             }}
-            className="radial-submenu-option"
+            style={getPolarStyle(
+              optionAngles[index] ?? -90,
+              SUB_OPTION_RADIUS,
+            )}
+            className="radial-sub-option"
           >
+            <span aria-hidden="true" className="radial-sub-option-dot" />
             <span>{option.shortLabel}</span>
-            <span aria-hidden="true" className="radial-submenu-dot" />
+            {availability === "coming-soon" ? (
+              <span
+                aria-hidden="true"
+                className="radial-sub-option-soon-dot"
+              />
+            ) : null}
           </button>
         );
       })}
@@ -230,18 +298,24 @@ export function PreferencesPanel({ className = "" }: { className?: string }) {
   const [closing, setClosing] = useState(false);
   const [lockedOpen, setLockedOpen] = useState(false);
   const [activeSector, setActiveSector] = useState<MainSector | null>(null);
+  const [subMode, setSubMode] = useState<ConfigSector | null>(null);
+  const [subOptionIndex, setSubOptionIndex] = useState(0);
+  const [lightComingSoonFeedback, setLightComingSoonFeedback] = useState(false);
   const menuId = useId();
+  const statusId = `${menuId}-status`;
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const hoverOpenTimeoutRef = useRef<number | null>(null);
   const closeTimeoutRef = useRef<number | null>(null);
   const exitTimeoutRef = useRef<number | null>(null);
+  const lightFeedbackTimeoutRef = useRef<number | null>(null);
   const actionRefs = useRef<Record<MainSector, HTMLButtonElement | null>>({
     language: null,
     appearance: null,
     motion: null,
     reset: null,
   });
+  const subOptionRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const {
     locale,
     theme,
@@ -259,25 +333,25 @@ export function PreferencesPanel({ className = "" }: { className?: string }) {
       id: "language",
       label: copy.language,
       Icon: Languages,
-      className: "left-1/2 top-3 -translate-x-1/2",
+      angle: -90,
     },
     {
       id: "appearance",
       label: copy.appearance,
       Icon: SunMoon,
-      className: "right-3 top-1/2 -translate-y-1/2",
+      angle: 0,
     },
     {
       id: "motion",
       label: copy.motion,
       Icon: Activity,
-      className: "bottom-3 left-1/2 -translate-x-1/2",
+      angle: 90,
     },
     {
       id: "reset",
       label: copy.reset,
       Icon: RotateCcw,
-      className: "left-3 top-1/2 -translate-y-1/2",
+      angle: 180,
     },
   ];
 
@@ -302,20 +376,99 @@ export function PreferencesPanel({ className = "" }: { className?: string }) {
     }
   };
 
+  const clearLightFeedbackTimer = useCallback(() => {
+    if (lightFeedbackTimeoutRef.current) {
+      window.clearTimeout(lightFeedbackTimeoutRef.current);
+      lightFeedbackTimeoutRef.current = null;
+    }
+  }, []);
+
+  const clearLightComingSoonFeedback = useCallback(() => {
+    clearLightFeedbackTimer();
+    setLightComingSoonFeedback(false);
+  }, [clearLightFeedbackTimer]);
+
   const focusSector = (sector: MainSector) => {
     window.requestAnimationFrame(() => {
       actionRefs.current[sector]?.focus();
     });
   };
 
+  const focusSubOption = (index: number) => {
+    window.requestAnimationFrame(() => {
+      subOptionRefs.current[index]?.focus();
+    });
+  };
+
+  const getInitialSubOptionIndex = (mode: ConfigSector) => {
+    if (mode === "language") {
+      return copy.languageOptions.findIndex((option) => option.value === locale);
+    }
+
+    if (mode === "appearance") {
+      return copy.themeOptions.findIndex(
+        (option) => option.value === getDisplayTheme(theme),
+      );
+    }
+
+    return copy.motionOptions.findIndex((option) => option.value === motion);
+  };
+
+  const getSubOptionCount = (mode: ConfigSector) => {
+    if (mode === "language") {
+      return copy.languageOptions.length;
+    }
+
+    if (mode === "appearance") {
+      return copy.themeOptions.length;
+    }
+
+    return copy.motionOptions.length;
+  };
+
+  const enterSubMode = (mode: ConfigSector, focus = true) => {
+    const initialIndex = Math.max(0, getInitialSubOptionIndex(mode));
+
+    clearCloseTimer();
+    clearLightComingSoonFeedback();
+    subOptionRefs.current = [];
+    setActiveSector(mode);
+    setSubMode(mode);
+    setSubOptionIndex(initialIndex);
+
+    if (focus) {
+      focusSubOption(initialIndex);
+    }
+  };
+
+  const returnToMainMode = (focus = false) => {
+    const previousMode = subMode;
+
+    clearLightComingSoonFeedback();
+    subOptionRefs.current = [];
+    setSubMode(null);
+    setSubOptionIndex(0);
+    setActiveSector(previousMode);
+
+    if (focus && previousMode) {
+      focusSector(previousMode);
+    }
+  };
+
+  const handleBack = (event: ReactMouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    returnToMainMode(true);
+  };
+
   const openMenu = useCallback(
     ({
       locked = false,
-      initialSector = "language",
+      initialSector = null,
       focus = false,
     }: {
       locked?: boolean;
-      initialSector?: MainSector;
+      initialSector?: MainSector | null;
       focus?: boolean;
     } = {}) => {
       clearHoverOpenTimer();
@@ -326,11 +479,14 @@ export function PreferencesPanel({ className = "" }: { className?: string }) {
       setOpen(true);
       setLockedOpen(locked);
       setActiveSector(initialSector);
-      if (focus) {
+      setSubMode(null);
+      setSubOptionIndex(0);
+      clearLightComingSoonFeedback();
+      if (focus && initialSector) {
         focusSector(initialSector);
       }
     },
-    [],
+    [clearLightComingSoonFeedback],
   );
 
   const closeMenu = useCallback(
@@ -340,6 +496,9 @@ export function PreferencesPanel({ className = "" }: { className?: string }) {
       setOpen(false);
       setLockedOpen(false);
       setActiveSector(null);
+      setSubMode(null);
+      setSubOptionIndex(0);
+      clearLightComingSoonFeedback();
 
       if (reduceMotion) {
         setClosing(false);
@@ -361,7 +520,7 @@ export function PreferencesPanel({ className = "" }: { className?: string }) {
         }
       }, EXIT_DURATION);
     },
-    [reduceMotion],
+    [clearLightComingSoonFeedback, reduceMotion],
   );
 
   const scheduleHoverOpen = (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -377,7 +536,7 @@ export function PreferencesPanel({ className = "" }: { className?: string }) {
     }
 
     hoverOpenTimeoutRef.current = window.setTimeout(() => {
-      openMenu({ locked: false, initialSector: "language" });
+      openMenu({ locked: false });
     }, HOVER_OPEN_DELAY);
   };
 
@@ -404,7 +563,7 @@ export function PreferencesPanel({ className = "" }: { className?: string }) {
       return;
     }
 
-    openMenu({ locked: true, initialSector: "language" });
+    openMenu({ locked: true });
   };
 
   const handleTriggerKeyDown = (
@@ -424,6 +583,37 @@ export function PreferencesPanel({ className = "" }: { className?: string }) {
   };
 
   const handleMenuKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    const isArrowKey =
+      event.key === "ArrowLeft" ||
+      event.key === "ArrowRight" ||
+      event.key === "ArrowUp" ||
+      event.key === "ArrowDown";
+
+    if (subMode) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopPropagation();
+        returnToMainMode(true);
+        return;
+      }
+
+      if (!isArrowKey) {
+        return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      const direction =
+        event.key === "ArrowRight" || event.key === "ArrowDown" ? 1 : -1;
+      const optionCount = getSubOptionCount(subMode);
+      const nextIndex = (subOptionIndex + direction + optionCount) % optionCount;
+
+      setSubOptionIndex(nextIndex);
+      focusSubOption(nextIndex);
+      return;
+    }
+
     if (event.key === "Escape") {
       event.preventDefault();
       closeMenu(true);
@@ -441,7 +631,7 @@ export function PreferencesPanel({ className = "" }: { className?: string }) {
               ? "reset"
               : null;
 
-    if (!nextSector) {
+    if (!nextSector || !isArrowKey) {
       return;
     }
 
@@ -455,12 +645,56 @@ export function PreferencesPanel({ className = "" }: { className?: string }) {
 
     if (sector === "reset") {
       resetPreferences();
-      closeMenu();
+      setSubMode(null);
+      setSubOptionIndex(0);
+      focusSector("reset");
+      return;
     }
+
+    enterSubMode(sector);
   };
 
-  const handleSelection = () => {
-    closeMenu();
+  const handleSubModeSelection = (sector: ConfigSector, index: number) => {
+    clearLightComingSoonFeedback();
+    setSubOptionIndex(index);
+    setSubMode(null);
+    setActiveSector(sector);
+    focusSector(sector);
+  };
+
+  const showLightComingSoonFeedback = (index: number) => {
+    clearCloseTimer();
+    clearLightFeedbackTimer();
+    setActiveSector("appearance");
+    setSubMode("appearance");
+    setSubOptionIndex(index);
+    setLightComingSoonFeedback(true);
+    focusSubOption(index);
+
+    lightFeedbackTimeoutRef.current = window.setTimeout(() => {
+      setLightComingSoonFeedback(false);
+      lightFeedbackTimeoutRef.current = null;
+    }, LIGHT_FEEDBACK_DURATION);
+  };
+
+  const handleLanguageSelection = (value: LocaleCode, index: number) => {
+    setLocale(value);
+    handleSubModeSelection("language", index);
+  };
+
+  const handleThemeSelection = (value: ThemePreference, index: number) => {
+    if (value === "light" && !FEATURES.lightTheme) {
+      showLightComingSoonFeedback(index);
+      return;
+    }
+
+    setTheme(value);
+    handleSubModeSelection("appearance", index);
+  };
+
+  const handleMotionSelection = (value: MotionPreference, index: number) => {
+    setMotion(value);
+    handleSubModeSelection("motion", index);
   };
 
   useEffect(() => {
@@ -476,6 +710,16 @@ export function PreferencesPanel({ className = "" }: { className?: string }) {
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
+        if (subMode) {
+          event.preventDefault();
+          clearLightComingSoonFeedback();
+          setSubMode(null);
+          setSubOptionIndex(0);
+          setActiveSector(subMode);
+          focusSector(subMode);
+          return;
+        }
+
         closeMenu(true);
       }
     };
@@ -487,30 +731,52 @@ export function PreferencesPanel({ className = "" }: { className?: string }) {
       document.removeEventListener("pointerdown", handlePointerDown);
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [closeMenu, open]);
+  }, [clearLightComingSoonFeedback, closeMenu, open, subMode]);
 
   useEffect(() => {
     return () => {
       clearHoverOpenTimer();
       clearCloseTimer();
       clearExitTimer();
+      clearLightFeedbackTimer();
     };
-  }, []);
+  }, [clearLightFeedbackTimer]);
 
-  const centerContent =
-    activeSector === "language"
-      ? locale.toUpperCase()
-      : activeSector === "appearance"
-        ? theme === "system"
-          ? "AUTO"
-          : theme.toUpperCase()
-        : activeSector === "motion"
-          ? motion === "reduced"
-            ? "REDUCED"
-            : "AUTO"
-          : activeSector === "reset"
-            ? "RESET"
-            : null;
+  const displayTheme = getDisplayTheme(theme);
+  const selectedLanguageLabel = getOptionLabel(copy.languageOptions, locale);
+  const selectedThemeLabel = getOptionLabel(copy.themeOptions, displayTheme);
+  const selectedMotionLabel = getOptionLabel(copy.motionOptions, motion);
+  const focusedLanguage =
+    copy.languageOptions[subOptionIndex] ?? copy.languageOptions[0];
+  const focusedTheme = copy.themeOptions[subOptionIndex] ?? copy.themeOptions[0];
+  const focusedMotion = copy.motionOptions[subOptionIndex] ?? copy.motionOptions[0];
+  const lightComingSoonCopy = getLightComingSoonCopy(locale);
+  const resetHint =
+    locale === "fr" ? "Réinitialiser les préférences" : "Reset preferences";
+  const contextLabel: RadialContext | null =
+    subMode === "language"
+      ? { label: copy.language, value: focusedLanguage.label }
+      : subMode === "appearance" &&
+          focusedTheme.value === "light" &&
+          THEME_AVAILABILITY.light === "coming-soon"
+        ? {
+            label: lightComingSoonCopy.label,
+            value: lightComingSoonCopy.value,
+            tone: "coming-soon",
+          }
+        : subMode === "appearance"
+          ? { label: copy.appearance, value: focusedTheme.label }
+          : subMode === "motion"
+            ? { label: copy.motion, value: focusedMotion.label }
+            : activeSector === "language"
+              ? { label: copy.language, value: selectedLanguageLabel }
+              : activeSector === "appearance"
+                ? { label: copy.appearance, value: selectedThemeLabel }
+                : activeSector === "motion"
+                  ? { label: copy.motion, value: selectedMotionLabel }
+                  : activeSector === "reset"
+                    ? { label: resetHint }
+                    : null;
 
   return (
     <div
@@ -530,7 +796,7 @@ export function PreferencesPanel({ className = "" }: { className?: string }) {
         aria-haspopup="menu"
         onClick={handleTriggerClick}
         onKeyDown={handleTriggerKeyDown}
-        className="preferences-trigger inline-grid h-[42px] w-[42px] place-items-center rounded-full border transition-[background-color,border-color,color] duration-[160ms] ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--home-accent-2)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--home-bg-0)] motion-reduce:transition-none"
+        className="preferences-trigger inline-grid h-10 w-10 place-items-center rounded-full border transition-[background-color,border-color,color] duration-[160ms] ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--home-accent-2)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--home-bg-0)] motion-reduce:transition-none"
       >
         <DialIcon />
       </button>
@@ -541,118 +807,173 @@ export function PreferencesPanel({ className = "" }: { className?: string }) {
           role="menu"
           aria-label={copy.title}
           data-active-sector={activeSector ?? "idle"}
+          data-feedback={lightComingSoonFeedback ? "light-soon" : undefined}
+          data-mode={subMode ? "sub" : "main"}
           className={[
-            "radial-preferences-menu absolute right-14 top-[calc(100%+1rem)] z-50 rounded-full",
+            "radial-preferences-menu absolute right-0 top-[calc(100%+0.625rem)] z-50 rounded-full",
             closing
               ? "motion-safe:animate-[radial-menu-out_150ms_ease-in_forwards]"
-              : "motion-safe:animate-[radial-menu-in_240ms_cubic-bezier(0.2,0.8,0.2,1)_both]",
+              : "motion-safe:animate-[radial-menu-in_210ms_cubic-bezier(0.2,0.8,0.2,1)_both]",
           ].join(" ")}
           onKeyDown={handleMenuKeyDown}
         >
-          <div aria-hidden="true" className="radial-sector-bloom" />
+          {activeSector ? (
+            <div
+              aria-hidden="true"
+              className="radial-sector-bloom"
+              style={getPolarStyle(
+                sectors.find((sector) => sector.id === activeSector)?.angle ??
+                  -90,
+                ACTION_RADIUS,
+              )}
+            />
+          ) : null}
 
           <svg
             aria-hidden="true"
-            viewBox="0 0 184 184"
+            viewBox="0 0 156 156"
             className="absolute inset-0 h-full w-full"
             fill="none"
           >
-            <circle className="radial-outer-ring" cx="92" cy="92" r="86" />
-            <circle className="radial-inner-ring" cx="92" cy="92" r="31" />
-            <path className="radial-tick" d="M92 7v9" />
-            <path className="radial-tick" d="M177 92h-9" />
-            <path className="radial-tick" d="M92 177v-9" />
-            <path className="radial-tick" d="M7 92h9" />
+            <circle className="radial-outer-ring" cx="78" cy="78" r="73" />
+            <circle className="radial-inner-ring" cx="78" cy="78" r="26" />
             {activeSector ? (
               <g
                 className="radial-active-indicator"
                 style={{
-                  transform: `rotate(${arcRotationBySector[activeSector]}deg)`,
+                  transform: `rotate(${
+                    (sectors.find((sector) => sector.id === activeSector)
+                      ?.angle ?? -90) - ARC_HALF_ANGLE
+                  }deg)`,
                 }}
               >
                 <circle
                   className="radial-active-arc"
-                  cx="92"
-                  cy="92"
-                  r="85"
+                  cx="78"
+                  cy="78"
+                  r="72"
                   pathLength="100"
                 />
-                <circle className="radial-active-node" cx="92" cy="7" r="2" />
+                <circle className="radial-active-node" cx="78" cy="6" r="2" />
               </g>
             ) : null}
           </svg>
 
           <div className="radial-center-hub">
-            <div
-              key={centerContent ?? "idle"}
-              className="radial-center-content motion-safe:animate-[radial-center-shift_140ms_ease-out_both]"
-            >
-              {centerContent ? (
-                <span>{centerContent}</span>
-              ) : (
+            {lightComingSoonFeedback ? (
+              <div className="radial-center-feedback" role="status">
+                SOON
+              </div>
+            ) : subMode ? (
+              <button
+                type="button"
+                role="menuitem"
+                aria-label={
+                  locale === "fr"
+                    ? "Retour"
+                    : "Back"
+                }
+                onPointerDown={(event) => {
+                  event.stopPropagation();
+                }}
+                onClick={handleBack}
+                className="radial-center-back"
+              >
+                <ArrowLeft aria-hidden="true" className="h-3.5 w-3.5" />
+                <span>{getSubModeLabel(subMode)}</span>
+              </button>
+            ) : (
+              <div className="radial-center-content motion-safe:animate-[radial-center-shift_120ms_ease-out_both]">
                 <CenterMark />
-              )}
-            </div>
+              </div>
+            )}
           </div>
 
-          {sectors.map(({ id, label, Icon, className: positionClass }) => (
-            <button
-              key={id}
-              ref={(node) => {
-                actionRefs.current[id] = node;
-              }}
-              type="button"
-              role="menuitem"
-              aria-label={label}
-              data-sector={id}
-              data-active={activeSector === id ? "true" : undefined}
-              onMouseEnter={() => setActiveSector(id)}
-              onFocus={() => setActiveSector(id)}
-              onClick={() => activateSector(id)}
-              className={[
-                "radial-main-action absolute z-30 grid h-11 w-11 place-items-center rounded-full sm:h-10 sm:w-10",
-                positionClass,
-              ].join(" ")}
-            >
-              <Icon aria-hidden="true" className="h-[17px] w-[17px]" />
-              <span className="radial-action-label">{label}</span>
-            </button>
-          ))}
+          {!subMode ? (
+            <div className="radial-main-layer absolute inset-0 z-30">
+              {sectors.map(({ id, label, Icon, angle }) => (
+                <button
+                  key={id}
+                  ref={(node) => {
+                    actionRefs.current[id] = node;
+                  }}
+                  type="button"
+                  role="menuitem"
+                  aria-label={label}
+                  data-sector={id}
+                  data-active={activeSector === id ? "true" : undefined}
+                  onMouseEnter={() => setActiveSector(id)}
+                  onFocus={() => setActiveSector(id)}
+                  onClick={() => activateSector(id)}
+                  style={getPolarStyle(angle, ACTION_RADIUS)}
+                  className="radial-main-action absolute grid h-[38px] w-[38px] place-items-center rounded-full"
+                >
+                  <Icon aria-hidden="true" className="h-4 w-4" />
+                </button>
+              ))}
+            </div>
+          ) : null}
 
-          {activeSector === "language" ? (
-            <RadialOptionGroup
-              sector="language"
+          {subMode === "language" ? (
+            <RadialSubModeOptions
               label={copy.language}
               options={copy.languageOptions}
               value={locale}
-              onChange={setLocale}
-              onSelect={handleSelection}
-              className="left-1/2 top-[-28px] -translate-x-1/2"
+              optionAngles={[180, 0]}
+              optionRefs={subOptionRefs}
+              onFocusOption={setSubOptionIndex}
+              onSelectOption={handleLanguageSelection}
             />
           ) : null}
 
-          {activeSector === "appearance" ? (
-            <RadialOptionGroup
-              sector="appearance"
+          {subMode === "appearance" ? (
+            <RadialSubModeOptions
               label={copy.appearance}
               options={copy.themeOptions}
-              value={theme}
-              onChange={setTheme}
-              onSelect={handleSelection}
-              className="left-[calc(100%+0.35rem)] top-[calc(50%+1.45rem)] w-[96px] flex-col items-start"
+              value={displayTheme}
+              optionAngles={[-90, 30, 150]}
+              optionRefs={subOptionRefs}
+              onFocusOption={setSubOptionIndex}
+              onSelectOption={handleThemeSelection}
+              getAvailability={(value) => THEME_AVAILABILITY[value]}
+              getOptionAriaLabel={(option, availability) =>
+                availability === "coming-soon"
+                  ? lightComingSoonCopy.ariaLabel
+                  : option.label
+              }
+              statusId={statusId}
             />
           ) : null}
 
-          {activeSector === "motion" ? (
-            <RadialOptionGroup
-              sector="motion"
+          {subMode === "motion" ? (
+            <RadialSubModeOptions
               label={copy.motion}
               options={copy.motionOptions}
               value={motion}
-              onChange={setMotion}
-              onSelect={handleSelection}
-              className="bottom-[-36px] left-1/2 -translate-x-1/2"
+              optionAngles={[-90, 90]}
+              optionRefs={subOptionRefs}
+              onFocusOption={setSubOptionIndex}
+              onSelectOption={handleMotionSelection}
             />
+          ) : null}
+
+          {contextLabel ? (
+            <p
+              id={statusId}
+              className="radial-context-label"
+              data-tone={contextLabel.tone}
+              aria-live="polite"
+            >
+              <span>{contextLabel.label}</span>
+              {contextLabel.value ? (
+                <>
+                  <span className="radial-context-separator"> · </span>
+                  <span className="radial-context-value">
+                    {contextLabel.value}
+                  </span>
+                </>
+              ) : null}
+            </p>
           ) : null}
         </div>
       ) : null}

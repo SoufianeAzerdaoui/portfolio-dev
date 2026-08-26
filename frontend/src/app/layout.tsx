@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 
 import { PointerAmbientGlow } from "@/components/layout/pointer-ambient-glow";
 import { PreferencesProvider } from "@/components/providers/preferences-provider";
+import { FEATURES } from "@/config/features";
 import type {
   LocaleCode,
   MotionPreference,
@@ -12,6 +13,7 @@ import type {
 import "./globals.css";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+const lightThemeEnabled = FEATURES.lightTheme;
 const themeStorageKey = "portfolio-theme";
 const localeStorageKey = "portfolio-locale";
 const motionStorageKey = "portfolio-motion";
@@ -31,7 +33,8 @@ const themeInitScript = `
     var storedMotion = readCookie("${motionStorageKey}") || localStorage.getItem("${motionStorageKey}");
     var motionPreference = storedMotion === "reduced" ? "reduced" : "system";
     var systemTheme = window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
-    var theme = themePreference === "system" ? systemTheme : themePreference;
+    var lightThemeEnabled = ${JSON.stringify(lightThemeEnabled)};
+    var theme = lightThemeEnabled ? (themePreference === "system" ? systemTheme : themePreference) : "dark";
     var reduceMotion = motionPreference === "reduced" || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     var root = document.documentElement;
     root.lang = locale;
@@ -139,7 +142,8 @@ export default async function RootLayout({
   const initialMotion = resolveInitialMotion(
     cookieStore.get(motionStorageKey)?.value,
   );
-  const initialResolvedTheme = initialTheme === "light" ? "light" : "dark";
+  const initialResolvedTheme =
+    lightThemeEnabled && initialTheme === "light" ? "light" : "dark";
 
   return (
     <html

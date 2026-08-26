@@ -9,6 +9,7 @@ import {
   useState,
 } from "react";
 
+import { FEATURES } from "@/config/features";
 import type {
   LocaleCode,
   MotionPreference,
@@ -81,11 +82,7 @@ function readDocumentMotion(
   return fallback;
 }
 
-function resolveThemePreference(theme: ThemePreference): ResolvedTheme {
-  if (theme === "dark" || theme === "light") {
-    return theme;
-  }
-
+function readSystemTheme(): ResolvedTheme {
   if (typeof window === "undefined") {
     return "dark";
   }
@@ -93,6 +90,17 @@ function resolveThemePreference(theme: ThemePreference): ResolvedTheme {
   return window.matchMedia("(prefers-color-scheme: light)").matches
     ? "light"
     : "dark";
+}
+
+function resolveThemePreference(
+  themePreference: ThemePreference,
+  systemTheme: ResolvedTheme,
+): ResolvedTheme {
+  if (!FEATURES.lightTheme) {
+    return "dark";
+  }
+
+  return themePreference === "system" ? systemTheme : themePreference;
 }
 
 function systemReducedMotion() {
@@ -131,11 +139,11 @@ export function PreferencesProvider({
   const [motion, setMotionState] =
     useState<MotionPreference>(() => readDocumentMotion(initialMotion));
   const [systemTheme, setSystemTheme] =
-    useState<ResolvedTheme>(() => resolveThemePreference("system"));
+    useState<ResolvedTheme>(readSystemTheme);
   const [systemMotionReduced, setSystemMotionReduced] =
     useState(systemReducedMotion);
 
-  const resolvedTheme = theme === "system" ? systemTheme : theme;
+  const resolvedTheme = resolveThemePreference(theme, systemTheme);
   const reduceMotion = motion === "reduced" || systemMotionReduced;
 
   useEffect(() => {
@@ -204,6 +212,10 @@ export function PreferencesProvider({
   }, []);
 
   const setTheme = useCallback((nextTheme: ThemePreference) => {
+    if (nextTheme === "light" && !FEATURES.lightTheme) {
+      return;
+    }
+
     setThemeState(nextTheme);
   }, []);
 

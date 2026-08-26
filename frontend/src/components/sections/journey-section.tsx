@@ -48,7 +48,7 @@ export function JourneySection({
             return (
               <li
                 key={experience.id}
-                className="group -mx-4 grid cursor-default gap-4 rounded-[11px] border border-transparent border-t-[var(--border-muted)] px-4 py-8 transition-[background-color,border-color] duration-200 ease-out hover:border-[rgb(var(--accent-rgb)/0.1)] hover:bg-[var(--accent-faint)] focus-within:border-[rgb(var(--accent-rgb)/0.1)] focus-within:bg-[var(--accent-faint)] motion-safe:animate-[journey-rise_420ms_cubic-bezier(0.22,1,0.36,1)_both] motion-reduce:transition-none md:grid-cols-[9rem_minmax(0,1fr)] md:gap-8 lg:-mx-5 lg:grid-cols-[11rem_minmax(0,1fr)] lg:px-5 lg:py-9"
+                className="editorial-interactive-row group -mx-4 grid cursor-default gap-4 px-4 py-8 motion-safe:animate-[journey-rise_420ms_cubic-bezier(0.22,1,0.36,1)_both] md:grid-cols-[9rem_minmax(0,1fr)] md:gap-8 lg:-mx-5 lg:grid-cols-[11rem_minmax(0,1fr)] lg:px-5 lg:py-9"
                 style={{ animationDelay: `${90 + index * 70}ms` }}
               >
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1 md:block">
@@ -81,18 +81,18 @@ export function JourneySection({
                   ) : null}
                 </div>
 
-              <article className="max-w-[44rem] transition-transform duration-200 ease-out group-hover:translate-x-0.5 group-focus-within:translate-x-0.5 motion-reduce:translate-x-0 motion-reduce:transition-none">
-                <h3 className="text-[clamp(1.08rem,1.55vw,1.28rem)] font-semibold leading-snug tracking-[-0.035em] text-[var(--foreground)] transition-colors duration-200 group-hover:text-[var(--foreground)] group-focus-within:text-[var(--foreground)] motion-reduce:transition-none">
-                  {experience.role}
-                  {experience.organization ? (
-                    <>
-                      <span className="mx-2 text-[var(--foreground-subtle)] opacity-80">·</span>
-                      <span className="font-medium text-[var(--foreground-secondary)] transition-colors duration-200 group-hover:text-[var(--accent-strong)] group-focus-within:text-[var(--accent-strong)] motion-reduce:transition-none">
-                        {experience.organization}
-                      </span>
-                    </>
-                  ) : null}
-                </h3>
+                <article className="editorial-interactive-content max-w-[44rem]">
+                  <h3 className="text-[clamp(1.08rem,1.55vw,1.28rem)] font-semibold leading-snug tracking-[-0.035em] text-[var(--foreground)] transition-colors duration-200 group-hover:text-[var(--foreground)] group-focus-within:text-[var(--foreground)] motion-reduce:transition-none">
+                    {experience.role}
+                    {experience.organization ? (
+                      <>
+                        <span className="mx-2 text-[var(--foreground-subtle)] opacity-80">·</span>
+                        <span className="font-medium text-[var(--foreground-secondary)] transition-colors duration-200 group-hover:text-[var(--accent-strong)] group-focus-within:text-[var(--accent-strong)] motion-reduce:transition-none">
+                          {experience.organization}
+                        </span>
+                      </>
+                    ) : null}
+                  </h3>
 
                 <p className="mt-3 max-w-[42rem] text-[0.95rem] leading-[1.65] text-[var(--foreground-muted)]">
                   {experience.description}
@@ -130,7 +130,7 @@ export function JourneySection({
                     />
                   </a>
                 ) : null}
-              </article>
+                </article>
               </li>
             );
           })}
