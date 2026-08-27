@@ -45,6 +45,18 @@ export type ProjectViewMode = "grid" | "list";
 
 export type ProjectCategoryFilter = "all" | string;
 
+export type ProjectHomeIconKey =
+  | "medical-rag"
+  | "syndismart"
+  | "call-center"
+  | "recommendation"
+  | "algorithmic-trading"
+  | "realtime-tracking"
+  | "bank-decision"
+  | "school-analytics"
+  | "nutrition-analysis"
+  | "blood-donation";
+
 export interface ProjectCategory {
   id: string;
   slug: string;
@@ -120,6 +132,11 @@ export interface ProjectLocalizedContent {
   seo?: ProjectSEO;
 }
 
+export interface ProjectLocalizedTagSet {
+  fr: string[];
+  en?: string[];
+}
+
 export interface Project {
   id: string;
   slug: string;
@@ -143,6 +160,8 @@ export interface Project {
   organization?: string;
   featured: boolean;
   featuredOrder: number | null;
+  homeIconKey?: ProjectHomeIconKey;
+  homeCategoryNames?: ProjectLocalizedTagSet;
   createdAt?: string;
   updatedAt?: string;
   publishedAt: string | null;

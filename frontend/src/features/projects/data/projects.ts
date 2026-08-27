@@ -52,7 +52,7 @@ export const PROJECTS = [
       en: {
         title: "Medical RAG Platform",
         shortDescription:
-          "Development of an intelligent system for extracting, structuring, and querying medical reports using RAG architectures.",
+          "Multimodal RAG platform for extracting, structuring and querying medical analysis reports with contextualized, source-grounded answers.",
       },
     },
     categories: [
@@ -221,6 +221,11 @@ export const PROJECTS = [
     role: "Co-développement en binôme",
     featured: true,
     featuredOrder: 1,
+    homeIconKey: "medical-rag",
+    homeCategoryNames: {
+      fr: ["RAG", "NLP", "Multimodal AI"],
+      en: ["RAG", "NLP", "Multimodal AI"],
+    },
     publishedAt: null,
   },
   {
@@ -269,6 +274,11 @@ export const PROJECTS = [
           ],
           results: [],
         },
+      },
+      en: {
+        title: "SyndiSmart AI",
+        shortDescription:
+          "AI assistant for classifying and prioritizing property-management WhatsApp messages and generating contextualized, source-grounded responses with RAG.",
       },
     },
     categories: [
@@ -361,6 +371,11 @@ export const PROJECTS = [
     organization: "Projet individuel",
     featured: true,
     featuredOrder: 2,
+    homeIconKey: "syndismart",
+    homeCategoryNames: {
+      fr: ["RAG", "NLP", "Generative AI"],
+      en: ["RAG", "NLP", "Generative AI"],
+    },
     publishedAt: null,
   },
   {
@@ -404,6 +419,11 @@ export const PROJECTS = [
           ],
           results: [],
         },
+      },
+      en: {
+        title: "Call Center AI - Frustration Detection",
+        shortDescription:
+          "NLP solution for detecting frustration in call-center conversations, summarizing exchanges and suggesting contextual responses to agents.",
       },
     },
     categories: [
@@ -537,6 +557,11 @@ export const PROJECTS = [
     organization: "Projet individuel",
     featured: true,
     featuredOrder: 3,
+    homeIconKey: "call-center",
+    homeCategoryNames: {
+      fr: ["NLP", "Speech AI", "Sentiment Analysis"],
+      en: ["NLP", "Speech AI", "Sentiment Analysis"],
+    },
     publishedAt: null,
   },
   {
@@ -568,6 +593,11 @@ export const PROJECTS = [
           ],
           results: [],
         },
+      },
+      en: {
+        title: "Real-time E-commerce Activity Tracking",
+        shortDescription:
+          "Real-time tracking system for user interactions on an e-commerce site, combining React, Flask, Kafka and Spark to collect and process navigation events.",
       },
     },
     categories: [
@@ -648,6 +678,7 @@ export const PROJECTS = [
     ],
     year: 2024,
     role: "Projet réalisé en équipe de 2 personnes",
+    homeIconKey: "realtime-tracking",
     featured: false,
     featuredOrder: null,
     publishedAt: null,
@@ -662,7 +693,12 @@ export const PROJECTS = [
       fr: {
         title: "Personalized Recommendation System",
         shortDescription:
-          "Plateforme de recommandation personnalisée combinant traitement batch et streaming pour générer des recommandations en temps réel et analyser leurs performances.",
+          "Plateforme de recommandation personnalisée combinant traitement batch et streaming pour générer des recommandations en temps réel.",
+      },
+      en: {
+        title: "Personalized Recommendation System",
+        shortDescription:
+          "Personalized recommendation platform combining batch and streaming processing to generate real-time recommendations.",
       },
     },
     categories: [
@@ -776,8 +812,13 @@ export const PROJECTS = [
     duration: "1 mois et demi",
     role: "Projet individuel",
     organization: "Projet individuel",
-    featured: false,
-    featuredOrder: null,
+    featured: true,
+    featuredOrder: 4,
+    homeIconKey: "recommendation",
+    homeCategoryNames: {
+      fr: ["Recommender Systems", "Machine Learning", "Data Engineering"],
+      en: ["Recommender Systems", "Machine Learning", "Data Engineering"],
+    },
     publishedAt: null,
   },
   {
@@ -791,6 +832,11 @@ export const PROJECTS = [
         title: "Bank Credit Decision Support System",
         shortDescription:
           "Système d’aide à la décision pour estimer l’acceptation d’un crédit à partir de données préparées et analysées, avec des modèles de machine learning servis via Flask.",
+      },
+      en: {
+        title: "Bank Credit Decision Support System",
+        shortDescription:
+          "Decision support system for estimating credit approval from prepared and analyzed data, using machine learning models served through Flask.",
       },
     },
     categories: [
@@ -873,6 +919,7 @@ export const PROJECTS = [
     year: 2024,
     role: "Projet individuel",
     organization: "Projet individuel",
+    homeIconKey: "bank-decision",
     featured: false,
     featuredOrder: null,
     publishedAt: null,
@@ -888,6 +935,11 @@ export const PROJECTS = [
         title: "Alcohol Consumption & Academic Performance Analysis",
         shortDescription:
           "Analyse statistique de données scolaires pour étudier les relations entre consommation d’alcool, facteurs socio-démographiques et performance académique.",
+      },
+      en: {
+        title: "Alcohol Consumption & Academic Performance Analysis",
+        shortDescription:
+          "Statistical analysis of school data studying relationships between alcohol consumption, socio-demographic factors and academic performance.",
       },
     },
     categories: [
@@ -1001,6 +1053,7 @@ export const PROJECTS = [
     year: 2025,
     role: "Projet individuel",
     organization: "Projet individuel",
+    homeIconKey: "school-analytics",
     featured: false,
     featuredOrder: null,
     publishedAt: null,
@@ -1016,6 +1069,11 @@ export const PROJECTS = [
         title: "Nutrition & Atherosclerosis Data Analysis",
         shortDescription:
           "Analyse de données de santé étudiant le lien entre nutrition et athérosclérose à travers statistiques, modèles prédictifs, clustering et recommandation personnalisée.",
+      },
+      en: {
+        title: "Nutrition & Atherosclerosis Data Analysis",
+        shortDescription:
+          "Health data analysis studying the link between nutrition and atherosclerosis through statistics, predictive models, clustering and personalized recommendation.",
       },
     },
     categories: [
@@ -1149,6 +1207,7 @@ export const PROJECTS = [
     year: 2025,
     role: "Projet individuel",
     organization: "Projet individuel",
+    homeIconKey: "nutrition-analysis",
     featured: false,
     featuredOrder: null,
     publishedAt: null,
@@ -1163,7 +1222,12 @@ export const PROJECTS = [
       fr: {
         title: "Algorithmic Trading ML",
         shortDescription:
-          "Projet de machine learning visant à prédire la direction des mouvements boursiers à partir de données historiques et d’indicateurs techniques.",
+          "Modèles de Machine Learning pour prédire la direction des mouvements boursiers à partir de données historiques et d’indicateurs techniques.",
+      },
+      en: {
+        title: "Algorithmic Trading ML",
+        shortDescription:
+          "Machine Learning models for predicting stock-price movement direction from historical market data and technical indicators.",
       },
     },
     categories: [
@@ -1264,8 +1328,13 @@ export const PROJECTS = [
     year: 2025,
     role: "Projet individuel",
     organization: "Projet individuel",
-    featured: false,
-    featuredOrder: null,
+    featured: true,
+    featuredOrder: 5,
+    homeIconKey: "algorithmic-trading",
+    homeCategoryNames: {
+      fr: ["Machine Learning", "Data Analysis", "Predictive Modeling"],
+      en: ["Machine Learning", "Data Analysis", "Predictive Modeling"],
+    },
     publishedAt: null,
   },
   {
@@ -1279,6 +1348,11 @@ export const PROJECTS = [
         title: "Blood Donation Platform",
         shortDescription:
           "Application full-stack facilitant la recherche de donneurs de sang et la gestion des initiatives de don grâce à React, Laravel et MongoDB.",
+      },
+      en: {
+        title: "Blood Donation Platform",
+        shortDescription:
+          "Full-stack application that supports blood donor search and donation initiative management with React, Laravel and MongoDB.",
       },
     },
     categories: [
@@ -1364,6 +1438,7 @@ export const PROJECTS = [
     year: 2023,
     role: "Projet individuel",
     organization: "Projet individuel",
+    homeIconKey: "blood-donation",
     featured: false,
     featuredOrder: null,
     publishedAt: null,

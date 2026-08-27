@@ -5,6 +5,8 @@ import { gsap } from "gsap";
 import { MotionPathPlugin } from "gsap/MotionPathPlugin";
 import { useReducedMotion } from "motion/react";
 
+import { usePreferences } from "@/components/providers/preferences-provider";
+
 gsap.registerPlugin(MotionPathPlugin);
 
 const S_ASSET_SRC = "/assets/logo-animation/sa-s-clean.png";
@@ -114,7 +116,9 @@ const orbitRadii: Record<OrbitLevel, { rx: number; ry: number; yBias: number }> 
 export function AnimatedSALogo() {
   const sceneRef = useRef<HTMLDivElement>(null);
   const shineRef = useRef<HTMLDivElement>(null);
-  const reducedMotion = useReducedMotion();
+  const systemReducedMotion = useReducedMotion();
+  const { reduceMotion } = usePreferences();
+  const reducedMotion = systemReducedMotion || reduceMotion;
 
   useLayoutEffect(() => {
     const sceneElement = sceneRef.current;
@@ -943,7 +947,6 @@ export function AnimatedSALogo() {
           const dot = card.querySelector<HTMLElement>(".satellite-dot");
           const enter = () => {
             gsap.to(card, {
-              color: "rgba(226,232,240,0.88)",
               y: -1,
               duration: 0.2,
               ease: "power1.out",
@@ -955,9 +958,6 @@ export function AnimatedSALogo() {
 
           const leave = () => {
             gsap.to(card, {
-              color: sceneHovered
-                ? "rgba(226,232,240,0.74)"
-                : "rgba(226,232,240,0.68)",
               y: 0,
               duration: 0.32,
               ease: "sine.out",
@@ -983,11 +983,6 @@ export function AnimatedSALogo() {
 
           sceneHovered = true;
           satelliteOrbitAnimations.forEach((animation) => animation.timeScale(1.05));
-          gsap.to(satelliteCards, {
-            color: "rgba(226,232,240,0.74)",
-            duration: 0.42,
-            ease: "sine.out",
-          });
           gsap.to(satelliteDots, {
             opacity: 0.92,
             duration: 0.42,
@@ -1008,7 +1003,6 @@ export function AnimatedSALogo() {
           sceneHovered = false;
           satelliteOrbitAnimations.forEach((animation) => animation.timeScale(1));
           gsap.to(satelliteCards, {
-            color: "rgba(226,232,240,0.68)",
             y: 0,
             duration: 0.52,
             ease: "sine.out",
@@ -1289,7 +1283,7 @@ export function AnimatedSALogo() {
       ref={sceneRef}
       className="relative isolate mx-auto aspect-[16/10] w-full max-w-[380px] overflow-visible opacity-0 sm:max-w-[460px] lg:max-w-[620px]"
     >
-      <div className="pointer-events-none absolute inset-0 z-0 rounded-full bg-[radial-gradient(circle_at_50%_44%,rgba(124,140,255,0.08),transparent_52%)] blur-[36px]" />
+      <div className="pointer-events-none absolute inset-0 z-0 rounded-full bg-[radial-gradient(circle_at_50%_44%,rgb(var(--accent-rgb)/0.08),transparent_52%)] blur-[36px]" />
 
       <svg
         viewBox="0 0 1536 1024"
@@ -1298,7 +1292,7 @@ export function AnimatedSALogo() {
         className="absolute inset-0 z-10 h-full w-full overflow-visible"
         fill="none"
       >
-        <g className="orbit-group opacity-0" stroke="#7C8CFF" strokeWidth="1.5">
+        <g className="orbit-group opacity-0" stroke="var(--accent)" strokeWidth="1.5">
           <ellipse
             id="orbit-inner"
             cx="768"
@@ -1308,7 +1302,7 @@ export function AnimatedSALogo() {
             transform="rotate(-8 768 520)"
           />
         </g>
-        <g className="orbit-group opacity-0" stroke="#7C8CFF" strokeWidth="1.5">
+        <g className="orbit-group opacity-0" stroke="var(--accent)" strokeWidth="1.5">
           <ellipse
             id="orbit-middle"
             cx="768"
@@ -1318,7 +1312,7 @@ export function AnimatedSALogo() {
             transform="rotate(7 768 520)"
           />
         </g>
-        <g className="orbit-group opacity-0 max-md:hidden" stroke="#7C8CFF" strokeWidth="1.5">
+        <g className="orbit-group opacity-0 max-md:hidden" stroke="var(--accent)" strokeWidth="1.5">
           <ellipse
             id="orbit-outer"
             cx="768"
@@ -1333,7 +1327,7 @@ export function AnimatedSALogo() {
           id="infinity-energy-path"
           className="infinity-trace"
           d="M468 510C468 424 560 390 644 390C729 390 779 454 829 510C877 563 925 628 1007 628C1089 628 1165 574 1165 510C1165 446 1089 392 1007 392C924 392 876 454 829 510C778 568 724 630 644 630C565 630 468 586 468 510Z"
-          stroke="#7C8CFF"
+          stroke="var(--accent)"
           strokeWidth="5"
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -1382,7 +1376,7 @@ export function AnimatedSALogo() {
 
         <g
           id="circuits-left"
-          stroke="#94A3B8"
+          stroke="var(--foreground-muted)"
           strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -1408,7 +1402,7 @@ export function AnimatedSALogo() {
         </g>
         <g
           id="circuits-right"
-          stroke="#94A3B8"
+          stroke="var(--foreground-muted)"
           strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -1435,50 +1429,50 @@ export function AnimatedSALogo() {
 
         <g id="circuit-pulses">
           <g className="circuit-pulse" data-path="circuit-left-1">
-            <circle r="2.4" fill="#E2E8F0" />
-            <circle r="5.2" fill="#7C8CFF" opacity="0.12" />
+            <circle r="2.4" fill="var(--silver)" />
+            <circle r="5.2" fill="var(--accent)" opacity="0.12" />
           </g>
           <g className="circuit-pulse" data-path="circuit-left-3">
-            <circle r="2.2" fill="#E2E8F0" />
-            <circle r="4.8" fill="#7C8CFF" opacity="0.1" />
+            <circle r="2.2" fill="var(--silver)" />
+            <circle r="4.8" fill="var(--accent)" opacity="0.1" />
           </g>
           <g className="circuit-pulse" data-path="signature-circuit">
-            <circle r="2.4" fill="#E2E8F0" />
-            <circle r="5.2" fill="#7C8CFF" opacity="0.12" />
+            <circle r="2.4" fill="var(--silver)" />
+            <circle r="5.2" fill="var(--accent)" opacity="0.12" />
           </g>
           <g className="circuit-pulse" data-path="circuit-right-1">
-            <circle r="2.2" fill="#E2E8F0" />
-            <circle r="4.8" fill="#7C8CFF" opacity="0.1" />
+            <circle r="2.2" fill="var(--silver)" />
+            <circle r="4.8" fill="var(--accent)" opacity="0.1" />
           </g>
         </g>
 
-        <g id="particles" fill="#E2E8F0">
+        <g id="particles" fill="var(--silver)">
           <circle className="ambient-particle" cx="375" cy="640" r="3" />
           <circle className="ambient-particle" cx="520" cy="730" r="2" />
           <circle className="ambient-particle max-md:hidden" cx="760" cy="790" r="3" />
           <circle className="ambient-particle" cx="1050" cy="690" r="2.5" />
           <circle className="ambient-particle" cx="1190" cy="390" r="2" />
         </g>
-        <g id="stars" stroke="#F8FAFC" strokeLinecap="round">
+        <g id="stars" stroke="var(--foreground)" strokeLinecap="round">
           <path className="ambient-star" d="M360 610v24M348 622h24" strokeWidth="2.5" />
           <path className="ambient-star max-md:hidden" d="M1120 600v20M1110 610h20" strokeWidth="2" />
         </g>
 
         <g className="comet opacity-0">
-          <circle cx="0" cy="0" r="6" fill="#E2E8F0" />
+          <circle cx="0" cy="0" r="6" fill="var(--silver)" />
           <circle cx="-10" cy="0" r="10" fill="url(#cometGlow)" opacity="0.28" />
         </g>
         <g className="core-energy-left opacity-0">
-          <circle cx="0" cy="0" r="2.4" fill="#E2E8F0" />
-          <circle cx="-4" cy="0" r="5.2" fill="#7C8CFF" opacity="0.12" />
+          <circle cx="0" cy="0" r="2.4" fill="var(--silver)" />
+          <circle cx="-4" cy="0" r="5.2" fill="var(--accent)" opacity="0.12" />
         </g>
         <g className="core-energy-right opacity-0">
-          <circle cx="0" cy="0" r="2.4" fill="#E2E8F0" />
-          <circle cx="-4" cy="0" r="5.2" fill="#7C8CFF" opacity="0.12" />
+          <circle cx="0" cy="0" r="2.4" fill="var(--silver)" />
+          <circle cx="-4" cy="0" r="5.2" fill="var(--accent)" opacity="0.12" />
         </g>
         <g className="infinity-data-pulse opacity-0">
-          <circle cx="0" cy="0" r="2.6" fill="#E2E8F0" />
-          <circle cx="-5" cy="0" r="4.8" fill="#7C8CFF" opacity="0.14" />
+          <circle cx="0" cy="0" r="2.6" fill="var(--silver)" />
+          <circle cx="-5" cy="0" r="4.8" fill="var(--accent)" opacity="0.14" />
         </g>
 
         <defs>
@@ -1504,8 +1498,8 @@ export function AnimatedSALogo() {
             gradientUnits="userSpaceOnUse"
             gradientTransform="translate(0 0) rotate(90) scale(20 22)"
           >
-            <stop stopColor="#7C8CFF" />
-            <stop offset="1" stopColor="#7C8CFF" stopOpacity="0" />
+            <stop stopColor="var(--accent)" />
+            <stop offset="1" stopColor="var(--accent)" stopOpacity="0" />
           </radialGradient>
           <radialGradient
             id="crossHighlightGlow"
@@ -1532,7 +1526,7 @@ export function AnimatedSALogo() {
           ].join(" ")}
         >
           <div
-            className="satellite-card group rounded-[8px] border border-[rgba(148,163,184,0.14)] bg-[rgba(8,13,26,0.22)] px-[9px] py-[5px] text-[11px] font-[470] tracking-[0.01em] text-[rgba(226,232,240,0.68)] transition-[border-color,background-color,color,transform] duration-200 hover:-translate-y-px hover:border-[rgba(148,163,184,0.18)] hover:bg-[rgba(8,13,26,0.28)] hover:text-[rgba(226,232,240,0.88)] md:text-[12px]"
+            className="satellite-card group rounded-[6px] border border-[rgb(var(--home-accent-2-rgb)/0.10)] bg-[rgb(var(--home-bg-0-rgb)/0.12)] px-[7px] py-[3px] text-[10px] font-[500] uppercase tracking-[0.075em] text-[#AAA6BC] transition-[border-color,color,opacity] duration-200 hover:border-[rgb(var(--home-accent-2-rgb)/0.18)] hover:text-[#D5D2DF] md:text-[11px]"
           >
             <span
               className={[
@@ -1540,8 +1534,8 @@ export function AnimatedSALogo() {
                 satellite.alignment === "left" ? "flex-row-reverse text-right" : "",
               ].join(" ")}
             >
-              <span className="h-px w-5 bg-[rgba(148,163,184,0.28)]" />
-              <span className="satellite-dot h-[4px] w-[4px] rounded-full bg-[#7C8CFF] opacity-[0.84] transition-opacity duration-200 group-hover:opacity-100" />
+              <span className="h-px w-[18px] bg-[var(--home-accent-2)] opacity-45" />
+              <span className="satellite-dot h-[3px] w-[3px] rounded-full bg-[var(--home-accent-2)] opacity-75 transition-opacity duration-200 group-hover:opacity-100" />
               <span>{satellite.label}</span>
             </span>
           </div>
@@ -1549,9 +1543,9 @@ export function AnimatedSALogo() {
       ))}
 
       <div className="sa-core-wrap absolute inset-x-[21%] top-[20%] z-30 aspect-[1.35/1]">
-        <div className="pointer-events-none absolute inset-[16%] rounded-full bg-[radial-gradient(circle,rgba(226,232,240,0.12),transparent_68%)] blur-3xl" />
-        <div className="pointer-events-none absolute inset-[18%] rounded-full bg-[radial-gradient(circle,rgba(79,107,255,0.08),transparent_72%)] blur-3xl" />
-        <div className="sa-lock-glow pointer-events-none absolute inset-[20%] rounded-full bg-[radial-gradient(circle,rgba(12,36,101,0.28),transparent_72%)] blur-[48px]" />
+        <div className="pointer-events-none absolute inset-[16%] rounded-full bg-[radial-gradient(circle,rgb(var(--background-rgb)/0.08),transparent_68%)] blur-3xl" />
+        <div className="pointer-events-none absolute inset-[18%] rounded-full bg-[radial-gradient(circle,rgb(var(--accent-rgb)/0.08),transparent_72%)] blur-3xl" />
+        <div className="sa-lock-glow pointer-events-none absolute inset-[20%] rounded-full bg-[radial-gradient(circle,var(--hero-glow),transparent_72%)] blur-[48px]" />
         <svg
           viewBox={`0 0 ${CORE_IMAGE_WIDTH} ${CORE_IMAGE_HEIGHT}`}
           aria-hidden="true"
@@ -1584,15 +1578,15 @@ export function AnimatedSALogo() {
               <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0" />
               <stop offset="42%" stopColor="#FFFFFF" stopOpacity="0" />
               <stop offset="48%" stopColor="#FFFFFF" stopOpacity="0.06" />
-              <stop offset="52%" stopColor="#F8FAFC" stopOpacity="0.22" />
-              <stop offset="56%" stopColor="#E2E8F0" stopOpacity="0.12" />
+              <stop offset="52%" stopColor="var(--foreground)" stopOpacity="0.22" />
+              <stop offset="56%" stopColor="var(--silver)" stopOpacity="0.12" />
               <stop offset="62%" stopColor="#FFFFFF" stopOpacity="0" />
               <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
             </linearGradient>
             <radialGradient id="reveal-front-glow" cx="0.5" cy="0.5" r="0.5">
-              <stop offset="0%" stopColor="#F8FAFC" stopOpacity="0.74" />
-              <stop offset="45%" stopColor="#E2E8F0" stopOpacity="0.32" />
-              <stop offset="100%" stopColor="#7C8CFF" stopOpacity="0" />
+              <stop offset="0%" stopColor="var(--foreground)" stopOpacity="0.74" />
+              <stop offset="45%" stopColor="var(--silver)" stopOpacity="0.32" />
+              <stop offset="100%" stopColor="var(--accent)" stopOpacity="0" />
             </radialGradient>
             <filter
               id="sa-front-glow-filter"
@@ -1637,7 +1631,7 @@ export function AnimatedSALogo() {
             />
           </g>
           <g className="core-handoff-pulse opacity-0" filter="url(#sa-front-glow-filter)">
-            <circle r="2.2" fill="#E2E8F0" />
+            <circle r="2.2" fill="var(--silver)" />
             <circle r="6.5" fill="url(#reveal-front-glow)" opacity="0.12" />
           </g>
 

@@ -1,19 +1,17 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
-import { ArrowUpRight, FolderOpen } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 
-import {
-  getProjectContent,
-  resolveProjectMediaUrl,
-} from "@/lib/projects";
-import {
-  TechnologyIcon,
-  getTechnologyIconSrc,
-} from "@/components/projects/technology-icon";
-import type { Project, ProjectTechnology, SupportedLocale } from "@/types/project";
+import { ProjectGlyph } from "@/components/projects/project-glyph";
+import { usePreferences } from "@/components/providers/preferences-provider";
+import { getProjectContent } from "@/lib/projects";
+import type {
+  Project,
+  ProjectHomeIconKey,
+  SupportedLocale,
+} from "@/types/project";
 
 type SelectedProjectRowProps = {
   project: Project;
@@ -21,35 +19,52 @@ type SelectedProjectRowProps = {
   locale?: SupportedLocale;
 };
 
-const CATEGORY_PRIORITY = [
-  "rag",
-  "nlp",
-  "multimodal-ai",
-  "generative-ai",
-] as const;
+const MAX_HOME_CATEGORIES = 3;
 
-const MAX_HOME_TECHNOLOGIES = 4;
-
-function getPriorityNames<T extends { name: string; slug: string }>(
-  items: readonly T[],
-  priority: readonly string[],
-  limit: number,
-) {
-  const bySlug = new Map(items.map((item) => [item.slug, item]));
-  const prioritized = priority
-    .map((slug) => bySlug.get(slug))
-    .filter((item): item is T => Boolean(item));
-  const remaining = items.filter(
-    (item) => !prioritized.some((priorityItem) => priorityItem.slug === item.slug),
-  );
-
-  return [...prioritized, ...remaining]
-    .slice(0, limit)
-    .map((item) => item.name);
-}
+const selectedProjectCopy = {
+  fr: {
+    actionFallback: "Voir le projet",
+    externalProjectSuffix:
+      "ouvrir le dépôt GitHub du projet dans un nouvel onglet",
+  },
+  en: {
+    actionFallback: "View project",
+    externalProjectSuffix:
+      "open the project GitHub repository in a new tab",
+  },
+} as const satisfies Record<
+  SupportedLocale,
+  {
+    actionFallback: string;
+    externalProjectSuffix: string;
+  }
+>;
 
 function formatProjectIndex(index: number) {
   return String(index + 1).padStart(2, "0");
+}
+
+function getHomeCategories(project: Project, locale: SupportedLocale) {
+  const overrides =
+    locale === "fr"
+      ? project.homeCategoryNames?.fr
+      : project.homeCategoryNames?.en ?? project.homeCategoryNames?.fr;
+
+  if (overrides?.length) {
+    return overrides.slice(0, MAX_HOME_CATEGORIES);
+  }
+
+  return project.categories
+    .slice(0, MAX_HOME_CATEGORIES)
+    .map((category) => category.name);
+}
+
+function resolveProjectIconKey(project: Project): ProjectHomeIconKey {
+  if (project.homeIconKey) {
+    return project.homeIconKey;
+  }
+
+  return "medical-rag";
 }
 
 export function SelectedProjectRow({
@@ -57,21 +72,23 @@ export function SelectedProjectRow({
   index,
   locale = "fr",
 }: SelectedProjectRowProps) {
-  const reducedMotion = useReducedMotion();
+  const systemReducedMotion = useReducedMotion();
+  const { reduceMotion } = usePreferences();
+  const reducedMotion = systemReducedMotion || reduceMotion;
+  const copy = selectedProjectCopy[locale];
   const content = getProjectContent(project, locale);
-  const coverImage = project.coverImage;
   const githubLink = project.links.find((link) => link.type === "github");
   const projectHref = githubLink?.url ?? `/projects/${project.slug}`;
   const projectLinkTarget = githubLink ? "github" : "details";
-  const categories = getPriorityNames(project.categories, CATEGORY_PRIORITY, 3);
-  const technologies = project.technologies.slice(0, MAX_HOME_TECHNOLOGIES);
+  const categories = getHomeCategories(project, locale);
+  const iconKey = resolveProjectIconKey(project);
 
   const motionProps = reducedMotion
     ? { initial: false }
     : {
         initial: { opacity: 0, y: 6 },
         whileInView: { opacity: 1, y: 0 },
-        viewport: { once: true, amount: 0.3 },
+        viewport: { once: true, amount: 0.28 },
       };
 
   return (
@@ -80,75 +97,49 @@ export function SelectedProjectRow({
       transition={{
         duration: 0.58,
         ease: [0.22, 1, 0.36, 1],
-        delay: reducedMotion ? 0 : index * 0.06,
+        delay: reducedMotion ? 0 : index * 0.05,
       }}
-      className="group/project grid border-t border-slate-400/[0.08] py-[1.625rem] md:grid-cols-[2.75rem_minmax(12rem,15.5rem)_minmax(0,1fr)] md:gap-x-6 lg:grid-cols-[3.5rem_minmax(14rem,18rem)_minmax(0,1fr)_8rem] lg:items-start lg:gap-x-7 xl:grid-cols-[3.5rem_minmax(15rem,19.5rem)_minmax(0,1fr)_8.5rem]"
+      className="editorial-interactive-row -mx-4 grid grid-cols-[3.55rem_minmax(0,1fr)] gap-x-4 gap-y-4 px-4 py-5 md:grid-cols-[3rem_4.9rem_minmax(0,1fr)] md:items-center md:gap-x-5 md:gap-y-0 lg:-mx-5 lg:grid-cols-[3.25rem_5.5rem_minmax(0,1fr)_5.5rem] lg:px-5 lg:py-[1.375rem]"
     >
-      <div className="mb-5 flex items-center justify-between md:mb-0 md:block">
-        <p className="text-[1.15rem] font-normal leading-none tracking-[-0.02em] text-[#7C8CFF]/85 md:text-[1.28rem]">
+      <div className="col-span-2 flex items-center justify-between md:hidden">
+        <p className="selected-project-index text-[1.02rem] font-normal leading-none tracking-[-0.02em] text-[var(--accent-muted)]">
           {formatProjectIndex(index)}
         </p>
         {project.year ? (
-          <p className="text-[0.72rem] font-medium tracking-[0.08em] text-[#94A3B8]/68 md:hidden">
+          <p className="text-[0.68rem] font-medium tracking-[0.12em] text-[var(--foreground-muted)] opacity-70">
             {project.year}
           </p>
         ) : null}
       </div>
 
-      <div className="mb-6 md:mb-0">
-        <div className="relative overflow-hidden rounded-[9px] border border-slate-400/[0.11] bg-[#040815]/80">
-          <div className="relative aspect-[16/9]">
-            {coverImage ? (
-              <>
-                <Image
-                  src={resolveProjectMediaUrl(coverImage)}
-                  alt={coverImage.alt}
-                  fill
-                  sizes="(min-width: 1280px) 300px, (min-width: 768px) 240px, 92vw"
-                  className="object-contain opacity-[0.9] brightness-[0.96] contrast-[0.98] transition duration-300 group-hover/project:scale-[1.012] group-hover/project:opacity-[0.96] motion-reduce:transition-none motion-reduce:group-hover/project:scale-100"
-                />
-                <div
-                  aria-hidden="true"
-                  className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(8,13,26,0.07)_0%,rgba(8,13,26,0.02)_45%,rgba(8,13,26,0.12)_100%)]"
-                />
-              </>
-            ) : (
-              <div className="grid h-full place-items-center">
-                <FolderOpen
-                  aria-hidden="true"
-                  className="h-7 w-7 text-[#7C8CFF]/42"
-                />
-              </div>
-            )}
-          </div>
-        </div>
+      <div className="hidden md:flex md:items-start md:justify-start lg:pt-1">
+        <p className="selected-project-index text-[1.32rem] font-normal leading-none tracking-[-0.02em] text-[var(--accent-muted)]">
+          {formatProjectIndex(index)}
+        </p>
       </div>
 
-      <div className="min-w-0 md:pr-4 lg:pr-0">
-        <h3 className="max-w-[38rem] text-[clamp(1.38rem,4.6vw,1.62rem)] font-semibold leading-[1.18] tracking-[-0.035em] text-[#F8FAFC] transition-colors duration-200 group-hover/project:text-white motion-reduce:transition-none lg:text-[clamp(1.35rem,1.7vw,1.55rem)]">
+      <div className="flex items-start justify-start md:items-center">
+        <ProjectGlyph iconKey={iconKey} />
+      </div>
+
+      <div className="editorial-interactive-content min-w-0 md:pr-2">
+        <h3 className="line-clamp-2 max-w-[42rem] text-[1.12rem] font-semibold leading-[1.2] tracking-[-0.03em] text-[var(--foreground)] md:text-[1.22rem] lg:text-[1.3rem]">
           {content.title}
         </h3>
 
-        <p className="mt-3 max-w-[38rem] text-[0.94rem] leading-[1.62] text-[#94A3B8]">
+        <p className="mt-1.5 line-clamp-2 max-w-[43rem] text-[0.87rem] leading-[1.6] text-[var(--foreground-muted)] md:text-[0.9rem]">
           {content.shortDescription}
         </p>
 
         {categories.length > 0 ? (
-          <p
-            aria-label="Catégories principales"
-            className="mt-4 text-[0.78rem] font-medium tracking-[0.06em] text-[#7C8CFF]/86"
-          >
+          <p className="mt-2 text-[0.7rem] font-medium tracking-[0.08em] text-[var(--accent-muted)] opacity-80 md:text-[0.72rem]">
             {categories.join(" · ")}
           </p>
         ) : null}
 
-        {technologies.length > 0 ? (
-          <TechnologyLogoRow technologies={technologies} />
-        ) : null}
-
-        <div className="mt-5 flex items-center justify-between gap-6 lg:hidden">
+        <div className="mt-3 flex items-center justify-between gap-5 lg:hidden">
           {project.year ? (
-            <p className="hidden text-[0.72rem] font-medium tracking-[0.08em] text-[#94A3B8]/68 md:block">
+            <p className="hidden text-[0.68rem] font-medium tracking-[0.12em] text-[var(--foreground-muted)] opacity-70 md:block">
               {project.year}
             </p>
           ) : (
@@ -156,16 +147,17 @@ export function SelectedProjectRow({
           )}
           <ProjectLink
             href={projectHref}
-            label={githubLink?.label ?? "Voir le projet"}
+            label={githubLink?.label ?? copy.actionFallback}
             title={content.title}
             target={projectLinkTarget}
+            externalSuffix={copy.externalProjectSuffix}
           />
         </div>
       </div>
 
-      <div className="hidden h-full flex-col items-end justify-between gap-8 pt-1 lg:flex">
+      <div className="hidden h-full flex-col items-end justify-between gap-5 pt-1 lg:flex">
         {project.year ? (
-          <p className="text-[0.72rem] font-medium tracking-[0.08em] text-[#94A3B8]/68">
+          <p className="text-[0.68rem] font-medium tracking-[0.12em] text-[var(--foreground-muted)] opacity-70">
             {project.year}
           </p>
         ) : (
@@ -173,52 +165,13 @@ export function SelectedProjectRow({
         )}
         <ProjectLink
           href={projectHref}
-          label={githubLink?.label ?? "Voir le projet"}
+          label={githubLink?.label ?? copy.actionFallback}
           title={content.title}
           target={projectLinkTarget}
+          externalSuffix={copy.externalProjectSuffix}
         />
       </div>
     </motion.article>
-  );
-}
-
-function TechnologyLogoRow({
-  technologies,
-}: {
-  technologies: ProjectTechnology[];
-}) {
-  return (
-    <ul
-      aria-label="Technologies principales"
-      className="mt-3 flex flex-wrap items-center gap-x-3.5 gap-y-2"
-    >
-      {technologies.map((technology) => {
-        const iconSrc = getTechnologyIconSrc(technology);
-
-        return (
-          <li
-            key={technology.id}
-            aria-label={technology.name}
-            title={technology.name}
-            tabIndex={0}
-            className="group/tech relative flex min-h-5 min-w-5 items-center rounded-[4px] text-[#AAB7C8]/70 outline-none transition duration-200 hover:-translate-y-px hover:text-[#E2E8F0] focus-visible:-translate-y-px focus-visible:ring-2 focus-visible:ring-[#7C8CFF] focus-visible:ring-offset-4 focus-visible:ring-offset-[#080D1A] motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:focus-visible:translate-y-0"
-          >
-            {iconSrc ? (
-              <>
-                <TechnologyIcon technology={technology} />
-                <span className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 hidden -translate-x-1/2 whitespace-nowrap rounded-[6px] border border-slate-400/[0.10] bg-[#080D1A]/95 px-2 py-1 text-[0.68rem] font-medium text-[#E2E8F0]/88 shadow-[0_8px_24px_rgba(0,0,0,0.24)] group-hover/tech:block group-focus-visible/tech:block">
-                  {technology.name}
-                </span>
-              </>
-            ) : (
-              <span className="whitespace-nowrap text-[0.68rem] font-medium leading-none">
-                {technology.name}
-              </span>
-            )}
-          </li>
-        );
-      })}
-    </ul>
   );
 }
 
@@ -227,11 +180,13 @@ function ProjectLink({
   label,
   title,
   target,
+  externalSuffix,
 }: {
   href: string;
   label: string;
   title: string;
   target: "github" | "details";
+  externalSuffix: string;
 }) {
   const isExternal = target === "github";
 
@@ -242,15 +197,15 @@ function ProjectLink({
       rel={isExternal ? "noopener noreferrer" : undefined}
       aria-label={
         isExternal
-          ? `${label} du projet ${title} - ouvrir le dépôt GitHub dans un nouvel onglet`
+          ? `${label} - ${title} - ${externalSuffix}`
           : `${label} ${title}`
       }
-      className="group/link inline-flex min-h-9 items-center gap-2 border-b border-[#7C8CFF]/42 pb-1 text-[0.82rem] font-medium text-slate-100 transition duration-200 hover:border-[#7C8CFF]/80 hover:text-white focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7C8CFF] focus-visible:ring-offset-4 focus-visible:ring-offset-[#080D1A]"
+      className="selected-project-link inline-flex min-h-8 items-center gap-1.5 border-b border-[rgb(var(--accent-rgb)/0.42)] pb-1 text-[0.74rem] font-medium tracking-[0.04em] text-[var(--foreground)] focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--focus-ring-offset)]"
     >
       <span>{label}</span>
       <ArrowUpRight
         aria-hidden="true"
-        className="h-3.5 w-3.5 transition-transform duration-200 group-hover/link:translate-x-[2px] group-hover/link:-translate-y-[2px] motion-reduce:transition-none"
+        className="selected-project-link-icon h-3.5 w-3.5"
       />
     </Link>
   );

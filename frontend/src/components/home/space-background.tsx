@@ -44,6 +44,12 @@ type ViewProfile = {
   filamentCount: number;
 };
 
+type BackgroundVariant = "space" | "home";
+
+type SpaceBackgroundProps = {
+  variant?: BackgroundVariant;
+};
+
 const TAU = Math.PI * 2;
 const MAX_DPR = 1.5;
 const GRAVITY_RADIUS = 280;
@@ -66,7 +72,19 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
 
-function getProfile(width: number): ViewProfile {
+function getProfile(width: number, variant: BackgroundVariant): ViewProfile {
+  if (variant === "home") {
+    if (width < 768) {
+      return { starCount: 5, filamentCount: 0 };
+    }
+
+    if (width < 1024) {
+      return { starCount: 9, filamentCount: 0 };
+    }
+
+    return { starCount: 14, filamentCount: 1 };
+  }
+
   if (width < 768) {
     return { starCount: 24, filamentCount: 2 };
   }
@@ -216,6 +234,95 @@ function createFilaments(): Filament[] {
   ];
 }
 
+function HomeTechnicalMotifs() {
+  const matrixDots = Array.from({ length: 36 }, (_, index) => index);
+
+  return (
+    <>
+      <svg
+        aria-hidden="true"
+        focusable="false"
+        viewBox="0 0 1920 1080"
+        preserveAspectRatio="none"
+        className="home-orbit-drift absolute inset-0 h-full w-full"
+      >
+        <path
+          d="M-140 314C254 146 624 108 1018 165C1362 215 1595 204 2070 92"
+          fill="none"
+          stroke="var(--home-line-strong)"
+          strokeWidth="1"
+          opacity="0.42"
+        />
+        <g className="hidden md:block" opacity="0.42">
+          <path
+            d="M672 344H812"
+            stroke="var(--home-line)"
+            strokeWidth="1"
+            strokeLinecap="round"
+          />
+          <path
+            d="M1498 338H1648"
+            stroke="var(--home-line)"
+            strokeWidth="1"
+            strokeLinecap="round"
+          />
+          <path
+            d="M604 506h92"
+            stroke="var(--home-line-muted)"
+            strokeWidth="1"
+            strokeLinecap="round"
+          />
+          <circle
+            className="home-node-breathe"
+            cx="838"
+            cy="344"
+            r="2"
+            fill="var(--home-accent-2)"
+          />
+          <circle
+            className="home-node-breathe"
+            cx="1660"
+            cy="338"
+            r="2.4"
+            fill="var(--home-accent)"
+          />
+        </g>
+      </svg>
+
+      <div className="home-dot-matrix absolute right-[7vw] top-[24%] hidden grid-cols-6 gap-[10px] opacity-45 md:grid lg:right-[9vw] lg:top-[26%]">
+        {matrixDots.map((dot) => (
+          <span
+            key={dot}
+            className="h-[1.5px] w-[1.5px] rounded-full bg-[var(--home-accent-2)] opacity-[0.22]"
+          />
+        ))}
+      </div>
+
+      <svg
+        aria-hidden="true"
+        focusable="false"
+        viewBox="0 0 520 340"
+        className="home-topographic-mask absolute -right-10 bottom-[-7.5rem] hidden h-[22rem] w-[34rem] opacity-55 lg:block xl:-right-8 xl:bottom-[-6.5rem]"
+      >
+        {Array.from({ length: 5 }, (_, index) => {
+          const offset = index * 28;
+
+          return (
+            <path
+              key={offset}
+              d={`M30 ${284 - offset}C116 ${217 - offset} 217 ${223 - offset} 301 ${183 - offset}C371 ${150 - offset} 420 ${151 - offset} 493 ${124 - offset}`}
+              fill="none"
+              stroke="var(--home-line-strong)"
+              strokeWidth="1"
+              opacity={0.34 - index * 0.045}
+            />
+          );
+        })}
+      </svg>
+    </>
+  );
+}
+
 function drawCubicPath(
   context: CanvasRenderingContext2D,
   points: { x: number; y: number }[],
@@ -232,7 +339,7 @@ function drawCubicPath(
   );
 }
 
-export function SpaceBackground() {
+export function SpaceBackground({ variant = "space" }: SpaceBackgroundProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -262,18 +369,25 @@ export function SpaceBackground() {
     let width = 1;
     let height = 1;
     let dpr = 1;
-    let profile = getProfile(window.innerWidth);
+    let profile = getProfile(window.innerWidth, variant);
     let frameId = 0;
     let visible = true;
     let pageVisible = document.visibilityState === "visible";
     let reducedMotion = motionQuery.matches;
     let finePointer = pointerQuery.matches;
+    let lightTheme = document.documentElement.dataset.theme === "light";
+
+    const syncReducedMotion = () => {
+      reducedMotion =
+        document.documentElement.dataset.motion === "reduce" ||
+        motionQuery.matches;
+    };
 
     const resize = () => {
       width = Math.max(1, window.innerWidth);
       height = Math.max(1, window.innerHeight);
       dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
-      profile = getProfile(width);
+      profile = getProfile(width, variant);
 
       canvas.width = Math.round(width * dpr);
       canvas.height = Math.round(height * dpr);
@@ -298,9 +412,24 @@ export function SpaceBackground() {
         context.scale(radiusX, radiusY);
 
         const gradient = context.createRadialGradient(0, 0, 0, 0, 0, 1);
-        gradient.addColorStop(0, `rgba(${nebula.color}, ${nebula.alpha})`);
-        gradient.addColorStop(0.55, `rgba(${nebula.color}, ${nebula.alpha * 0.35})`);
-        gradient.addColorStop(1, `rgba(${nebula.color}, 0)`);
+        const nebulaColor = variant === "home"
+          ? lightTheme
+            ? "95, 103, 246"
+            : "38, 38, 46"
+          : lightTheme
+            ? "80, 95, 150"
+            : nebula.color;
+        const nebulaAlpha = variant === "home"
+          ? lightTheme
+            ? nebula.alpha * 0.18
+            : nebula.alpha * 0.42
+          : lightTheme
+            ? nebula.alpha * 0.32
+            : nebula.alpha;
+
+        gradient.addColorStop(0, `rgba(${nebulaColor}, ${nebulaAlpha})`);
+        gradient.addColorStop(0.55, `rgba(${nebulaColor}, ${nebulaAlpha * 0.35})`);
+        gradient.addColorStop(1, `rgba(${nebulaColor}, 0)`);
 
         context.fillStyle = gradient;
         context.beginPath();
@@ -320,9 +449,19 @@ export function SpaceBackground() {
       const radius = width < 768 ? 150 : 210;
       const gradient = context.createRadialGradient(x, y, 0, x, y, radius);
 
-      gradient.addColorStop(0, "rgba(63, 99, 221, 0.04)");
-      gradient.addColorStop(0.45, "rgba(12, 36, 101, 0.018)");
-      gradient.addColorStop(1, "rgba(12, 36, 101, 0)");
+      if (variant === "home") {
+        gradient.addColorStop(0, "rgba(139, 128, 217, 0.022)");
+        gradient.addColorStop(0.48, "rgba(97, 85, 185, 0.009)");
+        gradient.addColorStop(1, "rgba(97, 85, 185, 0)");
+      } else if (lightTheme) {
+        gradient.addColorStop(0, "rgba(95, 103, 246, 0.018)");
+        gradient.addColorStop(0.45, "rgba(80, 95, 150, 0.008)");
+        gradient.addColorStop(1, "rgba(80, 95, 150, 0)");
+      } else {
+        gradient.addColorStop(0, "rgba(63, 99, 221, 0.04)");
+        gradient.addColorStop(0.45, "rgba(12, 36, 101, 0.018)");
+        gradient.addColorStop(1, "rgba(12, 36, 101, 0)");
+      }
 
       context.fillStyle = gradient;
       context.fillRect(0, 0, width, height);
@@ -345,10 +484,19 @@ export function SpaceBackground() {
           reducedMotion || !finePointer || !pointer.active
             ? 0
             : Math.exp(-distance / 210) * 0.018;
-        const alpha = clamp(star.alpha + twinkle + cursorLift, 0.04, 0.32);
+        const alpha = variant === "home"
+          ? clamp((star.alpha + twinkle + cursorLift) * 0.46, 0.014, 0.11)
+          : lightTheme
+          ? clamp((star.alpha + twinkle + cursorLift) * 0.34, 0.018, 0.08)
+          : clamp(star.alpha + twinkle + cursorLift, 0.04, 0.32);
+        const starColor = variant === "home"
+          ? "180, 177, 194"
+          : lightTheme
+            ? "80, 95, 150"
+            : "226, 232, 240";
 
         context.beginPath();
-        context.fillStyle = `rgba(226, 232, 240, ${alpha})`;
+        context.fillStyle = `rgba(${starColor}, ${alpha})`;
         context.arc(x, y, star.radius, 0, TAU);
         context.fill();
       });
@@ -395,17 +543,29 @@ export function SpaceBackground() {
         context.lineCap = "round";
         context.lineJoin = "round";
         context.lineWidth = filament.width + 1.2;
-        context.strokeStyle = `rgba(63, 99, 221, ${filament.alpha * 0.24})`;
+        context.strokeStyle = variant === "home"
+          ? `rgba(38, 38, 46, ${filament.alpha * 0.28})`
+          : lightTheme
+          ? `rgba(80, 95, 150, ${filament.alpha * 0.2})`
+          : `rgba(63, 99, 221, ${filament.alpha * 0.24})`;
         context.stroke();
 
         drawCubicPath(context, points);
         context.lineWidth = filament.width;
-        context.strokeStyle = `rgba(124, 140, 255, ${filament.alpha})`;
+        context.strokeStyle = variant === "home"
+          ? `rgba(139, 128, 217, ${filament.alpha * 0.34})`
+          : lightTheme
+          ? `rgba(95, 103, 246, ${filament.alpha * 0.42})`
+          : `rgba(124, 140, 255, ${filament.alpha})`;
         context.stroke();
 
         drawCubicPath(context, points);
         context.lineWidth = Math.max(0.45, filament.width * 0.62);
-        context.strokeStyle = `rgba(170, 183, 200, ${filament.alpha * 0.42})`;
+        context.strokeStyle = variant === "home"
+          ? `rgba(180, 177, 194, ${filament.alpha * 0.14})`
+          : lightTheme
+          ? `rgba(80, 95, 150, ${filament.alpha * 0.18})`
+          : `rgba(170, 183, 200, ${filament.alpha * 0.42})`;
         context.stroke();
       });
     };
@@ -479,13 +639,19 @@ export function SpaceBackground() {
     };
 
     const handleMediaChange = () => {
-      reducedMotion = motionQuery.matches;
+      syncReducedMotion();
       finePointer = pointerQuery.matches;
       pointer.targetX = 0.5;
       pointer.targetY = 0.5;
       pointer.smoothX = 0.5;
       pointer.smoothY = 0.5;
       pointer.active = false;
+      syncAnimation();
+    };
+
+    const handleThemeChange = () => {
+      lightTheme = document.documentElement.dataset.theme === "light";
+      syncReducedMotion();
       syncAnimation();
     };
 
@@ -511,8 +677,11 @@ export function SpaceBackground() {
     window.addEventListener("pointermove", handlePointerMove, { passive: true });
     window.addEventListener("resize", handleResize, { passive: true });
     document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("portfolio-theme-change", handleThemeChange);
+    window.addEventListener("portfolio-preferences-change", handleThemeChange);
     motionQuery.addEventListener("change", handleMediaChange);
     pointerQuery.addEventListener("change", handleMediaChange);
+    syncReducedMotion();
     syncAnimation();
 
     return () => {
@@ -522,21 +691,29 @@ export function SpaceBackground() {
       window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("resize", handleResize);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("portfolio-theme-change", handleThemeChange);
+      window.removeEventListener("portfolio-preferences-change", handleThemeChange);
       motionQuery.removeEventListener("change", handleMediaChange);
       pointerQuery.removeEventListener("change", handleMediaChange);
     };
-  }, []);
+  }, [variant]);
 
   return (
     <div
       ref={rootRef}
       aria-hidden="true"
-      className="pointer-events-none fixed inset-0 z-0 overflow-hidden"
+      className={[
+        "pointer-events-none fixed inset-0 z-0 overflow-hidden",
+        variant === "home" ? "home-background-base home-technical-background" : "",
+      ]
+        .join(" ")
+        .trim()}
     >
       <canvas
         ref={canvasRef}
         className="absolute inset-0 block h-full w-full"
       />
+      {variant === "home" ? <HomeTechnicalMotifs /> : null}
     </div>
   );
 }

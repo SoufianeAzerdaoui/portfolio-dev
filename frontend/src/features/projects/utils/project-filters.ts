@@ -114,7 +114,7 @@ export function resolveProjectDomain(
 }
 
 export function resolveProjectView(value: string | null | undefined) {
-  return value === "list" ? "list" : "grid";
+  return value === "grid" ? "grid" : "list";
 }
 
 export function resolveProjectPage(value: string | null | undefined) {
@@ -185,7 +185,11 @@ export function paginateProjects(
   };
 }
 
-export function formatProjectsCount(count: number) {
+export function formatProjectsCount(count: number, locale: SupportedLocale = "fr") {
+  if (locale === "en") {
+    return count === 1 ? "1 project found" : `${count} projects found`;
+  }
+
   return count === 1 ? "1 projet trouvé" : `${count} projets trouvés`;
 }
 
@@ -193,7 +197,14 @@ export function formatProjectFilterCount(count: number) {
   return String(count).padStart(2, "0");
 }
 
-export function formatProjectFilterCountLabel(count: number) {
+export function formatProjectFilterCountLabel(
+  count: number,
+  locale: SupportedLocale = "fr",
+) {
+  if (locale === "en") {
+    return count === 1 ? "1 project" : `${count} projects`;
+  }
+
   return count === 1 ? "1 projet" : `${count} projets`;
 }
 
@@ -239,7 +250,7 @@ export function createProjectSearchParams(state: ProjectExplorerState) {
     searchParams.set("domain", state.domain);
   }
 
-  if (state.view !== "grid") {
+  if (state.view !== "list") {
     searchParams.set("view", state.view);
   }
 

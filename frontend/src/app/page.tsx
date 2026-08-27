@@ -1,52 +1,8 @@
-import { DesktopSidebar } from "@/components/layout/desktop-sidebar";
-import { MobileHeader } from "@/components/layout/mobile-header";
-import { HeroSection } from "@/components/home/hero-section";
-import { SpaceBackground } from "@/components/home/space-background";
-import { AboutSection } from "@/components/sections/about-section";
-import { JourneySection } from "@/components/sections/journey-section";
-import { ProjectsTeaserSection } from "@/components/sections/projects-teaser-section";
-import { SectionPlaceholder } from "@/components/sections/section-placeholder";
-import { journeyExperiences } from "@/content/journey";
-import { portfolioContent } from "@/content/portfolio";
+import { PortfolioHome } from "@/components/portfolio/portfolio-home";
+import { getFeaturedProjects } from "@/features/projects/queries/project.queries";
 
-export default function Home() {
-  return (
-    <>
-      <MobileHeader
-        identity={portfolioContent.identity}
-        navigation={portfolioContent.navigation}
-        socialLinks={portfolioContent.socialLinks}
-        languages={portfolioContent.languages}
-      />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none fixed inset-0 -z-10 bg-[#080D1A]"
-      />
-      <SpaceBackground />
-      <div className="relative z-10 lg:ml-[5vw] lg:mr-8 lg:grid lg:min-h-[100svh] lg:grid-cols-[16.25rem_minmax(0,1fr)] lg:gap-x-12 xl:ml-[9vw] xl:mr-[4vw] xl:grid-cols-[17.5rem_minmax(0,1fr)] xl:gap-x-16 2xl:ml-[10vw] 2xl:grid-cols-[18rem_minmax(0,1fr)] 2xl:gap-x-20">
-        <div>
-          <DesktopSidebar
-            navigation={portfolioContent.navigation}
-            socialLinks={portfolioContent.socialLinks}
-          />
-        </div>
-        <main id="main-content" className="relative min-w-0 overflow-x-clip">
-          <HeroSection content={portfolioContent} />
-          <AboutSection content={portfolioContent.about} />
-          {portfolioContent.sections.map((section) =>
-            section.id === "projects" ? (
-              <ProjectsTeaserSection key={section.id} section={section} />
-            ) : section.id === "journey" ? (
-              <JourneySection
-                key={section.id}
-                experiences={journeyExperiences}
-              />
-            ) : (
-              <SectionPlaceholder key={section.id} section={section} />
-            ),
-          )}
-        </main>
-      </div>
-    </>
-  );
+export default async function Home() {
+  const featuredProjects = await getFeaturedProjects(5);
+
+  return <PortfolioHome featuredProjects={featuredProjects} />;
 }

@@ -1,24 +1,31 @@
 "use client";
 
 import Link from "next/link";
-import { GitBranch, Link2, Mail, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { MouseEvent } from "react";
 
-import { LanguageSwitcher } from "@/components/layout/language-switcher";
-import { useSectionNavigation } from "@/hooks/use-section-navigation";
+import { PreferencesPanel } from "@/components/layout/preferences-panel";
+import { SocialIcon } from "@/components/layout/social-icons";
+import { usePreferences } from "@/components/providers/preferences-provider";
 import type {
-  LanguageOption,
   NavigationItem,
   SectionId,
   SocialLink,
 } from "@/types/portfolio";
 
-const socialIcons = {
-  github: GitBranch,
-  linkedin: Link2,
-  mail: Mail,
-};
+const mobileCopy = {
+  fr: {
+    openMenu: "Ouvrir le menu",
+    closeMenu: "Fermer le menu",
+    navigation: "Navigation mobile",
+  },
+  en: {
+    openMenu: "Open menu",
+    closeMenu: "Close menu",
+    navigation: "Mobile navigation",
+  },
+} as const;
 
 type MobileHeaderProps = {
   identity: {
@@ -27,19 +34,22 @@ type MobileHeaderProps = {
   };
   navigation: NavigationItem[];
   socialLinks: SocialLink[];
-  languages: LanguageOption[];
+  activeSection: SectionId;
+  navigateToSection: (sectionId: SectionId) => void;
 };
 
 export function MobileHeader({
   identity,
   navigation,
   socialLinks,
-  languages,
+  activeSection,
+  navigateToSection,
 }: MobileHeaderProps) {
   const [open, setOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const { activeSection, navigateToSection } = useSectionNavigation(navigation);
+  const { locale } = usePreferences();
+  const copy = mobileCopy[locale];
 
   const handleMobileNavigation = (
     event: MouseEvent<HTMLAnchorElement>,
@@ -61,10 +71,11 @@ export function MobileHeader({
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
-    const focusable = panelRef.current?.querySelectorAll<HTMLElement>(
-      'a[href], button:not([disabled])',
-    );
-    focusable?.[0]?.focus();
+    const getFocusable = () =>
+      panelRef.current?.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled])',
+      );
+    getFocusable()?.[0]?.focus();
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -72,6 +83,8 @@ export function MobileHeader({
         triggerRef.current?.focus();
         return;
       }
+
+      const focusable = getFocusable();
 
       if (event.key !== "Tab" || !focusable || focusable.length === 0) {
         return;
@@ -99,34 +112,34 @@ export function MobileHeader({
 
   return (
     <>
-      <header className="fixed inset-x-0 top-0 z-40 flex items-center justify-between border-b border-white/8 bg-[#080D1A]/82 px-4 py-4 backdrop-blur-xl lg:hidden">
+      <header className="fixed inset-x-0 top-0 z-40 flex items-center justify-between border-b border-[var(--home-line-muted)] bg-[rgb(var(--home-bg-0-rgb)/0.84)] px-4 py-4 backdrop-blur-xl lg:hidden">
         <Link
           href="#home"
           scroll={false}
           onClick={(event) => handleMobileNavigation(event, "home")}
-          className="inline-flex items-center gap-3 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4F6BFF]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#050912]"
+          className="inline-flex items-center gap-3 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--home-accent-2)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--home-bg-0)]"
         >
-          <span className="flex h-11 w-11 items-center justify-center rounded-full border border-white/12 bg-white/[0.03] text-sm font-semibold tracking-[0.22em] text-slate-50">
+          <span className="flex h-11 w-11 items-center justify-center rounded-full border border-[var(--home-line)] bg-[rgb(var(--home-bg-1-rgb)/0.42)] text-sm font-semibold tracking-[0.22em] text-[var(--home-text)]">
             SA
           </span>
           <span className="flex flex-col">
-            <span className="text-[0.7rem] uppercase tracking-[0.28em] text-slate-200">
+            <span className="text-[0.7rem] uppercase tracking-[0.28em] text-[var(--home-text-secondary)]">
               {identity.name}
             </span>
-            <span className="text-xs text-slate-400">{identity.role}</span>
+            <span className="text-xs text-[var(--home-muted)]">{identity.role}</span>
           </span>
         </Link>
 
         <div className="flex items-center gap-2">
-          <LanguageSwitcher languages={languages} className="hidden sm:inline-flex" />
+          <PreferencesPanel />
           <button
             ref={triggerRef}
             type="button"
             aria-expanded={open}
             aria-controls="mobile-navigation"
-            aria-label={open ? "Fermer le menu" : "Ouvrir le menu"}
+            aria-label={open ? copy.closeMenu : copy.openMenu}
             onClick={() => setOpen((value) => !value)}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-slate-100 transition hover:border-white/18 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4F6BFF]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#050912]"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--home-line)] bg-transparent text-[var(--home-text)] transition hover:border-[var(--home-accent)] hover:bg-[var(--home-button-secondary-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--home-accent-2)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--home-bg-0)]"
           >
             {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
@@ -134,28 +147,28 @@ export function MobileHeader({
       </header>
 
       {open ? (
-        <div className="fixed inset-0 z-50 bg-[#080D1A]/80 backdrop-blur-md lg:hidden">
+        <div className="fixed inset-0 z-50 bg-[rgb(var(--home-bg-0-rgb)/0.78)] backdrop-blur-md lg:hidden">
           <div
             id="mobile-navigation"
             ref={panelRef}
-            className="ml-auto flex h-full w-[min(90vw,24rem)] flex-col border-l border-white/8 bg-[#080D1A] px-6 py-6"
+            className="ml-auto flex h-full w-[min(90vw,24rem)] flex-col border-l border-[var(--home-line)] bg-[var(--home-bg-0)] px-6 py-6"
           >
             <div className="flex items-center justify-between">
-              <LanguageSwitcher languages={languages} />
+              <PreferencesPanel />
               <button
                 type="button"
                 onClick={() => {
                   setOpen(false);
                   triggerRef.current?.focus();
                 }}
-                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4F6BFF]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#050912]"
-                aria-label="Fermer le menu"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--home-line)] bg-transparent text-[var(--home-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--home-accent-2)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--home-bg-0)]"
+                aria-label={copy.closeMenu}
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
-            <nav aria-label="Navigation mobile" className="mt-10">
+            <nav aria-label={copy.navigation} className="mt-10">
               <ul className="space-y-3">
                 {navigation.map((item) => (
                   <li key={`${item.label}-${item.href}`}>
@@ -164,7 +177,7 @@ export function MobileHeader({
                         type="button"
                         aria-disabled="true"
                         onClick={() => setOpen(false)}
-                        className="block w-full cursor-default rounded-2xl border border-white/8 bg-white/[0.02] px-4 py-4 text-left text-sm uppercase tracking-[0.26em] text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4F6BFF]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#050912]"
+                        className="block w-full cursor-default rounded-2xl border border-[var(--home-line-muted)] bg-[rgb(var(--home-bg-1-rgb)/0.34)] px-4 py-4 text-left text-sm uppercase tracking-[0.26em] text-[var(--home-muted)] opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--home-accent-2)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--home-bg-0)]"
                       >
                         {item.label}
                       </button>
@@ -177,10 +190,10 @@ export function MobileHeader({
                         }
                         onClick={(event) => handleMobileNavigation(event, item.id)}
                         className={[
-                          "block rounded-2xl border px-4 py-4 text-sm uppercase tracking-[0.26em] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4F6BFF]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#050912]",
+                          "block rounded-2xl border px-4 py-4 text-sm uppercase tracking-[0.26em] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--home-accent-2)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--home-bg-0)]",
                           activeSection === item.id
-                            ? "border-[#7C8CFF]/40 bg-[#7C8CFF]/10 text-slate-50"
-                            : "border-white/8 bg-white/[0.03] text-slate-100 hover:border-white/16",
+                            ? "border-[var(--home-line-strong)] bg-[rgb(var(--home-accent-rgb)/0.08)] text-[var(--home-text)]"
+                            : "border-[var(--home-line-muted)] bg-[rgb(var(--home-bg-1-rgb)/0.34)] text-[var(--home-text-secondary)] hover:border-[var(--home-line)]",
                         ].join(" ")}
                       >
                         {item.label}
@@ -193,17 +206,15 @@ export function MobileHeader({
 
             <div className="mt-auto flex items-center gap-3 pt-8">
               {socialLinks.map((social) => {
-                const Icon = socialIcons[social.icon];
-
                 return social.disabled ? (
                   <button
                     key={social.label}
                     type="button"
                     aria-label={social.label}
                     aria-disabled="true"
-                    className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-slate-500"
+                    className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--home-line)] bg-transparent text-[var(--home-muted)] opacity-60"
                   >
-                    <Icon className="h-4 w-4" />
+                    <SocialIcon icon={social.icon} className="h-4 w-4" />
                   </button>
                 ) : (
                   <Link
@@ -213,9 +224,9 @@ export function MobileHeader({
                     rel={social.external ? "noopener noreferrer" : undefined}
                     aria-label={social.label}
                     onClick={() => setOpen(false)}
-                    className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-slate-300 transition hover:text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4F6BFF]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#050912]"
+                    className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--home-line)] bg-transparent text-[var(--home-muted)] transition hover:text-[var(--home-accent-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--home-accent-2)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--home-bg-0)]"
                   >
-                    <Icon className="h-4 w-4" />
+                    <SocialIcon icon={social.icon} className="h-4 w-4" />
                   </Link>
                 );
               })}
