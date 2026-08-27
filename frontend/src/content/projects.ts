@@ -6,14 +6,14 @@ export const projectsPageContentByLocale = {
     kicker: "/ Projets",
     title: "Tous mes projets",
     description:
-      "Une collection de projets Data & IA conçus pour résoudre des problématiques réelles et créer de la valeur grâce à la donnée et à l'intelligence artificielle.",
+      "Une sélection de projets en IA, Data, BI et Software Engineering, de l’expérimentation à la mise en production.",
   },
   en: {
     back: "Back to portfolio",
     kicker: "/ Projects",
     title: "All projects",
     description:
-      "A collection of Data & AI projects designed to solve real problems and create value through data and artificial intelligence.",
+      "A selection of AI, Data, BI and Software Engineering projects, from experimentation to production-oriented delivery.",
   },
 } satisfies Record<
   SupportedLocale,

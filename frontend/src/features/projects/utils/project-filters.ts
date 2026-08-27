@@ -114,7 +114,7 @@ export function resolveProjectDomain(
 }
 
 export function resolveProjectView(value: string | null | undefined) {
-  return value === "list" ? "list" : "grid";
+  return value === "grid" ? "grid" : "list";
 }
 
 export function resolveProjectPage(value: string | null | undefined) {
@@ -250,7 +250,7 @@ export function createProjectSearchParams(state: ProjectExplorerState) {
     searchParams.set("domain", state.domain);
   }
 
-  if (state.view !== "grid") {
+  if (state.view !== "list") {
     searchParams.set("view", state.view);
   }
 

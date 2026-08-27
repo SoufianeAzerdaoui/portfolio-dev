@@ -312,6 +312,14 @@ html[data-theme="light"] .home-background-base {
     border-color 200ms ease-out;
 }
 
+.editorial-interactive-surface {
+  border: 1px solid var(--border-subtle);
+  border-radius: 11px;
+  transition:
+    background-color 200ms ease-out,
+    border-color 200ms ease-out;
+}
+
 .editorial-interactive-content {
   transition: transform 200ms ease-out;
 }
@@ -335,6 +343,42 @@ html[data-theme="light"] .home-background-base {
   transition-property: transform;
 }
 
+.editorial-project-glyph,
+.editorial-project-glyph-secondary,
+.editorial-project-glyph-icon {
+  transition-duration: 200ms;
+  transition-timing-function: ease-out;
+}
+
+.editorial-project-glyph {
+  transition-property: border-color, background-color;
+}
+
+.editorial-project-glyph-secondary {
+  transition-property: border-color, opacity;
+}
+
+.editorial-project-glyph-icon {
+  color: var(--project-glyph-accent, var(--accent-muted));
+  opacity: 0.78;
+  transform: scale(var(--project-glyph-scale, 1));
+  transition-property: color, opacity;
+}
+
+.editorial-interactive-surface:focus-within {
+  border-color: rgb(var(--accent-rgb) / 0.1);
+  background: var(--accent-faint);
+}
+
+.editorial-interactive-surface:focus-within .editorial-interactive-content {
+  transform: translateX(0.125rem);
+}
+
+.editorial-interactive-surface:focus-within .selected-project-link {
+  border-color: rgb(var(--accent-rgb) / 0.56);
+  color: var(--accent-strong);
+}
+
 .editorial-interactive-row:focus-within {
   border-color: rgb(var(--accent-rgb) / 0.1);
   background: var(--accent-faint);
@@ -353,7 +397,34 @@ html[data-theme="light"] .home-background-base {
   color: var(--accent-strong);
 }
 
+.editorial-interactive-row:focus-within .editorial-project-glyph {
+  border-color: rgba(180, 177, 194, 0.16);
+  background: rgba(12, 18, 34, 0.34);
+}
+
+.editorial-interactive-row:focus-within .editorial-project-glyph-secondary {
+  border-color: rgb(var(--accent-rgb) / 0.16);
+}
+
+.editorial-interactive-row:focus-within .editorial-project-glyph-icon {
+  opacity: 0.96;
+}
+
 @media (hover: hover) and (pointer: fine) {
+  .editorial-interactive-surface:hover {
+    border-color: rgb(var(--accent-rgb) / 0.1);
+    background: var(--accent-faint);
+  }
+
+  .editorial-interactive-surface:hover .editorial-interactive-content {
+    transform: translateX(0.125rem);
+  }
+
+  .editorial-interactive-surface:hover .selected-project-link {
+    border-color: rgb(var(--accent-rgb) / 0.56);
+    color: var(--accent-strong);
+  }
+
   .editorial-interactive-row:hover {
     border-color: rgb(var(--accent-rgb) / 0.1);
     background: var(--accent-faint);
@@ -372,6 +443,19 @@ html[data-theme="light"] .home-background-base {
     color: var(--accent-strong);
   }
 
+  .editorial-interactive-row:hover .editorial-project-glyph {
+    border-color: rgba(180, 177, 194, 0.16);
+    background: rgba(12, 18, 34, 0.34);
+  }
+
+  .editorial-interactive-row:hover .editorial-project-glyph-secondary {
+    border-color: rgb(var(--accent-rgb) / 0.16);
+  }
+
+  .editorial-interactive-row:hover .editorial-project-glyph-icon {
+    opacity: 0.96;
+  }
+
   .selected-project-link:hover {
     border-color: rgb(var(--accent-rgb) / 0.8);
     color: var(--foreground);
@@ -383,14 +467,20 @@ html[data-theme="light"] .home-background-base {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .editorial-interactive-surface,
   .editorial-interactive-row,
   .editorial-interactive-content,
+  .editorial-project-glyph,
+  .editorial-project-glyph-secondary,
+  .editorial-project-glyph-icon,
   .selected-project-index,
   .selected-project-link,
   .selected-project-link-icon {
     transition: none;
   }
 
+  .editorial-interactive-surface:hover .editorial-interactive-content,
+  .editorial-interactive-surface:focus-within .editorial-interactive-content,
   .editorial-interactive-row:hover .editorial-interactive-content,
   .editorial-interactive-row:focus-within .editorial-interactive-content {
     transform: none;

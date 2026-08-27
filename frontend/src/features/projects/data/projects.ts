@@ -52,7 +52,7 @@ export const PROJECTS = [
       en: {
         title: "Medical RAG Platform",
         shortDescription:
-          "Development of an intelligent system for extracting, structuring, and querying medical reports using RAG architectures.",
+          "Multimodal RAG platform for extracting, structuring and querying medical analysis reports with contextualized, source-grounded answers.",
       },
     },
     categories: [
@@ -221,6 +221,11 @@ export const PROJECTS = [
     role: "Co-développement en binôme",
     featured: true,
     featuredOrder: 1,
+    homeIconKey: "medical-rag",
+    homeCategoryNames: {
+      fr: ["RAG", "NLP", "Multimodal AI"],
+      en: ["RAG", "NLP", "Multimodal AI"],
+    },
     publishedAt: null,
   },
   {
@@ -273,7 +278,7 @@ export const PROJECTS = [
       en: {
         title: "SyndiSmart AI",
         shortDescription:
-          "AI assistant for classifying and prioritizing WhatsApp messages for a property manager, then generating contextualized, sourced responses with RAG.",
+          "AI assistant for classifying and prioritizing property-management WhatsApp messages and generating contextualized, source-grounded responses with RAG.",
       },
     },
     categories: [
@@ -366,6 +371,11 @@ export const PROJECTS = [
     organization: "Projet individuel",
     featured: true,
     featuredOrder: 2,
+    homeIconKey: "syndismart",
+    homeCategoryNames: {
+      fr: ["RAG", "NLP", "Generative AI"],
+      en: ["RAG", "NLP", "Generative AI"],
+    },
     publishedAt: null,
   },
   {
@@ -413,7 +423,7 @@ export const PROJECTS = [
       en: {
         title: "Call Center AI - Frustration Detection",
         shortDescription:
-          "NLP solution for detecting frustration in call center conversations, summarizing exchanges and suggesting contextualized responses from customer history.",
+          "NLP solution for detecting frustration in call-center conversations, summarizing exchanges and suggesting contextual responses to agents.",
       },
     },
     categories: [
@@ -547,6 +557,11 @@ export const PROJECTS = [
     organization: "Projet individuel",
     featured: true,
     featuredOrder: 3,
+    homeIconKey: "call-center",
+    homeCategoryNames: {
+      fr: ["NLP", "Speech AI", "Sentiment Analysis"],
+      en: ["NLP", "Speech AI", "Sentiment Analysis"],
+    },
     publishedAt: null,
   },
   {
@@ -663,6 +678,7 @@ export const PROJECTS = [
     ],
     year: 2024,
     role: "Projet réalisé en équipe de 2 personnes",
+    homeIconKey: "realtime-tracking",
     featured: false,
     featuredOrder: null,
     publishedAt: null,
@@ -677,12 +693,12 @@ export const PROJECTS = [
       fr: {
         title: "Personalized Recommendation System",
         shortDescription:
-          "Plateforme de recommandation personnalisée combinant traitement batch et streaming pour générer des recommandations en temps réel et analyser leurs performances.",
+          "Plateforme de recommandation personnalisée combinant traitement batch et streaming pour générer des recommandations en temps réel.",
       },
       en: {
         title: "Personalized Recommendation System",
         shortDescription:
-          "Personalized recommendation platform combining batch and streaming processing to generate real-time recommendations and analyze their performance.",
+          "Personalized recommendation platform combining batch and streaming processing to generate real-time recommendations.",
       },
     },
     categories: [
@@ -796,8 +812,13 @@ export const PROJECTS = [
     duration: "1 mois et demi",
     role: "Projet individuel",
     organization: "Projet individuel",
-    featured: false,
-    featuredOrder: null,
+    featured: true,
+    featuredOrder: 4,
+    homeIconKey: "recommendation",
+    homeCategoryNames: {
+      fr: ["Recommender Systems", "Machine Learning", "Data Engineering"],
+      en: ["Recommender Systems", "Machine Learning", "Data Engineering"],
+    },
     publishedAt: null,
   },
   {
@@ -898,6 +919,7 @@ export const PROJECTS = [
     year: 2024,
     role: "Projet individuel",
     organization: "Projet individuel",
+    homeIconKey: "bank-decision",
     featured: false,
     featuredOrder: null,
     publishedAt: null,
@@ -1031,6 +1053,7 @@ export const PROJECTS = [
     year: 2025,
     role: "Projet individuel",
     organization: "Projet individuel",
+    homeIconKey: "school-analytics",
     featured: false,
     featuredOrder: null,
     publishedAt: null,
@@ -1184,6 +1207,7 @@ export const PROJECTS = [
     year: 2025,
     role: "Projet individuel",
     organization: "Projet individuel",
+    homeIconKey: "nutrition-analysis",
     featured: false,
     featuredOrder: null,
     publishedAt: null,
@@ -1198,12 +1222,12 @@ export const PROJECTS = [
       fr: {
         title: "Algorithmic Trading ML",
         shortDescription:
-          "Projet de machine learning visant à prédire la direction des mouvements boursiers à partir de données historiques et d’indicateurs techniques.",
+          "Modèles de Machine Learning pour prédire la direction des mouvements boursiers à partir de données historiques et d’indicateurs techniques.",
       },
       en: {
         title: "Algorithmic Trading ML",
         shortDescription:
-          "Machine learning project focused on predicting stock movement direction from historical data and technical indicators.",
+          "Machine Learning models for predicting stock-price movement direction from historical market data and technical indicators.",
       },
     },
     categories: [
@@ -1304,8 +1328,13 @@ export const PROJECTS = [
     year: 2025,
     role: "Projet individuel",
     organization: "Projet individuel",
-    featured: false,
-    featuredOrder: null,
+    featured: true,
+    featuredOrder: 5,
+    homeIconKey: "algorithmic-trading",
+    homeCategoryNames: {
+      fr: ["Machine Learning", "Data Analysis", "Predictive Modeling"],
+      en: ["Machine Learning", "Data Analysis", "Predictive Modeling"],
+    },
     publishedAt: null,
   },
   {
@@ -1409,6 +1438,7 @@ export const PROJECTS = [
     year: 2023,
     role: "Projet individuel",
     organization: "Projet individuel",
+    homeIconKey: "blood-donation",
     featured: false,
     featuredOrder: null,
     publishedAt: null,
