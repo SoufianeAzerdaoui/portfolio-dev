@@ -5,9 +5,11 @@ import { SpaceBackground } from "@/components/home/space-background";
 import { PortfolioShell } from "@/components/layout/portfolio-shell";
 import { AboutSection } from "@/components/sections/about-section";
 import { AiLabSection } from "@/components/sections/ai-lab-section";
+import { EducationSection } from "@/components/sections/education-section";
 import { JourneySection } from "@/components/sections/journey-section";
 import { ProjectsTeaserSection } from "@/components/sections/projects-teaser-section";
 import { usePreferences } from "@/components/providers/preferences-provider";
+import { educationContentByLocale } from "@/content/education";
 import { journeyContentByLocale } from "@/content/journey";
 import { portfolioContentByLocale } from "@/content/portfolio";
 import type { SectionId, SectionPreview } from "@/types/portfolio";
@@ -34,6 +36,7 @@ export function PortfolioHome({ featuredProjects }: PortfolioHomeProps) {
   const { locale } = usePreferences();
   const content = portfolioContentByLocale[locale];
   const journeyContent = journeyContentByLocale[locale];
+  const educationContent = educationContentByLocale[locale];
 
   return (
     <>
@@ -41,6 +44,11 @@ export function PortfolioHome({ featuredProjects }: PortfolioHomeProps) {
       <PortfolioShell content={content}>
         <HeroSection content={content} />
         <AboutSection content={content.about} />
+        <EducationSection
+          section={getSection(content.sections, "education")}
+          items={educationContent.items}
+          labels={educationContent.labels}
+        />
         <JourneySection
           section={getSection(content.sections, "journey")}
           experiences={journeyContent.experiences}
@@ -55,6 +63,7 @@ export function PortfolioHome({ featuredProjects }: PortfolioHomeProps) {
         <AiLabSection
           section={getSection(content.sections, "ai-lab")}
           locale={locale}
+          socialLinks={content.socialLinks}
         />
       </PortfolioShell>
     </>

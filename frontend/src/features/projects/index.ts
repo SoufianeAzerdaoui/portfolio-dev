@@ -43,7 +43,6 @@ export type {
 
 export {
   getFeaturedProjects,
-  getProjectBySlug,
   getPublishedProjects,
 } from "@/features/projects/queries/project.queries";
 

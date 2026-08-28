@@ -1,6 +1,11 @@
+"use client";
+
 import Link from "next/link";
 import { ArrowRight, Sparkles } from "lucide-react";
+import { useId } from "react";
 
+import { usePreferences } from "@/components/providers/preferences-provider";
+import { FEATURES } from "@/config/features";
 import type { PortfolioContent } from "@/types/portfolio";
 
 type HeroActionsProps = {
@@ -8,6 +13,11 @@ type HeroActionsProps = {
 };
 
 export function HeroActions({ ctas }: HeroActionsProps) {
+  const { locale } = usePreferences();
+  const statusId = useId();
+  const aiStatus =
+    locale === "fr" ? "Bientôt disponible" : "Coming soon";
+
   return (
     <div className="flex w-full flex-col items-center justify-center gap-4 md:flex-row md:flex-wrap">
       <Link
@@ -18,13 +28,33 @@ export function HeroActions({ ctas }: HeroActionsProps) {
         <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-[3px] motion-reduce:transition-none" />
       </Link>
 
-      <Link
-        href={ctas.secondary.href}
-        className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-[8px] border border-[var(--home-button-secondary-border)] bg-[var(--home-button-secondary-bg)] px-6 py-2.5 text-[0.83rem] font-medium text-[var(--home-button-secondary-text)] transition duration-200 hover:border-[var(--home-line-strong)] hover:bg-[var(--home-button-secondary-hover)] hover:text-[var(--home-button-secondary-hover-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--home-accent-2)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--home-bg-0)] md:w-auto md:min-w-[18.25rem]"
-      >
-        <Sparkles className="h-3.5 w-3.5 text-[var(--home-accent-2)]" />
-        <span>{ctas.secondary.label}</span>
-      </Link>
+      {FEATURES.portfolioAI ? (
+        <Link
+          href={ctas.secondary.href}
+          className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-[8px] border border-[var(--home-button-secondary-border)] bg-[var(--home-button-secondary-bg)] px-6 py-2.5 text-[0.83rem] font-medium text-[var(--home-button-secondary-text)] transition duration-200 hover:border-[var(--home-line-strong)] hover:bg-[var(--home-button-secondary-hover)] hover:text-[var(--home-button-secondary-hover-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--home-accent-2)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--home-bg-0)] md:w-auto md:min-w-[18.25rem]"
+        >
+          <Sparkles className="h-3.5 w-3.5 text-[var(--home-accent-2)]" />
+          <span>{ctas.secondary.label}</span>
+        </Link>
+      ) : (
+        <div className="flex w-full flex-col items-center gap-2 md:w-auto">
+          <button
+            type="button"
+            aria-disabled="true"
+            aria-describedby={statusId}
+            className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-[8px] border border-[var(--home-button-secondary-border)] bg-[var(--home-button-secondary-bg)] px-6 py-2.5 text-[0.83rem] font-medium text-[var(--home-button-secondary-text)] transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--home-accent-2)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--home-bg-0)] md:min-w-[18.25rem]"
+          >
+            <Sparkles className="h-3.5 w-3.5 text-[var(--home-accent-2)]" />
+            <span>{ctas.secondary.label}</span>
+          </button>
+          <p
+            id={statusId}
+            className="text-[0.66rem] font-medium uppercase tracking-[0.18em] text-[var(--home-muted)]"
+          >
+            {aiStatus}
+          </p>
+        </div>
+      )}
     </div>
   );
 }

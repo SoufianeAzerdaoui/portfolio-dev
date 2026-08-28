@@ -42,9 +42,9 @@ export function ProjectsTeaserSection({
     <section
       id={section.id}
       aria-labelledby="projects-title"
-      className="relative scroll-mt-6 overflow-hidden px-5 py-24 sm:px-8 lg:min-h-[88svh] lg:px-[clamp(2rem,4vw,4.5rem)]"
+      className="relative scroll-mt-6 px-5 pt-[clamp(52px,6svh,78px)] pb-[clamp(52px,6svh,78px)] sm:px-8 lg:min-h-[100svh] lg:px-[clamp(2rem,4vw,4.5rem)]"
     >
-      <div className="mx-auto w-full max-w-[72rem] lg:-translate-x-5 xl:-translate-x-8 2xl:-translate-x-10">
+      <div className="mx-auto w-full max-w-[72rem] lg:grid lg:min-h-[calc(100svh-clamp(104px,12svh,156px))] lg:grid-rows-[auto_minmax(0,1fr)] lg:-translate-x-5 xl:-translate-x-8 2xl:-translate-x-10">
         <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-[42rem]">
             <p className="text-[0.89rem] font-medium uppercase tracking-[0.42em] text-[var(--accent-muted)]">
@@ -65,7 +65,7 @@ export function ProjectsTeaserSection({
         </div>
 
         {projects.length > 0 ? (
-          <div className="mt-10 lg:mt-12">
+          <div className="mt-8 lg:mt-8 lg:self-center">
             {projects.map((project, index) => (
               <SelectedProjectRow
                 key={project.slug}

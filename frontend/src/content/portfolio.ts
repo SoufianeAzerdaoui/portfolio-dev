@@ -1,4 +1,36 @@
-import type { LocaleCode, PortfolioContent } from "@/types/portfolio";
+import {
+  PORTFOLIO_SECTION_IDS,
+  type LocaleCode,
+  type PortfolioContent,
+  type SectionId,
+} from "@/types/portfolio";
+
+const navigationLabelsByLocale: Record<LocaleCode, Record<SectionId, string>> = {
+  fr: {
+    home: "Accueil",
+    about: "À propos",
+    education: "Formation",
+    journey: "Parcours",
+    projects: "Projets",
+    "ai-lab": "AI Lab",
+  },
+  en: {
+    home: "Home",
+    about: "About",
+    education: "Education",
+    journey: "Journey",
+    projects: "Projects",
+    "ai-lab": "AI Lab",
+  },
+};
+
+function buildNavigation(locale: LocaleCode) {
+  return PORTFOLIO_SECTION_IDS.map((sectionId) => ({
+    id: sectionId,
+    href: `#${sectionId}` as const,
+    label: navigationLabelsByLocale[locale][sectionId],
+  }));
+}
 
 export const portfolioContentByLocale = {
   fr: {
@@ -10,13 +42,7 @@ export const portfolioContentByLocale = {
       { code: "fr", label: "FR" },
       { code: "en", label: "EN" },
     ],
-    navigation: [
-      { id: "home", href: "#home", label: "Accueil" },
-      { id: "about", href: "#about", label: "À propos" },
-      { id: "journey", href: "#journey", label: "Parcours" },
-      { id: "projects", href: "#projects", label: "Projets" },
-      { id: "ai-lab", href: "#ai-lab", label: "AI Lab" },
-    ],
+    navigation: buildNavigation("fr"),
     socialLinks: [
       {
         href: "https://github.com/SoufianeAzerdaoui",
@@ -63,8 +89,11 @@ export const portfolioContentByLocale = {
           { text: "Deep Learning", tone: "strong" },
           { text: " et le " },
           { text: "NLP", tone: "strong" },
+          { text: "." },
+        ],
+        [
           {
-            text: ". J'aime relever des défis techniques et construire des solutions robustes, scalables et centrées sur l'utilisateur.",
+            text: "J'aime partir d'un problème métier, comprendre les données disponibles et construire une solution que l'utilisateur peut réellement exploiter.",
           },
         ],
       ],
@@ -85,6 +114,12 @@ export const portfolioContentByLocale = {
       },
     },
     sections: [
+      {
+        id: "education",
+        title: "Formation",
+        description:
+          "Un parcours académique structuré en data, intelligence artificielle et aide à la décision.",
+      },
       {
         id: "journey",
         title: "Parcours",
@@ -108,7 +143,7 @@ export const portfolioContentByLocale = {
       eyebrow: "AI & Data Engineering Portfolio",
       title: "",
       description:
-        "Étudiant en Master 2 SIAD à l'ISIMA - Université Clermont Auvergne. Passionné par la Data Science, le Machine Learning et le NLP.",
+        "Étudiant en Master 2 SIAD à l'ISIMA - Université Clermont Auvergne. Je conçois des solutions Data & IA pensées pour résoudre des problématiques concrètes.",
     },
     ctas: {
       primary: {
@@ -130,13 +165,7 @@ export const portfolioContentByLocale = {
       { code: "fr", label: "FR" },
       { code: "en", label: "EN" },
     ],
-    navigation: [
-      { id: "home", href: "#home", label: "Home" },
-      { id: "about", href: "#about", label: "About" },
-      { id: "journey", href: "#journey", label: "Journey" },
-      { id: "projects", href: "#projects", label: "Projects" },
-      { id: "ai-lab", href: "#ai-lab", label: "AI Lab" },
-    ],
+    navigation: buildNavigation("en"),
     socialLinks: [
       {
         href: "https://github.com/SoufianeAzerdaoui",
@@ -183,8 +212,11 @@ export const portfolioContentByLocale = {
           { text: "Deep Learning", tone: "strong" },
           { text: " and " },
           { text: "NLP", tone: "strong" },
+          { text: "." },
+        ],
+        [
           {
-            text: ". I enjoy solving technical challenges and building robust, scalable and user-centered solutions.",
+            text: "I like starting from a concrete business problem, understanding the available data and building a solution people can actually use.",
           },
         ],
       ],
@@ -205,6 +237,12 @@ export const portfolioContentByLocale = {
       },
     },
     sections: [
+      {
+        id: "education",
+        title: "Education",
+        description:
+          "A focused academic path in data, artificial intelligence and decision support systems.",
+      },
       {
         id: "journey",
         title: "Journey",
@@ -228,7 +266,7 @@ export const portfolioContentByLocale = {
       eyebrow: "AI & Data Engineering Portfolio",
       title: "",
       description:
-        "Master 2 SIAD student at ISIMA - Universite Clermont Auvergne. Passionate about Data Science, Machine Learning and NLP.",
+        "Master 2 SIAD student at ISIMA - Universite Clermont Auvergne. I design Data & AI solutions built to solve concrete problems.",
     },
     ctas: {
       primary: {

@@ -1,30 +1,43 @@
+import Link from "next/link";
+
 import type { SectionPreview } from "@/types/portfolio";
 import type { SupportedLocale } from "@/types/project";
+import type { SocialLink } from "@/types/portfolio";
 
 type AiLabSectionProps = {
   section: SectionPreview;
   locale: SupportedLocale;
+  socialLinks?: SocialLink[];
 };
 
 const aiLabCopy = {
   fr: {
     status: "Bientôt disponible",
-    body: "Un espace dédié à mes expérimentations, prototypes et travaux autour de l’intelligence artificielle est en préparation.",
+    body: "Un espace dédié à mes expérimentations, prototypes et démonstrations IA.",
+    footer: "Disponible pour échanger autour d’une opportunité Data / AI / BI.",
   },
   en: {
     status: "Coming soon",
-    body: "A space dedicated to my AI experiments, prototypes and research is currently in preparation.",
+    body: "A space for AI experiments, prototypes and demonstrations.",
+    footer: "Available to discuss Data / AI / BI opportunities.",
   },
-} as const satisfies Record<SupportedLocale, { status: string; body: string }>;
+} as const satisfies Record<
+  SupportedLocale,
+  { status: string; body: string; footer: string }
+>;
 
-export function AiLabSection({ section, locale }: AiLabSectionProps) {
+export function AiLabSection({
+  section,
+  locale,
+  socialLinks = [],
+}: AiLabSectionProps) {
   const copy = aiLabCopy[locale];
 
   return (
     <section
       id={section.id}
       aria-labelledby="ai-lab-title"
-      className="relative flex min-h-[62svh] scroll-mt-6 items-center overflow-hidden px-5 py-24 sm:px-8 lg:min-h-[68svh] lg:px-[clamp(2rem,4vw,4.5rem)]"
+      className="relative flex min-h-[64svh] scroll-mt-6 items-center overflow-hidden px-5 py-24 sm:px-8 lg:min-h-[72svh] lg:px-[clamp(2rem,4vw,4.5rem)]"
     >
       <div className="relative mx-auto grid w-full max-w-[72rem] gap-12 lg:-translate-x-5 lg:grid-cols-[minmax(0,0.9fr)_minmax(16rem,0.55fr)] lg:items-center lg:gap-24 xl:-translate-x-8 2xl:-translate-x-10">
         <div>
@@ -51,6 +64,33 @@ export function AiLabSection({ section, locale }: AiLabSectionProps) {
             <p className="mt-5 text-[clamp(1rem,1.05vw,1.08rem)] leading-8 text-[var(--foreground-muted)]">
               {copy.body}
             </p>
+
+            {socialLinks.length > 0 ? (
+              <div className="mt-8">
+                <p className="text-[0.76rem] font-medium tracking-[0.02em] text-[var(--foreground-secondary)]">
+                  {copy.footer}
+                </p>
+                <div className="mt-3 flex flex-wrap items-center gap-3 text-[0.76rem] font-medium text-[var(--foreground-muted)]">
+                  {socialLinks.map((social) => (
+                    <Link
+                      key={social.label}
+                      href={social.href}
+                      target={social.external ? "_blank" : undefined}
+                      rel={social.external ? "noopener noreferrer" : undefined}
+                      className="selected-project-link inline-flex min-h-7 items-center gap-1.5 border-b border-[rgb(var(--accent-rgb)/0.34)] pb-1 text-[0.74rem] font-medium tracking-[0.04em] text-[var(--home-text-secondary)] focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--home-bg-0)]"
+                    >
+                      <span>
+                        {social.icon === "linkedin"
+                          ? "LinkedIn"
+                          : social.icon === "github"
+                            ? "GitHub"
+                            : social.label}
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
 

@@ -61,12 +61,4 @@ export class LocalProjectRepository implements ProjectRepository {
 
     return sortFeaturedProjects(featuredProjects).slice(0, limit);
   }
-
-  async getProjectBySlug(slug: string) {
-    return (
-      this.projects.find(
-        (project) => project.slug === slug && isPublished(project),
-      ) ?? null
-    );
-  }
 }

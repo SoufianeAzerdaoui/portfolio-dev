@@ -46,54 +46,72 @@ const satellites = [
   {
     label: "NLP",
     orbit: "inner" as const,
-    phase: 345,
+    phase: 350,
     duration: 30,
     direction: 1,
+    rxScale: 0.98,
+    ryScale: 0.9,
+    yOffset: -0.01,
     visibilityClassName: "",
     alignment: "left" as const,
   },
   {
     label: "RAG Systems",
     orbit: "inner" as const,
-    phase: 165,
+    phase: 184,
     duration: 30,
     direction: 1,
+    rxScale: 0.96,
+    ryScale: 0.88,
+    yOffset: -0.005,
     visibilityClassName: "hidden md:block",
     alignment: "right" as const,
   },
   {
     label: "Machine Learning",
     orbit: "middle" as const,
-    phase: 105,
+    phase: 98,
     duration: 40,
     direction: -1,
+    rxScale: 0.88,
+    ryScale: 0.84,
+    yOffset: 0.06,
     visibilityClassName: "",
     alignment: "right" as const,
   },
   {
     label: "Deep Learning",
     orbit: "middle" as const,
-    phase: 285,
+    phase: 292,
     duration: 40,
     direction: -1,
+    rxScale: 0.94,
+    ryScale: 0.94,
+    yOffset: -0.075,
     visibilityClassName: "hidden lg:block",
     alignment: "left" as const,
   },
   {
     label: "Data Science",
     orbit: "outer" as const,
-    phase: 215,
+    phase: 232,
     duration: 52,
     direction: 1,
+    rxScale: 1.03,
+    ryScale: 0.96,
+    yOffset: -0.055,
     visibilityClassName: "hidden md:block",
     alignment: "right" as const,
   },
   {
     label: "Generative AI",
     orbit: "outer" as const,
-    phase: 35,
+    phase: 24,
     duration: 52,
     direction: 1,
+    rxScale: 1.02,
+    ryScale: 0.8,
+    yOffset: 0.04,
     visibilityClassName: "hidden lg:block",
     alignment: "left" as const,
   },
@@ -103,6 +121,9 @@ const satellites = [
   phase: number;
   duration: number;
   direction: 1 | -1;
+  rxScale: number;
+  ryScale: number;
+  yOffset: number;
   visibilityClassName: string;
   alignment: "left" | "right";
 }>;
@@ -246,10 +267,19 @@ export function AnimatedSALogo() {
         const radians = (angle * Math.PI) / 180;
         const safeX = sceneWidth * CORE_SAFE_ZONE.x * responsiveScale;
         const safeY = sceneHeight * CORE_SAFE_ZONE.y * responsiveScale;
-        let x = Math.cos(radians) * sceneWidth * metrics.rx * responsiveScale;
+        let x =
+          Math.cos(radians) *
+          sceneWidth *
+          metrics.rx *
+          config.rxScale *
+          responsiveScale;
         let y =
-          Math.sin(radians) * sceneHeight * metrics.ry * responsiveScale +
-          sceneHeight * metrics.yBias;
+          Math.sin(radians) *
+            sceneHeight *
+            metrics.ry *
+            config.ryScale *
+            responsiveScale +
+          sceneHeight * (metrics.yBias + config.yOffset);
         const xInside = Math.abs(x) < safeX;
         const yInside = Math.abs(y) < safeY;
 

@@ -55,7 +55,7 @@ choose the dominant project axis explicitly.
 ## Status
 
 - `draft`: hidden from public pages.
-- `published`: visible on Home, `/projects`, and the future `/projects/[slug]`.
+- `published`: visible on Home and `/projects`.
 - `archived`: hidden from public pages.
 
 ## Featured Projects
@@ -86,7 +86,6 @@ Use these public query functions:
 
 - `getPublishedProjects()`
 - `getFeaturedProjects(limit)`
-- `getProjectBySlug(slug)`
 
 The current implementation uses `LocalProjectRepository`. A future
 `SupabaseProjectRepository` can implement the same contract without changing UI
