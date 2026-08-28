@@ -31,7 +31,7 @@ export function HeroSection({ content }: HeroSectionProps) {
               {" "}
               intelligentes.
             </h1> */}
-            <p className="mt-4 max-w-[38.75rem] text-pretty text-[clamp(0.88rem,1vw,1rem)] leading-[1.58] text-[var(--home-text-secondary)] md:mt-5">
+            <p className="mt-4 max-w-[38.75rem] text-pretty text-[clamp(0.89rem,1vw,1.02rem)] leading-[1.58] text-[var(--home-text-secondary)] md:mt-5">
               {content.hero.description}
             </p>
             <div className="mt-5 w-full max-w-[39rem] md:mt-6">

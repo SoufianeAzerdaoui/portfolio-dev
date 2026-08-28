@@ -254,10 +254,6 @@ export function createProjectSearchParams(state: ProjectExplorerState) {
     searchParams.set("view", state.view);
   }
 
-  if (state.page > 1) {
-    searchParams.set("page", String(state.page));
-  }
-
   return searchParams;
 }
 

@@ -7,6 +7,7 @@ export type MotionPreference = "system" | "reduced";
 export const PORTFOLIO_SECTION_IDS = [
   "home",
   "about",
+  "education",
   "journey",
   "projects",
   "ai-lab",

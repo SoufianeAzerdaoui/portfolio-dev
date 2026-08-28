@@ -12,7 +12,3 @@ export async function getPublishedProjects() {
 export async function getFeaturedProjects(limit = 3) {
   return projectRepository.getFeaturedProjects(limit);
 }
-
-export async function getProjectBySlug(slug: string) {
-  return projectRepository.getProjectBySlug(slug);
-}

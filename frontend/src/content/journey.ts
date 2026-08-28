@@ -1,15 +1,20 @@
 import type { LocaleCode } from "@/types/portfolio";
 
-export type JourneyExperienceType = "apprenticeship" | "internship";
+export type JourneyExperienceType =
+  | "apprenticeship"
+  | "internship"
+  | "final-year-internship";
 
 export const journeyExperienceTypeLabelsByLocale = {
   fr: {
     apprenticeship: "Alternance",
     internship: "Stage",
+    "final-year-internship": "Stage PFE",
   },
   en: {
     apprenticeship: "Apprenticeship",
     internship: "Internship",
+    "final-year-internship": "Final-Year Internship",
   },
 } satisfies Record<LocaleCode, Record<JourneyExperienceType, string>>;
 
@@ -21,6 +26,7 @@ export type JourneyExperience = {
   experienceType?: JourneyExperienceType;
   role: string;
   organization?: string;
+  context?: string;
   description: string;
   projectLink?: {
     href: string;
@@ -60,6 +66,19 @@ export const journeyExperiencesByLocale = {
       label: "Voir ms.fr 3.0",
     },
     isCurrent: false,
+  },
+  {
+    id: "chu-mohammed-vi-pfe-2026",
+    period: "FÉVR. 2026 — JUIN 2026",
+    startDateTime: "2026-02",
+    endDateTime: "2026-06",
+    experienceType: "final-year-internship",
+    role: "Stage PFE — Data & IA",
+    organization: "CHU Mohammed VI",
+    context: "PFE — Master 2 IS2IA · ESISA",
+    description:
+      "Conception d’une plateforme RAG pour l’exploitation de rapports médicaux : segmentation, indexation vectorielle, recherche sémantique et génération de réponses contextualisées.",
+    technologies: [],
   },
   {
     id: "atline-stage-2025",
@@ -131,6 +150,19 @@ export const journeyExperiencesByLocale = {
         label: "View ms.fr 3.0",
       },
       isCurrent: false,
+    },
+    {
+      id: "chu-mohammed-vi-pfe-2026",
+      period: "FEB. 2026 — JUN. 2026",
+      startDateTime: "2026-02",
+      endDateTime: "2026-06",
+      experienceType: "final-year-internship",
+      role: "Final-Year Internship — Data & AI",
+      organization: "CHU Mohammed VI",
+      context: "Final-Year Project — Master 2 IS2IA · ESISA",
+      description:
+        "Design and development of a RAG platform for medical report processing, including segmentation, vector indexing, semantic search and contextualized answer generation.",
+      technologies: [],
     },
     {
       id: "atline-stage-2025",

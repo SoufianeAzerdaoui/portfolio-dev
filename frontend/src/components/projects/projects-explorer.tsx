@@ -17,7 +17,6 @@ import {
   formatProjectFilterCountLabel,
   formatProjectsCount,
   getProjectDomainCounts,
-  paginateProjects,
   parseProjectUrlSearchParams,
 } from "@/lib/projects";
 import type {
@@ -49,7 +48,7 @@ type CountedProjectDomainFilterOption = ProjectDomainFilterOption & {
 const projectsExplorerCopy = {
   fr: {
     searchLabel: "Rechercher un projet ou une technologie",
-    searchPlaceholder: "Rechercher un projet, une technologie…",
+    searchPlaceholder: "Projet ou technologie…",
     clearSearch: "Effacer la recherche",
     viewMode: "Mode d'affichage des projets",
     gridView: "Afficher les projets en grille",
@@ -61,13 +60,10 @@ const projectsExplorerCopy = {
     noProjectsTitle: "Aucun projet publié.",
     noProjectsBody: "Les projets publiés apparaîtront ici.",
     resetFilters: "Réinitialiser les filtres",
-    pagination: "Pagination des projets",
-    previous: "Précédent",
-    next: "Suivant",
   },
   en: {
     searchLabel: "Search projects or technologies",
-    searchPlaceholder: "Search projects or technologies…",
+    searchPlaceholder: "Project or technology…",
     clearSearch: "Clear search",
     viewMode: "Project view mode",
     gridView: "Show projects as a grid",
@@ -79,9 +75,6 @@ const projectsExplorerCopy = {
     noProjectsTitle: "No published project.",
     noProjectsBody: "Published projects will appear here.",
     resetFilters: "Reset filters",
-    pagination: "Projects pagination",
-    previous: "Previous",
-    next: "Next",
   },
 } as const satisfies Record<
   SupportedLocale,
@@ -99,9 +92,6 @@ const projectsExplorerCopy = {
     noProjectsTitle: string;
     noProjectsBody: string;
     resetFilters: string;
-    pagination: string;
-    previous: string;
-    next: string;
   }
 >;
 
@@ -200,10 +190,6 @@ export function ProjectsExplorer({
       }),
     [locale, projects, state.domain, state.query],
   );
-  const pagination = useMemo(
-    () => paginateProjects(filteredProjects, state.page),
-    [filteredProjects, state.page],
-  );
   const domainCounts = useMemo(() => getProjectDomainCounts(projects), [projects]);
   const domainOptions = useMemo<CountedProjectDomainFilterOption[]>(
     () =>
@@ -253,10 +239,6 @@ export function ProjectsExplorer({
 
   const updateView = (view: ProjectViewMode) => {
     commitState({ ...state, view, page: 1 }, "push");
-  };
-
-  const updatePage = (page: number) => {
-    commitState({ ...state, page }, "push", true);
   };
 
   const resetFilters = () => {
@@ -422,7 +404,7 @@ export function ProjectsExplorer({
           ) : null}
         </div>
 
-        {pagination.items.length > 0 ? (
+        {filteredProjects.length > 0 ? (
           <div
             className={[
               "mt-4.5",
@@ -431,7 +413,7 @@ export function ProjectsExplorer({
                 : "grid gap-3 sm:gap-3.5",
             ].join(" ")}
           >
-            {pagination.items.map((project) => (
+            {filteredProjects.map((project) => (
               <ProjectCard
                 key={project.slug}
                 project={project}
@@ -465,48 +447,6 @@ export function ProjectsExplorer({
           </div>
         )}
       </div>
-
-      {pagination.pageCount > 1 ? (
-        <nav
-          aria-label={copy.pagination}
-          className="mt-8 flex flex-wrap items-center justify-center gap-2"
-        >
-          <button
-            type="button"
-            onClick={() => updatePage(pagination.currentPage - 1)}
-            disabled={pagination.currentPage === 1}
-            className="min-h-9 rounded-[8px] border border-[rgba(180,177,194,0.1)] px-4 text-[0.76rem] font-medium text-[var(--home-text-secondary)] transition duration-200 hover:border-[rgba(139,128,217,0.28)] hover:text-[var(--home-text)] disabled:cursor-not-allowed disabled:opacity-35"
-          >
-            {copy.previous}
-          </button>
-          {Array.from({ length: pagination.pageCount }, (_, index) => index + 1).map(
-            (page) => (
-              <button
-                key={page}
-                type="button"
-                aria-current={pagination.currentPage === page ? "page" : undefined}
-                onClick={() => updatePage(page)}
-                className={[
-                  "grid h-9 w-9 place-items-center rounded-[8px] border text-[0.76rem] font-medium transition duration-200",
-                  pagination.currentPage === page
-                    ? "border-[rgba(97,86,183,0.34)] bg-[rgba(97,86,183,0.1)] text-[var(--home-text)]"
-                    : "border-[rgba(180,177,194,0.1)] text-[var(--home-text-secondary)] hover:border-[rgba(139,128,217,0.28)] hover:text-[var(--home-text)]",
-                ].join(" ")}
-              >
-                {page}
-              </button>
-            ),
-          )}
-          <button
-            type="button"
-            onClick={() => updatePage(pagination.currentPage + 1)}
-            disabled={pagination.currentPage === pagination.pageCount}
-            className="min-h-9 rounded-[8px] border border-[rgba(180,177,194,0.1)] px-4 text-[0.76rem] font-medium text-[var(--home-text-secondary)] transition duration-200 hover:border-[rgba(139,128,217,0.28)] hover:text-[var(--home-text)] disabled:cursor-not-allowed disabled:opacity-35"
-          >
-            {copy.next}
-          </button>
-        </nav>
-      ) : null}
     </div>
   );
 }

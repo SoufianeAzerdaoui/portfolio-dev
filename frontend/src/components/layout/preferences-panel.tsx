@@ -52,7 +52,7 @@ type RadialCopy = {
 };
 
 const HOVER_OPEN_DELAY = 180;
-const CLOSE_DELAY = 260;
+const CLOSE_DELAY = 160;
 const EXIT_DURATION = 150;
 const LIGHT_FEEDBACK_DURATION = 1200;
 const ACTION_RADIUS = 50;
@@ -531,7 +531,19 @@ export function PreferencesPanel({ className = "" }: { className?: string }) {
     clearHoverOpenTimer();
     clearCloseTimer();
 
-    if (open || rendered) {
+    if (open) {
+      return;
+    }
+
+    if (closing) {
+      clearExitTimer();
+      setClosing(false);
+      setOpen(true);
+      setRendered(true);
+      return;
+    }
+
+    if (rendered) {
       return;
     }
 

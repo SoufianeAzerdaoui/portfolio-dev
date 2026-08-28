@@ -93,24 +93,33 @@ const geistMono = localFont({
 
 export const metadata: Metadata = {
   title: {
-    default: "Soufiane Azerdaoui - AI & Data Engineer",
+    default: "Soufiane Azerdaoui — AI & Data Engineer",
     template: "%s | Soufiane Azerdaoui",
   },
   description:
-    "Portfolio de Soufiane Azerdaoui, AI & Data Engineer specialise en Data Science, Machine Learning et NLP.",
+    "Portfolio de Soufiane Azerdaoui, AI & Data Engineer spécialisé en Data Science, Machine Learning et NLP.",
   authors: [{ name: "Soufiane Azerdaoui" }],
+  icons: {
+    icon: "/favicon.ico",
+    shortcut: "/favicon.ico",
+    apple: "/favicon.ico",
+  },
+  alternates: {
+    canonical: "/",
+  },
   openGraph: {
-    title: "Soufiane Azerdaoui - AI & Data Engineer",
+    title: "Soufiane Azerdaoui — AI & Data Engineer",
     description:
-      "Portfolio de Soufiane Azerdaoui, AI & Data Engineer specialise en Data Science, Machine Learning et NLP.",
+      "Portfolio de Soufiane Azerdaoui, AI & Data Engineer spécialisé en Data Science, Machine Learning et NLP.",
     type: "website",
     locale: "fr_FR",
+    url: siteUrl,
   },
   twitter: {
     card: "summary_large_image",
-    title: "Soufiane Azerdaoui - AI & Data Engineer",
+    title: "Soufiane Azerdaoui — AI & Data Engineer",
     description:
-      "Portfolio de Soufiane Azerdaoui, AI & Data Engineer specialise en Data Science, Machine Learning et NLP.",
+      "Portfolio de Soufiane Azerdaoui, AI & Data Engineer spécialisé en Data Science, Machine Learning et NLP.",
   },
   metadataBase: siteUrl ? new URL(siteUrl) : undefined,
 };

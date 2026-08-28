@@ -11,6 +11,7 @@ import {
 } from "@/lib/projects";
 import type {
   Project,
+  ProjectDomain,
   ProjectHomeIconKey,
   ProjectViewMode,
   SupportedLocale,
@@ -49,7 +50,36 @@ const projectCardCopy = {
 >;
 
 function resolveProjectGlyphKey(project: Project): ProjectHomeIconKey | null {
-  return project.homeIconKey ?? null;
+  if (project.homeIconKey) {
+    return project.homeIconKey;
+  }
+
+  const primaryCategory = project.categories[0]?.slug;
+
+  const categoryFallbacks: Partial<Record<string, ProjectHomeIconKey>> = {
+    rag: "medical-rag",
+    "speech-ai": "call-center",
+    "recommender-systems": "recommendation",
+    "time-series": "algorithmic-trading",
+    "credit-risk": "bank-decision",
+    "education-data": "school-analytics",
+    "health-data": "nutrition-analysis",
+    healthtech: "blood-donation",
+    "big-data": "realtime-tracking",
+  };
+
+  if (primaryCategory && categoryFallbacks[primaryCategory]) {
+    return categoryFallbacks[primaryCategory];
+  }
+
+  const domainFallbacks: Record<ProjectDomain, ProjectHomeIconKey> = {
+    "ai-ml": "medical-rag",
+    "data-analytics": "school-analytics",
+    "data-engineering": "realtime-tracking",
+    "software-engineering": "blood-donation",
+  };
+
+  return domainFallbacks[project.domain];
 }
 
 const LIGHT_COVER_PROJECT_SLUGS = new Set([
@@ -83,20 +113,26 @@ function ProjectAction({
   const copy = projectCardCopy[locale];
   const content = getProjectContent(project, locale);
   const githubLink = project.links.find((link) => link.type === "github");
-  const href = githubLink?.url ?? `/projects/${project.slug}`;
-  const isExternal = Boolean(githubLink);
+  const href = githubLink?.url;
   const label = githubLink?.label ?? copy.actionFallback;
+
+  if (!href) {
+    return (
+      <span
+        aria-label={`${label} - ${content.title}`}
+        className="inline-flex min-h-8 items-center gap-1.5 border-b border-[rgb(var(--accent-rgb)/0.22)] pb-1 text-[0.74rem] font-medium tracking-[0.04em] text-[var(--home-muted)] opacity-70"
+      >
+        <span>{label}</span>
+      </span>
+    );
+  }
 
   return (
     <Link
       href={href}
-      target={isExternal ? "_blank" : undefined}
-      rel={isExternal ? "noopener noreferrer" : undefined}
-      aria-label={
-        isExternal
-          ? `${label} - ${content.title} - ${copy.externalProjectSuffix}`
-          : `${label} ${content.title}`
-      }
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={`${label} - ${content.title} - ${copy.externalProjectSuffix}`}
       className="selected-project-link inline-flex min-h-8 items-center gap-1.5 border-b border-[rgb(var(--accent-rgb)/0.42)] pb-1 text-[0.74rem] font-medium tracking-[0.04em] text-[var(--home-text-secondary)] focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--home-bg-0)]"
     >
       <span>{label}</span>
@@ -114,6 +150,7 @@ function GridProjectMedia({
   project: Project;
 }) {
   const coverImage = project.coverImage;
+  const glyphKey = resolveProjectGlyphKey(project);
   const isLightCover = LIGHT_COVER_PROJECT_SLUGS.has(project.slug);
 
   return (
@@ -143,10 +180,16 @@ function GridProjectMedia({
           </>
         ) : (
           <div className="grid h-full place-items-center">
-            <FolderOpen
-              aria-hidden="true"
-              className="h-7 w-7 text-[var(--home-accent-2)] opacity-45"
-            />
+            {glyphKey ? (
+              <div className="scale-[0.9]">
+                <ProjectGlyph iconKey={glyphKey} />
+              </div>
+            ) : (
+              <FolderOpen
+                aria-hidden="true"
+                className="h-7 w-7 text-[var(--home-accent-2)] opacity-45"
+              />
+            )}
           </div>
         )}
       </div>
@@ -173,7 +216,7 @@ function ProjectMetaLine({
     <p
       aria-label={ariaLabel}
       className={[
-        "text-[0.62rem] font-medium tracking-[0.1em]",
+        "project-meta-line text-[0.62rem] font-medium tracking-[0.1em]",
         tone === "accent"
           ? "text-[var(--home-accent-2)] opacity-[0.9]"
           : "text-[var(--home-muted)] opacity-[0.92]",
@@ -204,7 +247,7 @@ function GridProjectCard({
   );
 
   return (
-    <article className="editorial-interactive-surface group flex h-full min-h-[18.1rem] flex-col gap-3.5 bg-[rgba(32,33,38,0.1)] p-3.5 sm:min-h-[18.4rem] sm:p-4">
+    <article className="project-interactive-surface editorial-interactive-surface group flex h-full min-h-[18.1rem] flex-col gap-3.5 bg-[rgba(32,33,38,0.1)] p-3.5 sm:min-h-[18.4rem] sm:p-4">
       <GridProjectMedia project={project} />
 
       <div className="editorial-interactive-content flex min-w-0 flex-1 flex-col">
@@ -214,11 +257,11 @@ function GridProjectCard({
           hiddenCount={categories.hiddenCount}
         />
 
-        <h2 className="mt-1.5 line-clamp-2 text-[1.07rem] font-semibold leading-[1.22] tracking-[-0.03em] text-[var(--home-text)] sm:text-[1.11rem]">
+        <h2 className="project-card-title mt-1.5 line-clamp-2 text-[1.07rem] font-semibold leading-[1.22] tracking-[-0.03em] text-[var(--home-text)] sm:text-[1.11rem]">
           {content.title}
         </h2>
 
-        <p className="mt-1.5 line-clamp-3 text-[0.81rem] leading-[1.58] text-[rgb(var(--foreground-rgb)/0.76)] sm:text-[0.82rem]">
+        <p className="project-card-description mt-1.5 line-clamp-3 text-[0.81rem] leading-[1.58] text-[rgb(var(--foreground-rgb)/0.76)] sm:text-[0.82rem]">
           {content.shortDescription}
         </p>
 
@@ -231,7 +274,7 @@ function GridProjectCard({
           />
           <div className="flex items-center justify-between gap-4">
             {project.year ? (
-              <p className="text-[0.68rem] font-medium tracking-[0.12em] text-[var(--home-muted)]">
+              <p className="project-card-year text-[0.68rem] font-medium tracking-[0.12em] text-[var(--home-muted)]">
                 {project.year}
               </p>
             ) : (
@@ -265,7 +308,7 @@ function ListProjectCard({
   const glyphKey = resolveProjectGlyphKey(project);
 
   return (
-    <article className="editorial-interactive-row -mx-3.5 grid grid-cols-[3.2rem_minmax(0,1fr)] gap-x-3.5 gap-y-3.5 px-3.5 py-3.5 sm:-mx-4 sm:px-4 md:grid-cols-[4.2rem_minmax(0,1fr)_5rem] md:items-center md:gap-y-0">
+    <article className="project-interactive-row editorial-interactive-row group -mx-3.5 grid grid-cols-[3.2rem_minmax(0,1fr)] gap-x-3.5 gap-y-3.5 px-3.5 py-3.5 sm:-mx-4 sm:px-4 md:grid-cols-[4.2rem_minmax(0,1fr)_5rem] md:items-center md:gap-y-0">
       <div className="flex items-start justify-start md:items-center">
         {glyphKey ? (
           <ProjectGlyph iconKey={glyphKey} />
@@ -280,10 +323,10 @@ function ListProjectCard({
       </div>
 
       <div className="editorial-interactive-content min-w-0 md:pr-3">
-        <h2 className="line-clamp-2 text-[1.06rem] font-semibold leading-[1.18] tracking-[-0.03em] text-[var(--home-text)] md:text-[1.12rem]">
+        <h2 className="project-card-title line-clamp-2 text-[1.06rem] font-semibold leading-[1.18] tracking-[-0.03em] text-[var(--home-text)] md:text-[1.12rem]">
           {content.title}
         </h2>
-        <p className="mt-1.5 line-clamp-2 text-[0.81rem] leading-[1.56] text-[rgb(var(--foreground-rgb)/0.75)] md:text-[0.82rem]">
+        <p className="project-card-description mt-1.5 line-clamp-2 text-[0.81rem] leading-[1.56] text-[rgb(var(--foreground-rgb)/0.75)] md:text-[0.82rem]">
           {content.shortDescription}
         </p>
         <div className="mt-2.5 flex flex-col gap-1.5 md:flex-row md:flex-nowrap md:items-center md:gap-x-4 md:gap-y-0">
@@ -301,7 +344,7 @@ function ListProjectCard({
         </div>
         <div className="mt-2.5 flex items-center justify-between gap-4 md:hidden">
           {project.year ? (
-            <p className="text-[0.68rem] font-medium tracking-[0.12em] text-[var(--home-muted)]">
+            <p className="project-card-year text-[0.68rem] font-medium tracking-[0.12em] text-[var(--home-muted)]">
               {project.year}
             </p>
           ) : (
@@ -313,7 +356,7 @@ function ListProjectCard({
 
       <div className="hidden h-full flex-col items-end justify-between gap-3 pt-0.5 md:flex">
         {project.year ? (
-          <p className="text-[0.68rem] font-medium tracking-[0.12em] text-[var(--home-muted)]">
+          <p className="project-card-year text-[0.68rem] font-medium tracking-[0.12em] text-[var(--home-muted)]">
             {project.year}
           </p>
         ) : (

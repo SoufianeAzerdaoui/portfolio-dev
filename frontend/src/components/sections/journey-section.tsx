@@ -48,14 +48,14 @@ export function JourneySection({
             return (
               <li
                 key={experience.id}
-                className="editorial-interactive-row group -mx-4 grid cursor-default gap-4 px-4 py-8 motion-safe:animate-[journey-rise_420ms_cubic-bezier(0.22,1,0.36,1)_both] md:grid-cols-[9rem_minmax(0,1fr)] md:gap-8 lg:-mx-5 lg:grid-cols-[11rem_minmax(0,1fr)] lg:px-5 lg:py-9"
+                className="journey-experience-row editorial-interactive-row group -mx-4 grid cursor-default gap-4 px-4 py-8 motion-safe:animate-[journey-rise_420ms_cubic-bezier(0.22,1,0.36,1)_both] md:grid-cols-[9rem_minmax(0,1fr)] md:gap-8 lg:-mx-5 lg:grid-cols-[11rem_minmax(0,1fr)] lg:px-5 lg:py-9"
                 style={{ animationDelay: `${90 + index * 70}ms` }}
               >
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1 md:block">
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                     <time
                       dateTime={experience.startDateTime}
-                      className="text-[0.72rem] font-medium uppercase tracking-[0.065em] text-[var(--foreground-subtle)] transition-colors duration-200 group-hover:text-[var(--foreground-muted)] group-focus-within:text-[var(--foreground-muted)] motion-reduce:transition-none"
+                      className="journey-experience-date text-[0.72rem] font-medium uppercase tracking-[0.065em] text-[var(--foreground-subtle)] transition-colors duration-200 motion-reduce:transition-none"
                     >
                       {experience.period}
                     </time>
@@ -67,7 +67,7 @@ export function JourneySection({
                         >
                           ·
                         </span>
-                        <span className="whitespace-nowrap text-[0.66rem] font-semibold uppercase tracking-[0.08em] text-[var(--accent-muted)] transition-colors duration-200 group-hover:text-[var(--accent-strong)] group-focus-within:text-[var(--accent-strong)] motion-reduce:transition-none">
+                        <span className="journey-experience-type whitespace-nowrap text-[0.66rem] font-semibold uppercase tracking-[0.08em] text-[var(--accent-muted)] transition-colors duration-200 motion-reduce:transition-none">
                           {experienceType}
                         </span>
                       </>
@@ -82,21 +82,27 @@ export function JourneySection({
                 </div>
 
                 <article className="editorial-interactive-content max-w-[44rem]">
-                  <h3 className="text-[clamp(1.08rem,1.55vw,1.28rem)] font-semibold leading-snug tracking-[-0.035em] text-[var(--foreground)] transition-colors duration-200 group-hover:text-[var(--foreground)] group-focus-within:text-[var(--foreground)] motion-reduce:transition-none">
+                  <h3 className="journey-experience-title text-[clamp(1.08rem,1.55vw,1.28rem)] font-semibold leading-snug tracking-[-0.035em] text-[var(--foreground)] transition-colors duration-200 motion-reduce:transition-none">
                     {experience.role}
                     {experience.organization ? (
                       <>
                         <span className="mx-2 text-[var(--foreground-subtle)] opacity-80">·</span>
-                        <span className="font-medium text-[var(--foreground-secondary)] transition-colors duration-200 group-hover:text-[var(--accent-strong)] group-focus-within:text-[var(--accent-strong)] motion-reduce:transition-none">
+                        <span className="journey-experience-company font-medium text-[var(--foreground-secondary)] transition-colors duration-200 motion-reduce:transition-none">
                           {experience.organization}
                         </span>
                       </>
                     ) : null}
                   </h3>
 
-                <p className="mt-3 max-w-[42rem] text-[0.95rem] leading-[1.65] text-[var(--foreground-muted)]">
+                <p className="journey-experience-description mt-3 max-w-[42rem] text-[0.95rem] leading-[1.65] text-[var(--foreground-muted)] transition-colors duration-200 motion-reduce:transition-none">
                   {experience.description}
                 </p>
+
+                {experience.context ? (
+                  <p className="journey-experience-context mt-2 text-[0.75rem] font-medium uppercase tracking-[0.08em] text-[var(--foreground-subtle)] transition-colors duration-200 motion-reduce:transition-none">
+                    {experience.context}
+                  </p>
+                ) : null}
 
                 {experience.technologies?.length ? (
                   <ul
@@ -106,7 +112,7 @@ export function JourneySection({
                     {experience.technologies.map((technology) => (
                       <li
                         key={technology}
-                        className="rounded-full border border-[rgb(var(--accent-rgb)/0.08)] bg-[rgb(var(--accent-rgb)/0.045)] px-[9px] py-1 text-[0.75rem] font-[450] leading-5 tracking-[0.015em] text-[var(--accent-muted)] transition-[background-color,border-color,color] duration-200 ease-out group-hover:border-[rgb(var(--accent-rgb)/0.16)] group-hover:bg-[rgb(var(--accent-rgb)/0.07)] group-hover:text-[var(--accent-strong)] group-focus-within:border-[rgb(var(--accent-rgb)/0.16)] group-focus-within:bg-[rgb(var(--accent-rgb)/0.07)] group-focus-within:text-[var(--accent-strong)] motion-reduce:transition-none"
+                        className="journey-experience-tech rounded-full border border-[rgb(var(--accent-rgb)/0.08)] bg-[rgb(var(--accent-rgb)/0.045)] px-[9px] py-1 text-[0.75rem] font-[450] leading-5 tracking-[0.015em] text-[var(--accent-muted)] transition-[background-color,border-color,color] duration-200 ease-out motion-reduce:transition-none"
                       >
                         {technology}
                       </li>
@@ -120,7 +126,7 @@ export function JourneySection({
                     target="_blank"
                     rel="noreferrer"
                     aria-label={`${experience.projectLink.label} - ${labels.externalProjectSuffix}`}
-                    className="group/link mt-5 inline-flex items-center gap-2 border-b border-[rgb(var(--accent-rgb)/0.2)] pb-1 text-[0.78rem] font-medium tracking-[0.04em] text-[var(--accent-strong)] transition-[border-color,color] duration-200 ease-out hover:border-[rgb(var(--accent-rgb)/0.7)] hover:text-[var(--foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--focus-ring-offset)] motion-reduce:transition-none"
+                    className="journey-experience-link group/link mt-5 inline-flex items-center gap-2 border-b border-[rgb(var(--accent-rgb)/0.2)] pb-1 text-[0.78rem] font-medium tracking-[0.04em] text-[var(--accent-strong)] transition-[border-color,color] duration-200 ease-out hover:border-[rgb(var(--accent-rgb)/0.7)] hover:text-[var(--foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--focus-ring-offset)] motion-reduce:transition-none"
                   >
                     <span>{experience.projectLink.label}</span>
                     <ArrowUpRight
