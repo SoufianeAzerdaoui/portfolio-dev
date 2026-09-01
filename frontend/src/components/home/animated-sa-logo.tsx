@@ -21,11 +21,7 @@ const S_CLIP_X = 0;
 const S_CLIP_WIDTH = 565;
 const A_CLIP_X = 381;
 const A_CLIP_WIDTH = 355;
-const CORE_SAFE_ZONE = {
-  x: 0.35,
-  y: 0.2,
-};
-type OrbitLevel = "inner" | "middle" | "outer";
+type LabelOrbitTrack = "a" | "b";
 type DebugLogoLayer =
   | "all"
   | "infinity"
@@ -42,97 +38,92 @@ const DEBUG_LOGO_LAYER: DebugLogoLayer = "all";
 const getOrbitIdleOpacity = (index: number) =>
   ORBIT_IDLE_OPACITIES[index] ?? ORBIT_IDLE_OPACITIES.at(-1) ?? 0.18;
 
+const labelOrbitTracks: Record<
+  LabelOrbitTrack,
+  { rx: number; ry: number; yBias: number; duration: number; direction: 1 | -1 }
+> = {
+  a: { rx: 0.43, ry: 0.235, yBias: 0.01, duration: 46, direction: 1 },
+  b: { rx: 0.5, ry: 0.275, yBias: -0.015, duration: 56, direction: -1 },
+};
+
 const satellites = [
   {
-    label: "NLP",
-    orbit: "inner" as const,
-    phase: 350,
-    duration: 30,
-    direction: 1,
+    label: "DATA SCIENCE",
+    track: "a" as const,
+    phase: 220,
+    rxScale: 1,
+    ryScale: 0.88,
+    yOffset: -0.035,
+    visibilityClassName: "",
+    alignment: "left" as const,
+    lineLength: 28,
+  },
+  {
+    label: "MACHINE LEARNING",
+    track: "a" as const,
+    phase: 94,
+    rxScale: 0.92,
+    ryScale: 0.78,
+    yOffset: 0.085,
+    visibilityClassName: "",
+    alignment: "right" as const,
+    lineLength: 34,
+  },
+  {
+    label: "DEEP LEARNING",
+    track: "b" as const,
+    phase: 302,
     rxScale: 0.98,
     ryScale: 0.9,
-    yOffset: -0.01,
-    visibilityClassName: "",
-    alignment: "left" as const,
+    yOffset: -0.095,
+    visibilityClassName: "hidden md:block",
+    alignment: "right" as const,
+    lineLength: 24,
   },
   {
-    label: "RAG Systems",
-    orbit: "inner" as const,
-    phase: 184,
-    duration: 30,
-    direction: 1,
-    rxScale: 0.96,
-    ryScale: 0.88,
+    label: "NLP",
+    track: "a" as const,
+    phase: 350,
+    rxScale: 1.08,
+    ryScale: 0.86,
     yOffset: -0.005,
     visibilityClassName: "hidden md:block",
-    alignment: "right" as const,
-  },
-  {
-    label: "Machine Learning",
-    orbit: "middle" as const,
-    phase: 98,
-    duration: 40,
-    direction: -1,
-    rxScale: 0.88,
-    ryScale: 0.84,
-    yOffset: 0.06,
-    visibilityClassName: "",
-    alignment: "right" as const,
-  },
-  {
-    label: "Deep Learning",
-    orbit: "middle" as const,
-    phase: 292,
-    duration: 40,
-    direction: -1,
-    rxScale: 0.94,
-    ryScale: 0.94,
-    yOffset: -0.075,
-    visibilityClassName: "hidden lg:block",
     alignment: "left" as const,
+    lineLength: 22,
   },
   {
-    label: "Data Science",
-    orbit: "outer" as const,
-    phase: 232,
-    duration: 52,
-    direction: 1,
-    rxScale: 1.03,
-    ryScale: 0.96,
-    yOffset: -0.055,
+    label: "RAG / LLM SYSTEMS",
+    track: "b" as const,
+    phase: 178,
+    rxScale: 1.09,
+    ryScale: 0.86,
+    yOffset: 0,
+    visibilityClassName: "",
+    alignment: "left" as const,
+    lineLength: 32,
+  },
+  {
+    label: "DATA ENGINEERING",
+    track: "b" as const,
+    phase: 32,
+    rxScale: 1.13,
+    ryScale: 0.74,
+    yOffset: 0.065,
     visibilityClassName: "hidden md:block",
     alignment: "right" as const,
-  },
-  {
-    label: "Generative AI",
-    orbit: "outer" as const,
-    phase: 24,
-    duration: 52,
-    direction: 1,
-    rxScale: 1.02,
-    ryScale: 0.8,
-    yOffset: 0.04,
-    visibilityClassName: "hidden lg:block",
-    alignment: "left" as const,
+    lineLength: 38,
   },
 ] satisfies Array<{
   label: string;
-  orbit: OrbitLevel;
+  track: LabelOrbitTrack;
   phase: number;
-  duration: number;
-  direction: 1 | -1;
   rxScale: number;
   ryScale: number;
   yOffset: number;
   visibilityClassName: string;
   alignment: "left" | "right";
+  lineLength: number;
 }>;
-
-const orbitRadii: Record<OrbitLevel, { rx: number; ry: number; yBias: number }> = {
-  inner: { rx: 0.36, ry: 0.2, yBias: -0.01 },
-  middle: { rx: 0.45, ry: 0.27, yBias: -0.01 },
-  outer: { rx: 0.48, ry: 0.28, yBias: -0.015 },
-};
 
 export function AnimatedSALogo() {
   const sceneRef = useRef<HTMLDivElement>(null);
@@ -146,13 +137,10 @@ export function AnimatedSALogo() {
     let intersectionObserver: IntersectionObserver | undefined;
     let logoResizeObserver: ResizeObserver | undefined;
     let handleVisibilityChange: (() => void) | undefined;
+    let labelOrbitMediaQuery: MediaQueryList | undefined;
+    let handleLabelOrbitMediaChange: (() => void) | undefined;
     let handleScenePointerEnter: (() => void) | undefined;
     let handleScenePointerLeave: (() => void) | undefined;
-    const satelliteCardListeners: Array<{
-      card: HTMLElement;
-      enter: () => void;
-      leave: () => void;
-    }> = [];
 
     if (!sceneElement) {
       return;
@@ -161,14 +149,16 @@ export function AnimatedSALogo() {
     const context = gsap.context(() => {
       const orbitGroups = gsap.utils.toArray<SVGGElement>(".orbit-group");
       const satelliteNodes = gsap.utils.toArray<HTMLElement>(".satellite");
-      const satelliteCards = gsap.utils.toArray<HTMLElement>(".satellite-card");
       const satelliteDots = gsap.utils.toArray<HTMLElement>(".satellite-dot");
+      const satelliteLines = gsap.utils.toArray<HTMLElement>(".satellite-line");
+      const satelliteCopies = gsap.utils.toArray<HTMLElement>(".satellite-copy");
       const circuitPaths = gsap.utils.toArray<SVGPathElement>(".circuit-path");
       const circuitNodes = gsap.utils.toArray<SVGCircleElement>(".circuit-node");
       const pulseDots = gsap.utils.toArray<SVGGElement>(".circuit-pulse");
       const particles = gsap.utils.toArray<SVGCircleElement>(".ambient-particle");
       const stars = gsap.utils.toArray<SVGPathElement>(".ambient-star");
       const continuousAnimations: gsap.core.Animation[] = [];
+      const labelOrbitAnimations: gsap.core.Animation[] = [];
       const satelliteOrbitAnimations: gsap.core.Animation[] = [];
       const leftCircuitPaths = circuitPaths.slice(0, 3);
       const rightCircuitPaths = circuitPaths.slice(3);
@@ -261,41 +251,23 @@ export function AnimatedSALogo() {
       ) => {
         const sceneWidth = sceneElement.clientWidth || 620;
         const sceneHeight = sceneElement.clientHeight || 388;
-        const metrics = orbitRadii[config.orbit];
+        const metrics = labelOrbitTracks[config.track];
         const responsiveScale =
-          sceneWidth < 430 ? 0.62 : sceneWidth < 520 ? 0.72 : sceneWidth < 600 ? 0.88 : 1;
+          sceneWidth < 430 ? 0.62 : sceneWidth < 520 ? 0.78 : sceneWidth < 600 ? 0.9 : 1;
         const radians = (angle * Math.PI) / 180;
-        const safeX = sceneWidth * CORE_SAFE_ZONE.x * responsiveScale;
-        const safeY = sceneHeight * CORE_SAFE_ZONE.y * responsiveScale;
-        let x =
+        const x =
           Math.cos(radians) *
           sceneWidth *
           metrics.rx *
           config.rxScale *
           responsiveScale;
-        let y =
+        const y =
           Math.sin(radians) *
             sceneHeight *
             metrics.ry *
             config.ryScale *
             responsiveScale +
           sceneHeight * (metrics.yBias + config.yOffset);
-        const xInside = Math.abs(x) < safeX;
-        const yInside = Math.abs(y) < safeY;
-
-        if (xInside && yInside) {
-          const signX = Math.cos(radians) >= 0 ? 1 : -1;
-          const signY = Math.sin(radians) >= 0 ? 1 : -1;
-          const xPressure = (safeX - Math.abs(x)) / safeX;
-          const yPressure = (safeY - Math.abs(y)) / safeY;
-          const push = Math.min(1, Math.max(xPressure, yPressure) * 1.15);
-
-          if (xPressure <= yPressure) {
-            x += (signX * safeX - x) * push;
-          } else {
-            y += (signY * safeY - y) * push;
-          }
-        }
 
         return {
           x,
@@ -334,7 +306,7 @@ export function AnimatedSALogo() {
       let introComplete = reducedMotion;
       let sceneInView = true;
       let pageVisible = document.visibilityState === "visible";
-      let sceneHovered = false;
+      let labelOrbitEnabled = false;
 
       const syncContinuousAnimations = () => {
         const shouldRun =
@@ -348,6 +320,19 @@ export function AnimatedSALogo() {
 
           animation.pause();
         });
+
+        labelOrbitAnimations.forEach((animation) => {
+          if (shouldRun && labelOrbitEnabled) {
+            animation.resume();
+            return;
+          }
+
+          animation.pause();
+        });
+
+        if (!labelOrbitEnabled) {
+          resetSatellitePositions();
+        }
       };
 
       gsap.set(".infinity-trace", {
@@ -420,10 +405,22 @@ export function AnimatedSALogo() {
         rotate: 0,
       });
       gsap.set(".satellite-card", {
-        y: reducedMotion ? 0 : 6,
-        scale: reducedMotion ? 1 : 0.98,
+        y: reducedMotion ? 0 : 4,
+        scale: 1,
         opacity: 1,
         transformOrigin: "50% 50%",
+      });
+      gsap.set(satelliteLines, {
+        opacity: reducedMotion ? 0.28 : 0,
+        scaleX: reducedMotion ? 1 : 0,
+        transformOrigin: "50% 50%",
+      });
+      gsap.set(satelliteCopies, {
+        opacity: reducedMotion ? 1 : 0,
+        x: reducedMotion ? 0 : -2,
+      });
+      gsap.set(satelliteDots, {
+        opacity: reducedMotion ? 0.84 : 0,
       });
       resetSatellitePositions();
       gsap.set(sceneElement, { autoAlpha: 0 });
@@ -470,6 +467,14 @@ export function AnimatedSALogo() {
         logoResizeObserver = new ResizeObserver(resetSatellitePositions);
         logoResizeObserver.observe(sceneElement);
       }
+
+      labelOrbitMediaQuery = window.matchMedia("(min-width: 768px)");
+      labelOrbitEnabled = labelOrbitMediaQuery.matches;
+      handleLabelOrbitMediaChange = () => {
+        labelOrbitEnabled = labelOrbitMediaQuery?.matches ?? false;
+        syncContinuousAnimations();
+      };
+      labelOrbitMediaQuery.addEventListener("change", handleLabelOrbitMediaChange);
 
       if (!reducedMotion) {
         const introTimeline = gsap.timeline({
@@ -869,20 +874,52 @@ export function AnimatedSALogo() {
             ".satellite",
             {
               autoAlpha: 1,
-              duration: 0.38,
-              stagger: 0.08,
+              duration: 0.32,
+              stagger: 0.06,
             },
             "skills",
+          )
+          .to(
+            ".satellite-line",
+            {
+              opacity: 0.28,
+              scaleX: 1,
+              duration: 0.28,
+              stagger: 0.06,
+              ease: "power2.out",
+            },
+            "skills",
+          )
+          .to(
+            ".satellite-dot",
+            {
+              opacity: 0.84,
+              duration: 0.22,
+              stagger: 0.06,
+              ease: "power2.out",
+            },
+            "skills+=0.04",
+          )
+          .to(
+            ".satellite-copy",
+            {
+              opacity: 1,
+              x: 0,
+              duration: 0.36,
+              stagger: 0.06,
+              ease: "power2.out",
+            },
+            "skills+=0.06",
           )
           .to(
             ".satellite-card",
             {
               y: 0,
-              scale: 1,
-              duration: 0.38,
-              stagger: 0.08,
+              duration: 0.36,
+              stagger: 0.06,
+              ease: "power2.out",
             },
-            "skills",
+            "skills+=0.04",
           )
           .to(
             ".sa-metal-shine-sweep",
@@ -933,21 +970,6 @@ export function AnimatedSALogo() {
           }),
         );
 
-        orbitGroups.forEach((group, index) => {
-          const durations = [31, 40, 50];
-          const directions = [1, -1, 1];
-
-          registerContinuousAnimation(
-            gsap.to(group, {
-              rotate: directions[index] * 360,
-              transformOrigin: "50% 50%",
-              duration: durations[index],
-              ease: "none",
-              repeat: -1,
-            }),
-          );
-        });
-
         satelliteNodes.forEach((node) => {
           const config = getSatelliteConfig(node);
 
@@ -955,55 +977,40 @@ export function AnimatedSALogo() {
             return;
           }
 
+          const track = labelOrbitTracks[config.track];
           const state = { angle: config.phase };
           node.dataset.angle = String(state.angle);
+          setSatellitePosition(node, config, state.angle);
 
-          const animation = gsap.to(state, {
-            angle: config.phase + config.direction * 360,
-            duration: config.duration,
+          const orbitAnimation = gsap.to(state, {
+            angle: config.phase + track.direction * 360,
+            duration: track.duration,
             ease: "none",
             repeat: -1,
+            paused: true,
             onUpdate: () => {
               node.dataset.angle = String(state.angle);
               setSatellitePosition(node, config, state.angle);
             },
           });
 
-          satelliteOrbitAnimations.push(animation);
-          registerContinuousAnimation(animation);
+          labelOrbitAnimations.push(orbitAnimation);
         });
 
-        satelliteCards.forEach((card) => {
-          const dot = card.querySelector<HTMLElement>(".satellite-dot");
-          const enter = () => {
-            gsap.to(card, {
-              y: -1,
-              duration: 0.2,
-              ease: "power1.out",
-            });
-            if (dot) {
-              gsap.to(dot, { opacity: 1, duration: 0.2, ease: "power1.out" });
-            }
-          };
+        orbitGroups.forEach((group, index) => {
+          const durations = [42, 54, 68];
+          const directions = [1, -1, 1];
 
-          const leave = () => {
-            gsap.to(card, {
-              y: 0,
-              duration: 0.32,
-              ease: "sine.out",
-            });
-            if (dot) {
-              gsap.to(dot, {
-                opacity: sceneHovered ? 0.92 : 0.84,
-                duration: 0.32,
-                ease: "sine.out",
-              });
-            }
-          };
+          const orbitAnimation = gsap.to(group, {
+            rotate: directions[index] * 360,
+            transformOrigin: "50% 50%",
+            duration: durations[index],
+            ease: "none",
+            repeat: -1,
+          });
 
-          card.addEventListener("pointerenter", enter);
-          card.addEventListener("pointerleave", leave);
-          satelliteCardListeners.push({ card, enter, leave });
+          satelliteOrbitAnimations.push(orbitAnimation);
+          registerContinuousAnimation(orbitAnimation);
         });
 
         handleScenePointerEnter = () => {
@@ -1011,7 +1018,6 @@ export function AnimatedSALogo() {
             return;
           }
 
-          sceneHovered = true;
           satelliteOrbitAnimations.forEach((animation) => animation.timeScale(1.05));
           gsap.to(satelliteDots, {
             opacity: 0.92,
@@ -1030,13 +1036,7 @@ export function AnimatedSALogo() {
             return;
           }
 
-          sceneHovered = false;
           satelliteOrbitAnimations.forEach((animation) => animation.timeScale(1));
-          gsap.to(satelliteCards, {
-            y: 0,
-            duration: 0.52,
-            ease: "sine.out",
-          });
           gsap.to(satelliteDots, {
             opacity: 0.84,
             duration: 0.52,
@@ -1295,13 +1295,12 @@ export function AnimatedSALogo() {
         sceneElement.removeEventListener("pointerleave", handleScenePointerLeave);
       }
 
-      satelliteCardListeners.forEach(({ card, enter, leave }) => {
-        card.removeEventListener("pointerenter", enter);
-        card.removeEventListener("pointerleave", leave);
-      });
-
       if (handleVisibilityChange) {
         document.removeEventListener("visibilitychange", handleVisibilityChange);
+      }
+
+      if (labelOrbitMediaQuery && handleLabelOrbitMediaChange) {
+        labelOrbitMediaQuery.removeEventListener("change", handleLabelOrbitMediaChange);
       }
 
       context.revert();
@@ -1549,14 +1548,15 @@ export function AnimatedSALogo() {
         <div
           key={satellite.label}
           data-skill={satellite.label}
-          data-orbit={satellite.orbit}
+          data-track={satellite.track}
+          aria-hidden="true"
           className={[
-            "satellite pointer-events-auto absolute left-1/2 top-1/2 z-40",
+            "satellite pointer-events-auto absolute left-1/2 top-1/2 z-40 cursor-default select-none",
             satellite.visibilityClassName,
           ].join(" ")}
         >
           <div
-            className="satellite-card group rounded-[6px] border border-[rgb(var(--home-accent-2-rgb)/0.10)] bg-[rgb(var(--home-bg-0-rgb)/0.12)] px-[7px] py-[3px] text-[10px] font-[500] uppercase tracking-[0.075em] text-[#AAA6BC] transition-[border-color,color,opacity] duration-200 hover:border-[rgb(var(--home-accent-2-rgb)/0.18)] hover:text-[#D5D2DF] md:text-[11px]"
+            className="satellite-card group text-[10px] font-medium uppercase tracking-[0.13em] text-[#B7BAC6] transition-colors duration-200 ease-out hover:text-[#ECEAF5] md:text-[10.5px] lg:text-[11px]"
           >
             <span
               className={[
@@ -1564,9 +1564,16 @@ export function AnimatedSALogo() {
                 satellite.alignment === "left" ? "flex-row-reverse text-right" : "",
               ].join(" ")}
             >
-              <span className="h-px w-[18px] bg-[var(--home-accent-2)] opacity-45" />
-              <span className="satellite-dot h-[3px] w-[3px] rounded-full bg-[var(--home-accent-2)] opacity-75 transition-opacity duration-200 group-hover:opacity-100" />
-              <span>{satellite.label}</span>
+              <span
+                className="satellite-line h-px bg-[#8B80D9] opacity-[0.28] transition-opacity duration-200 ease-out group-hover:opacity-60"
+                style={{
+                  width: `${satellite.lineLength}px`,
+                  transformOrigin:
+                    satellite.alignment === "left" ? "right center" : "left center",
+                }}
+              />
+              <span className="satellite-dot h-[3px] w-[3px] rounded-full bg-[#8B80D9] opacity-80 transition-opacity duration-200 ease-out group-hover:opacity-100" />
+              <span className="satellite-copy">{satellite.label}</span>
             </span>
           </div>
         </div>
