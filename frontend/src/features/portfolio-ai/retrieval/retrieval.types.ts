@@ -1,0 +1,102 @@
+import type {
+  KnowledgeEntity,
+  KnowledgeEvidence,
+  KnowledgeFact,
+  KnowledgeRelation,
+  KnowledgeVerificationStatus,
+} from "@/features/portfolio-ai/knowledge";
+import type { LocaleCode } from "@/types/portfolio";
+
+export const RETRIEVAL_MAX_QUERY_LENGTH = 280;
+export const DEFAULT_RETRIEVAL_TOP_K = 5;
+export const MAX_RETRIEVAL_TOP_K = 20;
+
+export type RetrievalIntent =
+  | "technology_evidence"
+  | "projects_by_technology"
+  | "projects_by_domain"
+  | "experience_lookup"
+  | "education_lookup"
+  | "project_lookup"
+  | "skills_overview"
+  | "profile_lookup"
+  | "comparison"
+  | "unknown";
+
+export type RetrievalLocale = LocaleCode;
+
+export type RetrievalOptions = {
+  locale?: RetrievalLocale;
+  topK?: number;
+  includeDebug?: boolean;
+};
+
+export type NormalizedQuery = {
+  original: string;
+  normalized: string;
+  tokens: string[];
+  locale: RetrievalLocale;
+};
+
+export type IntentDetection = {
+  intent: RetrievalIntent;
+  confidence: number;
+  reasons: string[];
+};
+
+export type EntityMatchType =
+  | "exact-canonical"
+  | "exact-alias"
+  | "normalized-canonical"
+  | "normalized-alias"
+  | "strong-token"
+  | "retrieval-only"
+  | "derived-category-domain";
+
+export type DetectedEntity = {
+  entity: KnowledgeEntity;
+  matchType: EntityMatchType;
+  matchedAlias: string;
+  score: number;
+  reasons: string[];
+};
+
+export type RetrievalCandidate = {
+  entity: KnowledgeEntity;
+  score: number;
+  facts: KnowledgeFact[];
+  relations: KnowledgeRelation[];
+  evidence: KnowledgeEvidence[];
+  status: KnowledgeVerificationStatus;
+  reasons: string[];
+  matchedEntities: DetectedEntity[];
+};
+
+export type RetrievalResultGroup = {
+  entity: KnowledgeEntity;
+  score: number;
+  status: KnowledgeVerificationStatus;
+  facts: KnowledgeFact[];
+  relations: KnowledgeRelation[];
+  evidence: KnowledgeEvidence[];
+  whyMatched: string[];
+  matchedEntities: Array<{
+    entityId: string;
+    canonicalName: string;
+    matchType: EntityMatchType;
+    matchedAlias: string;
+    score: number;
+  }>;
+};
+
+export type PortfolioRetrievalResult = {
+  intent: RetrievalIntent;
+  normalizedQuery: string;
+  originalQuery: string;
+  matchedEntities: DetectedEntity[];
+  results: RetrievalResultGroup[];
+  confidence: number;
+  status: KnowledgeVerificationStatus;
+  notDocumented: boolean;
+  errors: string[];
+};

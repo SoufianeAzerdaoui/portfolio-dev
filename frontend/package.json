@@ -8,10 +8,13 @@
     "start": "next start",
     "lint": "eslint .",
     "format": "eslint . --fix",
-    "test": "node --test --require ./src/features/portfolio-ai/tests/register-ts-test-runner.cjs ./src/features/portfolio-ai/tests/knowledge.test.ts",
+    "test": "node --test --require ./src/features/portfolio-ai/tests/register-ts-test-runner.cjs ./src/features/portfolio-ai/tests/*.test.ts",
+    "eval:portfolio-ai:live": "node --require ./src/features/portfolio-ai/tests/register-ts-test-runner.cjs ./src/features/portfolio-ai/evaluation/run-live-evaluation.ts",
+    "test:portfolio-ai:gemini": "node --require ./src/features/portfolio-ai/tests/register-ts-test-runner.cjs ./src/features/portfolio-ai/tests/gemini-smoke.ts",
     "typecheck": "tsc --noEmit --project tsconfig.typecheck.json"
   },
   "dependencies": {
+    "@google/genai": "^2.21.0",
     "clsx": "^2.1.1",
     "gsap": "^3.15.0",
     "lucide-react": "^1.28.0",
