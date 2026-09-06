@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint .",
     "format": "eslint . --fix",
+    "test": "node --test --require ./src/features/portfolio-ai/tests/register-ts-test-runner.cjs ./src/features/portfolio-ai/tests/knowledge.test.ts",
     "typecheck": "tsc --noEmit --project tsconfig.typecheck.json"
   },
   "dependencies": {
