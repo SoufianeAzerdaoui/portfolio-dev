@@ -17,14 +17,14 @@ export function PortfolioAIHeader({ content, onClose }: PortfolioAIHeaderProps) 
           <span className="inline-grid h-8 w-8 shrink-0 place-items-center rounded-[7px] border border-[rgba(139,128,217,0.18)] bg-[rgba(97,85,185,0.08)] text-[0.62rem] font-semibold tracking-[0.18em] text-[#F1F0F5]">
             SA
           </span>
-          <p className="truncate font-mono text-[0.68rem] font-medium uppercase tracking-[0.24em] text-[var(--home-text-secondary)]">
+          <p className="truncate font-mono text-[0.68rem] font-medium uppercase tracking-[0.22em] text-[#D8D6E0]">
             {content.mark}
           </p>
         </div>
       </div>
 
       <div className="flex shrink-0 items-center gap-2">
-        <div className="hidden items-center gap-2 rounded-[6px] border border-[var(--home-line-muted)] px-2.5 py-1.5 text-[0.62rem] font-medium uppercase tracking-[0.16em] text-[var(--home-text-secondary)] sm:inline-flex">
+        <div className="hidden items-center gap-2 font-mono text-[0.6rem] font-medium uppercase tracking-[0.18em] text-[var(--home-muted)] sm:inline-flex">
           <Database aria-hidden="true" className="h-3.5 w-3.5 text-[#8B80D9]" />
           <span>{content.status}</span>
         </div>

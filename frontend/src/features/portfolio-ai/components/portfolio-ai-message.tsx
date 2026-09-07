@@ -50,13 +50,13 @@ export function PortfolioAIMessage({
           : "md:grid-cols-[8rem_minmax(0,1fr)]",
       ].join(" ")}
     >
-      <p className="font-mono text-[0.64rem] font-semibold uppercase tracking-[0.18em] text-[var(--home-muted)]">
+      <p className="font-mono text-[0.64rem] font-semibold uppercase tracking-[0.18em] text-[#9B9AA4]">
         {label}
       </p>
 
       <div className="min-w-0">
         {hasError && message.error ? (
-          <div className="max-w-[38rem] rounded-[7px] border border-[rgba(180,177,194,0.12)] bg-[rgba(255,255,255,0.018)] px-4 py-3">
+          <div className="max-w-[38rem] border-l border-[rgba(139,128,217,0.42)] pl-4">
             <div className="flex items-start gap-3">
               <AlertCircle
                 aria-hidden="true"
@@ -81,7 +81,7 @@ export function PortfolioAIMessage({
         {!hasError && message.content ? (
           <div
             className={[
-              "max-w-[42rem] text-[0.98rem] leading-[1.72] text-[var(--home-text-secondary)]",
+              "max-w-[42rem] text-[0.98rem] leading-[1.72] text-[#B9B6C6]",
               isUser ? "font-medium text-[var(--home-text)]" : "",
             ].join(" ")}
           >
