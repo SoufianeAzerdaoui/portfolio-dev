@@ -25,17 +25,21 @@ Module._resolveFilename = function resolveFilename(request, parent, isMain, opti
   return originalResolveFilename.call(this, request, parent, isMain, options);
 };
 
-require.extensions[".ts"] = function compileTypeScript(module, filename) {
+function compileTypeScript(module, filename) {
   const source = require("node:fs").readFileSync(filename, "utf8");
   const output = ts.transpileModule(source, {
     compilerOptions: {
       module: ts.ModuleKind.CommonJS,
       target: ts.ScriptTarget.ES2022,
       esModuleInterop: true,
+      jsx: ts.JsxEmit.ReactJSX,
       strict: true,
     },
     fileName: filename,
   });
 
   module._compile(output.outputText, filename);
-};
+}
+
+require.extensions[".ts"] = compileTypeScript;
+require.extensions[".tsx"] = compileTypeScript;

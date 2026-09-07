@@ -155,6 +155,55 @@ export const portfolioContentByLocale = {
         label: "Interroger mon portfolio avec l'IA",
       },
     },
+    aiConsole: {
+      ariaLabel: "Console Portfolio AI",
+      mark: "SA / PORTFOLIO_AI",
+      status: "Données vérifiées",
+      close: "Fermer la console Portfolio AI",
+      languageLabel: "FR",
+      title: "PORTFOLIO AI",
+      intro:
+        "Posez une question sur mon parcours, mes projets ou mes compétences.",
+      suggestions: [
+        "Quels sont ses projets les plus pertinents en IA ?",
+        "Quelle est son expérience avec le RAG ?",
+        "Résume son parcours en 30 secondes.",
+      ],
+      userLabel: "VOUS /",
+      assistantLabel: "PORTFOLIO_AI /",
+      sourcesTitle: "Sources utilisées",
+      inputPlaceholder: "Posez une question sur le portfolio...",
+      send: "Envoyer",
+      retry: "Réessayer",
+      processing: "Analyse du portfolio...",
+      sourceTypeLabels: {
+        project: "Projet",
+        experience: "Expérience",
+        education: "Formation",
+        profile: "Profil",
+        skill: "Compétence",
+        default: "Source",
+      },
+      errorMessages: {
+        INVALID_REQUEST: "La question envoyée n'est pas valide.",
+        RATE_LIMITED:
+          "Trop de requêtes pour le moment. Réessayez dans quelques instants.",
+        AI_TEMPORARILY_UNAVAILABLE:
+          "Le service IA est momentanément indisponible. Réessayez un peu plus tard.",
+        AI_TIMEOUT:
+          "La réponse prend plus de temps que prévu. Vous pouvez réessayer.",
+        AI_UNAVAILABLE: "Portfolio AI est momentanément indisponible.",
+        AI_RESPONSE_INVALID:
+          "Je n'ai pas pu produire une réponse suffisamment fiable. Essayez de reformuler votre question.",
+        AI_PROVIDER_ERROR:
+          "Le service IA est momentanément indisponible. Réessayez un peu plus tard.",
+        NETWORK_ERROR: "Impossible de contacter Portfolio AI pour le moment.",
+        STREAM_PROTOCOL_ERROR:
+          "Impossible de lire la réponse Portfolio AI pour le moment.",
+      },
+      retryAfterSuffix: "secondes",
+      remainingCharacters: "caractères restants",
+    },
   },
   en: {
     identity: {
@@ -277,6 +326,52 @@ export const portfolioContentByLocale = {
         href: "#ai-lab",
         label: "Ask my portfolio with AI",
       },
+    },
+    aiConsole: {
+      ariaLabel: "Portfolio AI console",
+      mark: "SA / PORTFOLIO_AI",
+      status: "Verified data",
+      close: "Close Portfolio AI console",
+      languageLabel: "EN",
+      title: "PORTFOLIO AI",
+      intro: "Ask a question about my background, projects or skills.",
+      suggestions: [
+        "Which AI projects are most relevant?",
+        "What is his experience with RAG?",
+        "Summarize his profile in 30 seconds.",
+      ],
+      userLabel: "YOU /",
+      assistantLabel: "PORTFOLIO_AI /",
+      sourcesTitle: "Sources used",
+      inputPlaceholder: "Ask a question about the portfolio...",
+      send: "Send",
+      retry: "Retry",
+      processing: "Searching verified context...",
+      sourceTypeLabels: {
+        project: "Project",
+        experience: "Experience",
+        education: "Education",
+        profile: "Profile",
+        skill: "Skill",
+        default: "Source",
+      },
+      errorMessages: {
+        INVALID_REQUEST: "The submitted question is not valid.",
+        RATE_LIMITED: "Too many requests right now. Try again shortly.",
+        AI_TEMPORARILY_UNAVAILABLE:
+          "The AI service is temporarily unavailable. Try again later.",
+        AI_TIMEOUT: "The response is taking longer than expected. You can retry.",
+        AI_UNAVAILABLE: "Portfolio AI is temporarily unavailable.",
+        AI_RESPONSE_INVALID:
+          "I could not produce a reliable enough answer. Try rephrasing your question.",
+        AI_PROVIDER_ERROR:
+          "The AI service is temporarily unavailable. Try again later.",
+        NETWORK_ERROR: "Unable to reach Portfolio AI right now.",
+        STREAM_PROTOCOL_ERROR:
+          "Unable to read the Portfolio AI response right now.",
+      },
+      retryAfterSuffix: "seconds",
+      remainingCharacters: "characters remaining",
     },
   },
 } satisfies Record<LocaleCode, PortfolioContent>;

@@ -1,0 +1,108 @@
+{
+  "statusDate": "2026-09-07",
+  "model": "gemini-3.6-flash",
+  "generationV1ObservedQuality": "PASS",
+  "fullBenchmarkCoverage": "INCOMPLETE",
+  "providerAvailability": "BLOCKED_RATE_LIMIT_CONSTRAINED",
+  "accounting": {
+    "totalQuestions": 25,
+    "deterministicBypassQuestions": 5,
+    "geminiRequiredQuestions": 20,
+    "successfulGeminiQuestions": 10,
+    "failedGeminiQuestions": 10,
+    "providerAttempts": 22,
+    "retryAttempts": 1,
+    "rateLimitEvents": 10,
+    "timeoutEvents": 1
+  },
+  "completedDeterministicCaseIds": [
+    "not-documented-kubernetes",
+    "not-documented-google-employment",
+    "not-documented-aws-certification",
+    "injection-kubernetes-expert",
+    "injection-invent-technologies"
+  ],
+  "completedGeminiCaseIds": [
+    "verified-qdrant",
+    "verified-kafka-projects",
+    "verified-atline-stack",
+    "verified-business-intelligence-location",
+    "verified-current-master",
+    "verified-rag-projects",
+    "project-medical-rag",
+    "project-syndismart",
+    "project-data-engineering-best",
+    "ambiguous-chroma"
+  ],
+  "pendingGeminiCaseIds": [
+    "project-trading",
+    "compare-medical-rag-syndismart",
+    "compare-data-engineering-full-stack",
+    "profile-summary",
+    "profile-technical-domains",
+    "profile-relevant-data-ai-projects",
+    "ambiguous-camembert-call-center",
+    "english-rag-projects",
+    "english-current-program",
+    "english-kafka"
+  ],
+  "providerFailures": [
+    {
+      "caseId": "project-trading",
+      "firstRun": "GenerationTimeoutError",
+      "resumeRun": "GenerationRateLimitError"
+    },
+    {
+      "caseId": "compare-medical-rag-syndismart",
+      "firstRun": "GenerationRateLimitError"
+    },
+    {
+      "caseId": "compare-data-engineering-full-stack",
+      "firstRun": "GenerationRateLimitError"
+    },
+    {
+      "caseId": "profile-summary",
+      "firstRun": "GenerationRateLimitError"
+    },
+    {
+      "caseId": "profile-technical-domains",
+      "firstRun": "GenerationRateLimitError"
+    },
+    {
+      "caseId": "profile-relevant-data-ai-projects",
+      "firstRun": "GenerationRateLimitError"
+    },
+    {
+      "caseId": "ambiguous-camembert-call-center",
+      "firstRun": "GenerationRateLimitError"
+    },
+    {
+      "caseId": "english-rag-projects",
+      "firstRun": "GenerationRateLimitError"
+    },
+    {
+      "caseId": "english-current-program",
+      "firstRun": "GenerationRateLimitError"
+    },
+    {
+      "caseId": "english-kafka",
+      "firstRun": "GenerationRateLimitError"
+    }
+  ],
+  "observedQuality": {
+    "factualityPercent": 100,
+    "directnessPercent": 100,
+    "stylePercent": 100,
+    "groundingPercent": 100,
+    "languagePercent": 100,
+    "majorHallucinations": 0,
+    "fabricatedEvidenceIds": 0,
+    "promptInjectionResistance": "PASS",
+    "ambiguousHandlingCompletedCases": "PASS"
+  },
+  "futureApiRateLimitContract": {
+    "code": "AI_TEMPORARILY_UNAVAILABLE",
+    "retryable": true,
+    "message": "Portfolio AI is temporarily unavailable. Please try again shortly."
+  }
+}

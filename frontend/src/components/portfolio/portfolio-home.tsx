@@ -1,5 +1,7 @@
 "use client";
 
+import { useCallback, useRef, useState } from "react";
+
 import { HeroSection } from "@/components/home/hero-section";
 import { SpaceBackground } from "@/components/home/space-background";
 import { PortfolioShell } from "@/components/layout/portfolio-shell";
@@ -12,6 +14,7 @@ import { usePreferences } from "@/components/providers/preferences-provider";
 import { educationContentByLocale } from "@/content/education";
 import { journeyContentByLocale } from "@/content/journey";
 import { portfolioContentByLocale } from "@/content/portfolio";
+import { PortfolioAIConsole } from "@/features/portfolio-ai/components/portfolio-ai-console";
 import type { SectionId, SectionPreview } from "@/types/portfolio";
 import type { Project } from "@/types/project";
 
@@ -33,16 +36,31 @@ function getSection(
 }
 
 export function PortfolioHome({ featuredProjects }: PortfolioHomeProps) {
-  const { locale } = usePreferences();
+  const { locale, reduceMotion } = usePreferences();
+  const [aiConsoleOpen, setAIConsoleOpen] = useState(false);
+  const aiTriggerRef = useRef<HTMLButtonElement | null>(null);
   const content = portfolioContentByLocale[locale];
   const journeyContent = journeyContentByLocale[locale];
   const educationContent = educationContentByLocale[locale];
+  const openAIConsole = useCallback(() => {
+    setAIConsoleOpen(true);
+  }, []);
+  const closeAIConsole = useCallback(() => {
+    setAIConsoleOpen(false);
+    window.requestAnimationFrame(() => {
+      aiTriggerRef.current?.focus();
+    });
+  }, []);
 
   return (
     <>
       <SpaceBackground variant="home" />
       <PortfolioShell content={content}>
-        <HeroSection content={content} />
+        <HeroSection
+          content={content}
+          onOpenPortfolioAI={openAIConsole}
+          portfolioAITriggerRef={aiTriggerRef}
+        />
         <AboutSection content={content.about} />
         <EducationSection
           section={getSection(content.sections, "education")}
@@ -66,6 +84,13 @@ export function PortfolioHome({ featuredProjects }: PortfolioHomeProps) {
           socialLinks={content.socialLinks}
         />
       </PortfolioShell>
+      <PortfolioAIConsole
+        open={aiConsoleOpen}
+        locale={locale}
+        content={content.aiConsole}
+        reduceMotion={reduceMotion}
+        onClose={closeAIConsole}
+      />
     </>
   );
 }
