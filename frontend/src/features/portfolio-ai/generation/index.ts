@@ -13,9 +13,7 @@ export {
 export {
   DEFAULT_GENERATION_MAX_OUTPUT_TOKENS,
   DEFAULT_GENERATION_MAX_RETRIES,
-  DEFAULT_GENERATION_TEMPERATURE,
   DEFAULT_GENERATION_TIMEOUT_MS,
-  DEFAULT_GENERATION_TOP_P,
   DEFAULT_PORTFOLIO_AI_MODEL,
   MAX_GENERATED_ANSWER_LENGTH,
   getPortfolioAIGenerationConfig,
@@ -42,6 +40,7 @@ export { generatePortfolioAnswer } from "@/features/portfolio-ai/generation/gene
 export { validateGroundedAnswer } from "@/features/portfolio-ai/generation/validate-grounding";
 export type {
   AnswerUncertainty,
+  ConversationContextMessage,
   GeneratePortfolioAnswerInput,
   GeneratePortfolioAnswerOptions,
   GroundedContext,

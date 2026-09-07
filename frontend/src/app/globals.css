@@ -1108,6 +1108,30 @@ html[data-theme="light"] .theme-toggle__moon {
   }
 }
 
+@keyframes portfolio-ai-console-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes portfolio-ai-console-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(8px) scale(0.99);
+  }
+}
+
 a {
   color: inherit;
   text-decoration: none;

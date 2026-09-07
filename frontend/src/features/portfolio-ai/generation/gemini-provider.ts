@@ -1,6 +1,6 @@
 import "server-only";
 
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, ThinkingLevel } from "@google/genai";
 import { portfolioAnswerResponseSchema } from "@/features/portfolio-ai/generation/answer.schema";
 import {
   getPortfolioAIGenerationConfig,
@@ -79,13 +79,9 @@ export class GeminiPortfolioAIProvider implements PortfolioAIProvider {
           systemInstruction: input.systemPrompt,
           responseMimeType: "application/json",
           responseSchema: portfolioAnswerResponseSchema,
-          temperature: this.config.temperature,
-          topP: this.config.topP,
-          candidateCount: 1,
           maxOutputTokens: this.config.maxOutputTokens,
           thinkingConfig: {
-            includeThoughts: false,
-            thinkingBudget: 0,
+            thinkingLevel: ThinkingLevel.LOW,
           },
           httpOptions: {
             timeout: this.config.timeoutMs,

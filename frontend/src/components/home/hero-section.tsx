@@ -2,12 +2,19 @@ import { HeroActions } from "@/components/home/hero-actions";
 import { HeroLogo } from "@/components/home/hero-logo";
 import { ScrollIndicator } from "@/components/home/scroll-indicator";
 import type { PortfolioContent } from "@/types/portfolio";
+import type { Ref } from "react";
 
 type HeroSectionProps = {
   content: PortfolioContent;
+  onOpenPortfolioAI?: () => void;
+  portfolioAITriggerRef?: Ref<HTMLButtonElement>;
 };
 
-export function HeroSection({ content }: HeroSectionProps) {
+export function HeroSection({
+  content,
+  onOpenPortfolioAI,
+  portfolioAITriggerRef,
+}: HeroSectionProps) {
   return (
     <section
       id="home"
@@ -35,7 +42,11 @@ export function HeroSection({ content }: HeroSectionProps) {
               {content.hero.description}
             </p>
             <div className="mt-5 w-full max-w-[39rem] md:mt-6">
-              <HeroActions ctas={content.ctas} />
+              <HeroActions
+                ctas={content.ctas}
+                onPortfolioAIOpen={onOpenPortfolioAI}
+                portfolioAITriggerRef={portfolioAITriggerRef}
+              />
             </div>
           </div>
         </div>

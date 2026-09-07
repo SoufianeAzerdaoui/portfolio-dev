@@ -3,5 +3,5 @@ export const LIGHT_THEME_ENABLED: boolean = false;
 
 export const FEATURES = {
   lightTheme: LIGHT_THEME_ENABLED,
-  portfolioAI: false,
+  portfolioAI: true,
 } as const;

@@ -14,6 +14,12 @@ export type GeneratePortfolioAnswerInput = {
   question: string;
   locale: LocaleCode;
   retrieval: PortfolioRetrievalResult;
+  conversationContext?: ConversationContextMessage[];
+};
+
+export type ConversationContextMessage = {
+  role: "user" | "assistant";
+  content: string;
 };
 
 export type GroundedEvidence = {

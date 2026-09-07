@@ -44,6 +44,39 @@ export type CtaLink = {
   label: string;
 };
 
+export type PortfolioAIConsolePublicErrorCode =
+  | "INVALID_REQUEST"
+  | "RATE_LIMITED"
+  | "AI_TEMPORARILY_UNAVAILABLE"
+  | "AI_TIMEOUT"
+  | "AI_UNAVAILABLE"
+  | "AI_RESPONSE_INVALID"
+  | "AI_PROVIDER_ERROR"
+  | "NETWORK_ERROR"
+  | "STREAM_PROTOCOL_ERROR";
+
+export type PortfolioAIConsoleContent = {
+  ariaLabel: string;
+  mark: string;
+  status: string;
+  close: string;
+  languageLabel: string;
+  title: string;
+  intro: string;
+  suggestions: string[];
+  userLabel: string;
+  assistantLabel: string;
+  sourcesTitle: string;
+  inputPlaceholder: string;
+  send: string;
+  retry: string;
+  processing: string;
+  sourceTypeLabels: Record<string, string>;
+  errorMessages: Record<PortfolioAIConsolePublicErrorCode, string>;
+  retryAfterSuffix: string;
+  remainingCharacters: string;
+};
+
 export type HeroSectionContent = {
   eyebrow: string;
   title: string;
@@ -96,4 +129,5 @@ export type PortfolioContent = {
     primary: CtaLink;
     secondary: CtaLink;
   };
+  aiConsole: PortfolioAIConsoleContent;
 };

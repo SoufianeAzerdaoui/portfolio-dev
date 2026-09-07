@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
+import { ThinkingLevel } from "@google/genai";
+
 import {
   buildGenerationUserPrompt,
   buildGroundedContext,
@@ -409,6 +411,68 @@ test("real Gemini provider requires server-side GEMINI_API_KEY", async () => {
       }),
     GenerationConfigurationError,
   );
+});
+
+test("Gemini provider uses Gemini 3 thinking level without legacy controls", async () => {
+  const retrieval = retrievePortfolioKnowledge("A-t-il utilisé Qdrant ?", {
+    locale: "fr",
+  });
+  const context = buildGroundedContext({
+    question: "A-t-il utilisé Qdrant ?",
+    locale: "fr",
+    retrieval,
+  });
+  type CapturedRequest = {
+    config?: Record<string, unknown>;
+  };
+  let capturedRequest: CapturedRequest | undefined;
+  const mockClient = {
+    models: {
+      generateContent: async (request: CapturedRequest) => {
+        capturedRequest = request;
+
+        return {
+          text: JSON.stringify({
+            answer: "Oui.",
+            usedEvidenceIds: getAllowedEvidenceIds(context).slice(0, 1),
+            uncertainty: "none",
+            language: "fr",
+          }),
+        };
+      },
+    },
+  };
+  const provider = new GeminiPortfolioAIProvider({
+    ...getPortfolioAIGenerationConfig({ GEMINI_API_KEY: "test-api-key" }),
+    apiKey: "test-api-key",
+  });
+
+  (
+    provider as unknown as {
+      client: typeof mockClient;
+    }
+  ).client = mockClient;
+
+  await provider.generate({
+    question: "A-t-il utilisé Qdrant ?",
+    locale: "fr",
+    model: "gemini-3.6-flash",
+    groundedContext: context,
+    allowedEvidenceIds: getAllowedEvidenceIds(context),
+    systemPrompt: PORTFOLIO_AI_SYSTEM_PROMPT,
+    userPrompt: "test",
+  });
+
+  assert.ok(capturedRequest);
+  const config = capturedRequest.config;
+  assert.ok(config);
+  const thinkingConfig = config.thinkingConfig as Record<string, unknown>;
+
+  assert.equal(thinkingConfig.thinkingLevel, ThinkingLevel.LOW);
+  assert.equal("thinkingBudget" in thinkingConfig, false);
+  assert.equal("candidateCount" in config, false);
+  assert.equal("temperature" in config, false);
+  assert.equal("topP" in config, false);
 });
 
 test("Gemini auth failures normalize to configuration errors", () => {
