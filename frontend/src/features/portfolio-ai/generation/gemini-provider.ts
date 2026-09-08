@@ -3,11 +3,11 @@ import "server-only";
 import { GoogleGenAI, ThinkingLevel } from "@google/genai";
 import { portfolioAnswerResponseSchema } from "@/features/portfolio-ai/generation/answer.schema";
 import {
+  assertPortfolioAIGeminiConfig,
   getPortfolioAIGenerationConfig,
   type PortfolioAIGenerationConfig,
 } from "@/features/portfolio-ai/generation/generation.config";
 import {
-  GenerationConfigurationError,
   GenerationProviderError,
   normalizeGenerationError,
 } from "@/features/portfolio-ai/generation/generation.errors";
@@ -47,9 +47,7 @@ export class GeminiPortfolioAIProvider implements PortfolioAIProvider {
   }
 
   private getClient() {
-    if (!this.config.apiKey?.trim()) {
-      throw new GenerationConfigurationError("GEMINI_API_KEY is required.");
-    }
+    assertPortfolioAIGeminiConfig(this.config);
 
     this.client ??= new GoogleGenAI({
       apiKey: this.config.apiKey,

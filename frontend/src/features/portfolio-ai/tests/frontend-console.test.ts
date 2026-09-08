@@ -314,6 +314,14 @@ test("frontend error copy maps provider availability without raw internals", () 
     }),
     "Je n'ai pas pu produire une réponse suffisamment fiable. Essayez de reformuler votre question.",
   );
+  assert.equal(
+    getPortfolioAIErrorDisplayMessage(content, {
+      code: "AI_UNAVAILABLE",
+      message: "credential raw",
+      retryable: false,
+    }),
+    "Portfolio AI est momentanément indisponible.",
+  );
 });
 
 test("network failure is sanitized and does not retry automatically", async () => {
@@ -333,6 +341,35 @@ test("network failure is sanitized and does not retry automatically", async () =
   assert.equal(error.code, "NETWORK_ERROR");
   assert.equal(error.message.includes("Gemini"), false);
   assert.equal(error.message.includes("RESOURCE_EXHAUSTED"), false);
+});
+
+test("aborted stream does not dispatch a stale client error", async () => {
+  let onErrorCalled = false;
+  let abortThrown = false;
+  const abortError = Object.assign(new Error("The operation was aborted."), {
+    name: "AbortError",
+  });
+  const fetcher: typeof fetch = async () => {
+    throw abortError;
+  };
+
+  try {
+    await streamPortfolioAIResponse(
+      { message: "Bonjour", locale: "fr" },
+      {
+        fetcher,
+        onError: () => {
+          onErrorCalled = true;
+        },
+      },
+    );
+  } catch (error) {
+    abortThrown = true;
+    assert.equal(error, abortError);
+  }
+
+  assert.equal(abortThrown, true);
+  assert.equal(onErrorCalled, false);
 });
 
 test("history is bounded to recent successful user and assistant messages only", () => {

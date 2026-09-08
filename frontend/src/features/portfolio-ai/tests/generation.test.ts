@@ -19,6 +19,7 @@ import {
   generatePortfolioAnswer,
   normalizeGenerationError,
   PORTFOLIO_AI_SYSTEM_PROMPT,
+  validatePortfolioAIGenerationEnvironment,
   type GroundedGenerationInput,
   type PortfolioAIProvider,
   type ProviderGenerationResult,
@@ -199,6 +200,36 @@ test("English generation input asks for English output", async () => {
 
   assert.equal(provider.inputs[0]?.locale, "en");
   assert.equal(result.answer.language, "en");
+});
+
+test("generation config defaults to Gemini 3.6 Flash", () => {
+  const config = getPortfolioAIGenerationConfig({});
+
+  assert.equal(DEFAULT_PORTFOLIO_AI_MODEL, "gemini-3.6-flash");
+  assert.equal(config.model, "gemini-3.6-flash");
+});
+
+test("generation environment validation rejects unsafe public credentials", () => {
+  const validation = validatePortfolioAIGenerationEnvironment({
+    GEMINI_API_KEY: "test-api-key",
+    NEXT_PUBLIC_GEMINI_API_KEY: "test-public-key",
+  });
+
+  assert.equal(validation.valid, false);
+  assert.equal(validation.publicCredentialDetected, true);
+  assert.equal(validation.errors[0]?.includes("NEXT_PUBLIC"), true);
+  assert.equal(JSON.stringify(validation).includes("test-public-key"), false);
+});
+
+test("generation config rejects empty model values", () => {
+  assert.throws(
+    () =>
+      getPortfolioAIGenerationConfig({
+        GEMINI_API_KEY: "test-api-key",
+        PORTFOLIO_AI_MODEL: "   ",
+      }),
+    GenerationConfigurationError,
+  );
 });
 
 test("comparison context includes both compared projects", () => {

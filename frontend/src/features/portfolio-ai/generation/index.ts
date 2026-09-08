@@ -16,7 +16,10 @@ export {
   DEFAULT_GENERATION_TIMEOUT_MS,
   DEFAULT_PORTFOLIO_AI_MODEL,
   MAX_GENERATED_ANSWER_LENGTH,
+  assertPortfolioAIGeminiConfig,
+  assertPortfolioAIGenerationEnvironment,
   getPortfolioAIGenerationConfig,
+  validatePortfolioAIGenerationEnvironment,
 } from "@/features/portfolio-ai/generation/generation.config";
 export {
   GenerationConfigurationError,
