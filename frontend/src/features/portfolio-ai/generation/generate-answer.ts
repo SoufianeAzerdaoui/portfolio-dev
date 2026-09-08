@@ -19,6 +19,10 @@ import {
   PORTFOLIO_AI_SYSTEM_PROMPT,
 } from "@/features/portfolio-ai/generation/generation.prompt";
 import { getDefaultPortfolioAIProvider } from "@/features/portfolio-ai/generation/gemini-provider";
+import {
+  detectPortfolioAIResponseLanguage,
+  isPortfolioAIGreeting,
+} from "@/features/portfolio-ai/generation/response-language";
 import type {
   GeneratePortfolioAnswerInput,
   GeneratePortfolioAnswerOptions,
@@ -29,26 +33,11 @@ import type {
 } from "@/features/portfolio-ai/generation/generation.types";
 import { validateGroundedAnswer } from "@/features/portfolio-ai/generation/validate-grounding";
 
-function detectResponseLanguage(question: string, fallback: "fr" | "en") {
-  const normalized = question.toLowerCase();
-
-  if (/\b(has|what|which|tell|compare|used|projects?)\b/.test(normalized)) {
-    return "en";
-  }
-
-  if (
-    /\b(a-t-il|quel|quelle|quels|quelles|utilise|utilisé|parle|compare)\b/.test(
-      normalized,
-    )
-  ) {
-    return "fr";
-  }
-
-  return fallback;
-}
-
 function localNotDocumentedAnswer(input: GeneratePortfolioAnswerInput) {
-  const language = detectResponseLanguage(input.question, input.locale);
+  const language = detectPortfolioAIResponseLanguage(
+    input.question,
+    input.locale,
+  );
 
   return {
     answer:
@@ -57,6 +46,23 @@ function localNotDocumentedAnswer(input: GeneratePortfolioAnswerInput) {
         : "Je ne trouve pas cette information documentée dans le portfolio de Soufiane.",
     usedEvidenceIds: [],
     uncertainty: "not-documented" as const,
+    language,
+  };
+}
+
+function localGreetingAnswer(input: GeneratePortfolioAnswerInput) {
+  const language = detectPortfolioAIResponseLanguage(
+    input.question,
+    input.locale,
+  );
+
+  return {
+    answer:
+      language === "en"
+        ? "Hello. Ask me about Soufiane's projects, skills, education, or experience."
+        : "Bonjour. Posez-moi une question sur les projets, compétences, formations ou expériences de Soufiane.",
+    usedEvidenceIds: [],
+    uncertainty: "none" as const,
     language,
   };
 }
@@ -133,6 +139,23 @@ export async function generatePortfolioAnswer(
   const retrievedEntityCount = input.retrieval.results.length;
   const verifiedEvidenceCount = countEvidenceByStatus(input, "verified");
   const ambiguousEvidenceCount = countEvidenceByStatus(input, "ambiguous");
+
+  if (isPortfolioAIGreeting(input.question)) {
+    return {
+      answer: localGreetingAnswer(input),
+      metadata: {
+        provider: "local",
+        model: "deterministic-greeting",
+        latencyMs: 0,
+        retrievedEntityCount,
+        verifiedEvidenceCount,
+        ambiguousEvidenceCount,
+        usedEvidenceCount: 0,
+        providerCalled: false,
+        retryCount: 0,
+      },
+    };
+  }
 
   if (input.retrieval.notDocumented && input.retrieval.results.length === 0) {
     return {

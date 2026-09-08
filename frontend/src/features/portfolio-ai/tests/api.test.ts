@@ -19,6 +19,7 @@ import {
   PORTFOLIO_AI_MAX_MESSAGE_LENGTH,
   projectPublicSources,
 } from "@/features/portfolio-ai/api/portfolio-ai-api";
+import { buildConversationContext } from "@/features/portfolio-ai/api/conversation-context";
 import {
   chunkValidatedAnswer,
   createPortfolioAIStreamResponse,
@@ -157,6 +158,155 @@ test("valid Qdrant-like request returns answer and public sources", async () => 
   }
 
   assert.equal(provider.callCount, 1);
+});
+
+test("broad AI project discovery reaches provider with grounded projects", async () => {
+  const provider = new MockPortfolioAIProvider((input) => ({
+    answer: "Ses projets IA documentés incluent notamment Medical RAG.",
+    usedEvidenceIds: input.allowedEvidenceIds.slice(0, 1),
+    uncertainty: "none",
+    language: "fr",
+  }));
+  const result = await handlePortfolioAIRequest(
+    {
+      message: "Quels sont ses projets les plus pertinents en IA ?",
+      locale: "fr",
+    },
+    { provider, requestId: "req_ai_projects" },
+  );
+
+  assert.equal(result.status, 200);
+  assert.equal(provider.callCount, 1);
+
+  const groundedEntityIds =
+    provider.inputs[0]?.groundedContext.entities.map((entity) => entity.id) ??
+    [];
+
+  assert.ok(groundedEntityIds.includes("medical-rag-platform"));
+  assert.ok(groundedEntityIds.includes("syndismart-ai"));
+  assert.ok((provider.inputs[0]?.allowedEvidenceIds.length ?? 0) > 0);
+
+  if ("answer" in result.body) {
+    assert.equal(result.body.uncertainty, "none");
+  }
+});
+
+test("English current message uses English AI language with French UI locale", async () => {
+  const provider = new MockPortfolioAIProvider((input) => ({
+    answer: "His RAG projects include Medical RAG.",
+    usedEvidenceIds: input.allowedEvidenceIds.slice(0, 1),
+    uncertainty: "none",
+    language: input.locale,
+  }));
+  const result = await handlePortfolioAIRequest(
+    { message: "What projects use RAG?", locale: "fr" },
+    { provider, requestId: "req_language_en_current" },
+  );
+
+  assert.equal(result.status, 200);
+  assert.equal(provider.inputs[0]?.locale, "en");
+
+  if ("answer" in result.body) {
+    assert.equal(result.body.language, "en");
+  }
+});
+
+test("French current message uses French AI language with English UI locale", async () => {
+  const provider = new MockPortfolioAIProvider((input) => ({
+    answer: "Qdrant est documenté dans Medical RAG.",
+    usedEvidenceIds: input.allowedEvidenceIds.slice(0, 1),
+    uncertainty: "none",
+    language: input.locale,
+  }));
+  const result = await handlePortfolioAIRequest(
+    { message: "Quels projets utilisent Qdrant ?", locale: "en" },
+    { provider, requestId: "req_language_fr_current" },
+  );
+
+  assert.equal(result.status, 200);
+  assert.equal(provider.inputs[0]?.locale, "fr");
+
+  if ("answer" in result.body) {
+    assert.equal(result.body.language, "fr");
+  }
+});
+
+test("current message language dominates older opposite-language history", async () => {
+  const provider = new MockPortfolioAIProvider((input) => ({
+    answer: "His RAG projects include Medical RAG.",
+    usedEvidenceIds: input.allowedEvidenceIds.slice(0, 1),
+    uncertainty: "none",
+    language: input.locale,
+  }));
+  const result = await handlePortfolioAIRequest(
+    {
+      message: "What projects use RAG?",
+      locale: "fr",
+      history: [
+        { role: "user", content: "Quels projets utilisent Qdrant ?" },
+        {
+          role: "assistant",
+          content: "Qdrant est documenté dans Medical RAG.",
+        },
+      ],
+    },
+    { provider, requestId: "req_language_current_dominates" },
+  );
+
+  assert.equal(result.status, 200);
+  assert.equal(provider.inputs[0]?.locale, "en");
+
+  if ("answer" in result.body) {
+    assert.equal(result.body.language, "en");
+  }
+});
+
+test("ambiguous short input falls back to UI locale", async () => {
+  const provider = new MockPortfolioAIProvider((input) => ({
+    answer: "RAG is documented in portfolio projects.",
+    usedEvidenceIds: input.allowedEvidenceIds.slice(0, 1),
+    uncertainty: "none",
+    language: input.locale,
+  }));
+  const result = await handlePortfolioAIRequest(
+    { message: "RAG", locale: "en" },
+    { provider, requestId: "req_language_fallback" },
+  );
+
+  assert.equal(result.status, 200);
+  assert.equal(provider.inputs[0]?.locale, "en");
+
+  if ("answer" in result.body) {
+    assert.equal(result.body.language, "en");
+  }
+});
+
+test("trivial greetings remain deterministic and language-aware", async () => {
+  const provider = new MockPortfolioAIProvider(() => {
+    throw new Error("Provider should not be called.");
+  });
+  const hello = await handlePortfolioAIRequest(
+    { message: "hello", locale: "fr" },
+    { provider, requestId: "req_greeting_hello" },
+  );
+  const bonjour = await handlePortfolioAIRequest(
+    { message: "bonjour", locale: "en" },
+    { provider, requestId: "req_greeting_bonjour" },
+  );
+
+  assert.equal(provider.callCount, 0);
+  assert.equal(hello.status, 200);
+  assert.equal(bonjour.status, 200);
+
+  if ("answer" in hello.body) {
+    assert.equal(hello.body.language, "en");
+    assert.equal(hello.body.uncertainty, "none");
+  }
+
+  if ("answer" in bonjour.body) {
+    assert.equal(bonjour.body.language, "fr");
+    assert.equal(bonjour.body.uncertainty, "none");
+  }
 });
 
 test("first rate-limited client request succeeds", async () => {
@@ -419,6 +569,75 @@ test("not-documented deterministic bypass returns 200 without provider call", as
     { provider, requestId: "req_bypass" },
   );
 
+  assert.equal(result.status, 200);
+  assert.equal(provider.callCount, 0);
+
+  if ("answer" in result.body) {
+    assert.equal(result.body.uncertainty, "not-documented");
+    assert.deepEqual(result.body.sources, []);
+  }
+});
+
+test("unsupported Kubernetes Google and AWS requests remain provider-free", async () => {
+  const provider = new MockPortfolioAIProvider(() => {
+    throw new Error("Provider should not be called.");
+  });
+
+  for (const message of [
+    "Est-il expert Kubernetes ?",
+    "Travaille-t-il chez Google ?",
+    "A-t-il une certification AWS ?",
+  ]) {
+    const result = await handlePortfolioAIRequest(
+      { message, locale: "fr" },
+      { provider, requestId: `req_bypass_${message.length}` },
+    );
+
+    assert.equal(result.status, 200);
+
+    if ("answer" in result.body) {
+      assert.equal(result.body.uncertainty, "not-documented");
+      assert.deepEqual(result.body.sources, []);
+    }
+  }
+
+  assert.equal(provider.callCount, 0);
+});
+
+test("explicit unsupported Kubernetes question does not inherit RAG history", async () => {
+  const history = [
+    { role: "user" as const, content: "RAG" },
+    { role: "assistant" as const, content: "Qdrant" },
+    { role: "assistant" as const, content: "Medical RAG" },
+  ];
+  const conversationContext = buildConversationContext(
+    "Est-il expert Kubernetes ?",
+    "fr",
+    history,
+  );
+  const retrieval = retrievePortfolioKnowledge(
+    conversationContext.retrievalQuery,
+    { locale: "fr" },
+  );
+  const provider = new MockPortfolioAIProvider(() => {
+    throw new Error("Provider should not be called.");
+  });
+  const result = await handlePortfolioAIRequest(
+    {
+      message: "Est-il expert Kubernetes ?",
+      locale: "fr",
+      history,
+    },
+    { provider, requestId: "req_kubernetes_history_isolation" },
+  );
+
+  assert.equal(conversationContext.contextualized, false);
+  assert.equal(
+    conversationContext.retrievalQuery,
+    "Est-il expert Kubernetes ?",
+  );
+  assert.equal(retrieval.notDocumented, true);
+  assert.equal(retrieval.results.length, 0);
   assert.equal(result.status, 200);
   assert.equal(provider.callCount, 0);
 

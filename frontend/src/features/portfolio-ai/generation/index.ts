@@ -33,6 +33,10 @@ export {
   buildGenerationUserPrompt,
 } from "@/features/portfolio-ai/generation/generation.prompt";
 export {
+  detectPortfolioAIResponseLanguage,
+  isPortfolioAIGreeting,
+} from "@/features/portfolio-ai/generation/response-language";
+export {
   GeminiPortfolioAIProvider,
   getDefaultPortfolioAIProvider,
 } from "@/features/portfolio-ai/generation/gemini-provider";

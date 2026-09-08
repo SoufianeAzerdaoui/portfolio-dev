@@ -196,7 +196,7 @@ export function PortfolioAIConsole({
         aria-labelledby={titleId}
         aria-busy={isActive}
         className={[
-          "flex h-[100dvh] w-full flex-col overflow-hidden border border-[var(--home-line)] bg-[#17161C] shadow-[0_24px_80px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.035)] sm:h-[min(720px,calc(100dvh-48px))] sm:w-[min(1000px,calc(100vw-48px))] sm:rounded-[14px] lg:h-[min(720px,calc(100dvh-80px))] lg:w-[min(1000px,calc(100vw-80px))]",
+          "flex h-[100dvh] w-full flex-col overflow-hidden border border-[var(--home-line)] bg-[#17161C] [--portfolio-ai-composer-clearance:calc(6.75rem+env(safe-area-inset-bottom))] shadow-[0_24px_80px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.035)] sm:h-[min(720px,calc(100dvh-48px))] sm:w-[min(1000px,calc(100vw-48px))] sm:rounded-[14px] lg:h-[min(720px,calc(100dvh-80px))] lg:w-[min(1000px,calc(100vw-80px))]",
           reduceMotion
             ? ""
             : closing

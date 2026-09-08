@@ -21,6 +21,40 @@ export const PORTFOLIO_AI_SYSTEM_PROMPT = [
   "Return only valid JSON matching the requested structured output.",
 ].join("\n");
 
+function normalizedQuestionIncludes(
+  question: string,
+  terms: readonly string[],
+) {
+  const normalized = question
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+
+  return terms.some((term) => normalized.includes(term));
+}
+
+function answerGuidanceFor(input: GeneratePortfolioAnswerInput) {
+  if (
+    input.retrieval.intent !== "projects_by_domain" ||
+    !normalizedQuestionIncludes(input.question, [
+      "pertinent",
+      "pertinents",
+      "relevant",
+      "best",
+      "meilleur",
+      "meilleurs",
+      "top",
+    ])
+  ) {
+    return undefined;
+  }
+
+  return [
+    "If the user asks for best, top, most relevant, or most pertinent projects, do not imply an objective ranking unless PORTFOLIO DATA explicitly provides ranking evidence.",
+    "Frame the answer as documented projects or projects directly related to the requested domain, and keep any distinctions grounded in supplied facts.",
+  ].join(" ");
+}
+
 export function buildGenerationUserPrompt(
   input: GeneratePortfolioAnswerInput,
   groundedContext: GroundedContext,
@@ -41,6 +75,7 @@ export function buildGenerationUserPrompt(
         language: ["fr", "en"],
       },
       localeFallback: input.locale,
+      answerGuidance: answerGuidanceFor(input),
       userQuestion: input.question,
       portfolioData: groundedContext,
     },

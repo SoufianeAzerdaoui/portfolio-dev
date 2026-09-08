@@ -45,6 +45,54 @@ type RetrievalTerm = {
   term: string;
 };
 
+type ContextualDomainMatch = {
+  entityId: string;
+  terms: readonly string[];
+};
+
+const PROJECT_DISCOVERY_TERMS = ["projet", "projets", "project", "projects"];
+
+const PROJECT_DISCOVERY_DOMAIN_MATCHES: readonly ContextualDomainMatch[] = [
+  {
+    entityId: "domain:ai-ml",
+    terms: [
+      "ia",
+      "ai",
+      "intelligence artificielle",
+      "artificial intelligence",
+      "machine learning",
+      "ml",
+      "deep learning",
+    ],
+  },
+  {
+    entityId: "domain:data-engineering",
+    terms: [
+      "data",
+      "data engineering",
+      "ingenierie des donnees",
+      "ingenierie data",
+      "data pipeline",
+      "big data",
+      "real time",
+      "temps reel",
+    ],
+  },
+  {
+    entityId: "domain:data-analytics",
+    terms: [
+      "data",
+      "data analytics",
+      "data analysis",
+      "analyse de donnees",
+      "analyse data",
+      "analytics",
+      "business intelligence",
+      "bi",
+    ],
+  },
+];
+
 function isRetrievalTerm(value: unknown): value is RetrievalTerm {
   return (
     typeof value === "object" &&
@@ -81,6 +129,25 @@ function queryContainsPhrase(query: NormalizedQuery, phrase: string) {
   }
 
   return ` ${query.normalized} `.includes(` ${normalizedPhrase} `);
+}
+
+function queryContainsContextualPhrase(
+  query: NormalizedQuery,
+  phrase: string,
+) {
+  const normalizedPhrase = normalizeAlias(phrase);
+
+  if (!normalizedPhrase) {
+    return false;
+  }
+
+  return ` ${query.normalized} `.includes(` ${normalizedPhrase} `);
+}
+
+function hasProjectDiscoveryWording(query: NormalizedQuery) {
+  return PROJECT_DISCOVERY_TERMS.some((term) =>
+    queryContainsContextualPhrase(query, term),
+  );
 }
 
 function tokenOverlapScore(query: NormalizedQuery, entity: KnowledgeEntity) {
@@ -195,12 +262,64 @@ function bestMatchForEntity(
   };
 }
 
+function entityById(id: string) {
+  return getKnowledgeBase().entities.find((entity) => entity.id === id);
+}
+
+function contextualProjectDiscoveryMatches(
+  query: NormalizedQuery,
+): DetectedEntity[] {
+  if (!hasProjectDiscoveryWording(query)) {
+    return [];
+  }
+
+  const matches: DetectedEntity[] = [];
+
+  PROJECT_DISCOVERY_DOMAIN_MATCHES.forEach((domainMatch) => {
+    const entity = entityById(domainMatch.entityId);
+    const matchedAlias = domainMatch.terms.find((term) =>
+      queryContainsContextualPhrase(query, term),
+    );
+
+    if (!entity || !matchedAlias) {
+      return;
+    }
+
+    matches.push({
+      entity,
+      matchType: "derived-category-domain",
+      matchedAlias,
+      score: MATCH_SCORES["derived-category-domain"] + 24,
+      reasons: [`project discovery domain alias matched: ${matchedAlias}`],
+    });
+  });
+
+  return matches;
+}
+
+function uniqueBestMatches(matches: readonly DetectedEntity[]) {
+  const byEntityId = new Map<string, DetectedEntity>();
+
+  matches.forEach((match) => {
+    const existingMatch = byEntityId.get(match.entity.id);
+
+    if (!existingMatch || match.score > existingMatch.score) {
+      byEntityId.set(match.entity.id, match);
+    }
+  });
+
+  return [...byEntityId.values()];
+}
+
 export function detectEntities(query: NormalizedQuery): DetectedEntity[] {
   const bestMatches = getKnowledgeBase()
     .entities.map((entity) => bestMatchForEntity(query, entity))
     .filter((match): match is DetectedEntity => Boolean(match));
 
-  return bestMatches
+  return uniqueBestMatches([
+    ...bestMatches,
+    ...contextualProjectDiscoveryMatches(query),
+  ])
     .sort((left, right) => {
       if (right.score !== left.score) {
         return right.score - left.score;

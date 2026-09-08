@@ -31,6 +31,23 @@ function assertEntityStatus(
   assert.equal(group.status, status);
 }
 
+function assertIncludesEntities(
+  result: PortfolioRetrievalResult,
+  expectedEntityIds: readonly string[],
+) {
+  const ids = entityIds(result);
+
+  expectedEntityIds.forEach((entityId) => {
+    assert.ok(ids.includes(entityId), `Expected ${entityId} in results.`);
+  });
+}
+
+function assertNotDocumented(result: PortfolioRetrievalResult) {
+  assert.equal(result.status, "not-documented");
+  assert.equal(result.notDocumented, true);
+  assert.equal(result.results.length, 0);
+}
+
 const qdrantFr = retrievePortfolioKnowledge("A-t-il utilisé Qdrant ?", {
   locale: "fr",
 });
@@ -54,9 +71,7 @@ const kubernetes = retrievePortfolioKnowledge(
   "A-t-il travaillé avec Kubernetes ?",
   { locale: "fr" },
 );
-assert.equal(kubernetes.status, "not-documented");
-assert.equal(kubernetes.notDocumented, true);
-assert.equal(kubernetes.results.length, 0);
+assertNotDocumented(kubernetes);
 
 const faiss = retrievePortfolioKnowledge("A-t-il utilisé FAISS ?", {
   locale: "fr",
@@ -85,8 +100,51 @@ const ragProjects = retrievePortfolioKnowledge("Quels sont ses projets RAG ?", {
   locale: "fr",
 });
 assert.equal(ragProjects.intent, "projects_by_domain");
-assert.ok(entityIds(ragProjects).includes("medical-rag-platform"));
-assert.ok(entityIds(ragProjects).includes("syndismart-ai"));
+assertIncludesEntities(ragProjects, ["medical-rag-platform", "syndismart-ai"]);
+
+const relevantAiProjects = retrievePortfolioKnowledge(
+  "Quels sont ses projets les plus pertinents en IA ?",
+  { locale: "fr" },
+);
+assert.equal(relevantAiProjects.intent, "projects_by_domain");
+assert.equal(relevantAiProjects.status, "verified");
+assert.equal(relevantAiProjects.notDocumented, false);
+assertIncludesEntities(relevantAiProjects, [
+  "medical-rag-platform",
+  "syndismart-ai",
+  "callcenter-frustration-ai",
+  "personalized-recommendation-system",
+  "algorithmic-trading-ml",
+]);
+
+const shortAiProjects = retrievePortfolioKnowledge("Quels sont ses projets IA ?", {
+  locale: "fr",
+});
+assert.equal(shortAiProjects.intent, "projects_by_domain");
+assert.equal(shortAiProjects.notDocumented, false);
+assertIncludesEntities(shortAiProjects, ["medical-rag-platform", "syndismart-ai"]);
+
+const artificialIntelligenceProjects = retrievePortfolioKnowledge(
+  "Quels sont ses meilleurs projets en intelligence artificielle ?",
+  { locale: "fr" },
+);
+assert.equal(artificialIntelligenceProjects.intent, "projects_by_domain");
+assert.equal(artificialIntelligenceProjects.notDocumented, false);
+assertIncludesEntities(artificialIntelligenceProjects, [
+  "medical-rag-platform",
+  "syndismart-ai",
+]);
+
+const englishAiProjects = retrievePortfolioKnowledge(
+  "What are his most relevant AI projects?",
+  { locale: "en" },
+);
+assert.equal(englishAiProjects.intent, "projects_by_domain");
+assert.equal(englishAiProjects.notDocumented, false);
+assertIncludesEntities(englishAiProjects, [
+  "medical-rag-platform",
+  "syndismart-ai",
+]);
 
 const atline = retrievePortfolioKnowledge(
   "Quelle stack utilisait-il chez ATLINE ?",
@@ -150,8 +208,34 @@ const dataEngineering = retrievePortfolioKnowledge(
   { locale: "fr" },
 );
 assert.equal(dataEngineering.intent, "projects_by_domain");
-assert.ok(entityIds(dataEngineering).includes("personalized-recommendation-system"));
-assert.ok(entityIds(dataEngineering).includes("real-time-ecommerce-activity-tracking"));
+assertIncludesEntities(dataEngineering, [
+  "personalized-recommendation-system",
+  "real-time-ecommerce-activity-tracking",
+]);
+
+const dataAiProjects = retrievePortfolioKnowledge(
+  "Quels sont ses projets Data/IA ?",
+  { locale: "fr", topK: 10 },
+);
+assert.equal(dataAiProjects.intent, "projects_by_domain");
+assert.equal(dataAiProjects.notDocumented, false);
+assertIncludesEntities(dataAiProjects, [
+  "medical-rag-platform",
+  "real-time-ecommerce-activity-tracking",
+  "bank-credit-decision-support-system",
+]);
+
+const englishDataAiProjects = retrievePortfolioKnowledge(
+  "What are his Data and AI projects?",
+  { locale: "en", topK: 10 },
+);
+assert.equal(englishDataAiProjects.intent, "projects_by_domain");
+assert.equal(englishDataAiProjects.notDocumented, false);
+assertIncludesEntities(englishDataAiProjects, [
+  "medical-rag-platform",
+  "real-time-ecommerce-activity-tracking",
+  "bank-credit-decision-support-system",
+]);
 
 const comparison = retrievePortfolioKnowledge("Compare Medical RAG et SyndiSmart", {
   locale: "fr",
@@ -186,6 +270,15 @@ assert.equal(typo.results.length, 0);
 
 const generic = retrievePortfolioKnowledge("AI", { locale: "fr" });
 assert.ok(generic.results.length <= 3);
+
+[
+  "Kubernetes",
+  "Est-il expert Kubernetes ?",
+  "Travaille-t-il chez Google ?",
+  "A-t-il une certification AWS ?",
+].forEach((query) => {
+  assertNotDocumented(retrievePortfolioKnowledge(query, { locale: "fr" }));
+});
 
 const firstRun = retrievePortfolioKnowledge("A-t-il utilisé FastAPI ?", {
   locale: "fr",
