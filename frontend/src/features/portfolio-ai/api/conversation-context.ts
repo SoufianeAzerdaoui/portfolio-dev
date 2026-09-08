@@ -87,12 +87,7 @@ export function buildConversationContext(
     };
   }
 
-  const baseRetrieval = retrievePortfolioKnowledge(message, {
-    locale,
-    topK: 5,
-  });
-  const shouldContextualize =
-    isReferentialFollowUp(message) || baseRetrieval.results.length === 0;
+  const shouldContextualize = isReferentialFollowUp(message);
   const terms = shouldContextualize ? recentHistoryTerms(history, locale) : [];
 
   if (terms.length === 0) {

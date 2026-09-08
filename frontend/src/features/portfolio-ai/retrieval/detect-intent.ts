@@ -47,6 +47,33 @@ export function detectIntent(
   }
 
   if (
+    hasAny(query, [
+      "projets utilisent",
+      "projet utilise",
+      "projects use",
+      "used in projects",
+    ]) &&
+    entityTypes.has("technology")
+  ) {
+    return {
+      intent: "projects_by_technology",
+      confidence: 0.9,
+      reasons: ["project and technology terms matched"],
+    };
+  }
+
+  if (
+    hasAny(query, ["projet", "projets", "project", "projects"]) &&
+    (entityTypes.has("domain") || entityTypes.has("skill"))
+  ) {
+    return {
+      intent: "projects_by_domain",
+      confidence: 0.86,
+      reasons: ["project and domain/category terms matched"],
+    };
+  }
+
+  if (
     hasAny(query, ["atline", "chu", "stage", "alternance", "travaille"]) ||
     entityTypes.has("experience") ||
     entityTypes.has("organization")
@@ -72,33 +99,6 @@ export function detectIntent(
       intent: "project_lookup",
       confidence: 0.9,
       reasons: ["project explanation wording with project entity matched"],
-    };
-  }
-
-  if (
-    hasAny(query, [
-      "projets utilisent",
-      "projet utilise",
-      "projects use",
-      "used in projects",
-    ]) &&
-    entityTypes.has("technology")
-  ) {
-    return {
-      intent: "projects_by_technology",
-      confidence: 0.9,
-      reasons: ["project and technology terms matched"],
-    };
-  }
-
-  if (
-    hasAny(query, ["projet", "projets", "project", "projects"]) &&
-    (entityTypes.has("domain") || entityTypes.has("skill"))
-  ) {
-    return {
-      intent: "projects_by_domain",
-      confidence: 0.86,
-      reasons: ["project and domain/category terms matched"],
     };
   }
 

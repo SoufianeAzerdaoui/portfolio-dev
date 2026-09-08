@@ -12,6 +12,7 @@ import {
 } from "@/features/portfolio-ai/api/rate-limit";
 import {
   createEvidenceId,
+  detectPortfolioAIResponseLanguage,
   generatePortfolioAnswer,
 } from "@/features/portfolio-ai/generation";
 import {
@@ -113,14 +114,6 @@ class PortfolioAIRateLimitError extends Error {
 
 export function createPortfolioAIRequestId() {
   return `pai_${crypto.randomUUID()}`;
-}
-
-function detectRequestLocale(message: string): RetrievalLocale {
-  return /\b(what|which|tell|compare|has|used|projects?|current)\b/i.test(
-    message,
-  )
-    ? "en"
-    : "fr";
 }
 
 export function validatePortfolioAIRequestPayload(
@@ -390,7 +383,12 @@ export function preparePortfolioAIRequest(
   rawPayload: unknown,
 ): PreparedPortfolioAIRequest {
   const payload = validatePortfolioAIRequestPayload(rawPayload);
-  const locale = payload.locale ?? detectRequestLocale(payload.message);
+  const uiLocale =
+    payload.locale ?? detectPortfolioAIResponseLanguage(payload.message, "fr");
+  const locale = detectPortfolioAIResponseLanguage(
+    payload.message,
+    uiLocale,
+  );
   const conversationContext = buildConversationContext(
     payload.message,
     locale,

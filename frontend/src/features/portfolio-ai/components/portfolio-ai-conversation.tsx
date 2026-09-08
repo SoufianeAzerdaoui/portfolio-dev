@@ -48,7 +48,7 @@ export function PortfolioAIConversation({
     return (
       <div
         ref={scrollRef}
-        className="min-h-0 flex-1 overflow-y-auto [scrollbar-width:thin]"
+        className="min-h-0 flex-1 scroll-pb-[var(--portfolio-ai-composer-clearance)] overflow-y-auto [scrollbar-width:thin]"
       >
         <PortfolioAIEmptyState
           content={content}
@@ -65,9 +65,9 @@ export function PortfolioAIConversation({
       onScroll={(event) => {
         stickToBottomRef.current = isNearBottom(event.currentTarget);
       }}
-      className="min-h-0 flex-1 overflow-y-auto px-5 [scrollbar-width:thin] sm:px-6"
+      className="min-h-0 flex-1 scroll-pb-[var(--portfolio-ai-composer-clearance)] overflow-y-auto px-5 [scrollbar-width:thin] sm:px-6"
     >
-      <div className="mx-auto w-full max-w-[52rem] py-4 sm:py-6">
+      <div className="mx-auto w-full max-w-[52rem] pb-[var(--portfolio-ai-composer-clearance)] pt-4 sm:pt-6">
         {messages.map((message) => (
           <PortfolioAIMessage
             key={message.id}

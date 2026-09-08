@@ -20,6 +20,7 @@ import {
 } from "@/features/portfolio-ai/client/conversation-state";
 import { getPortfolioAIErrorDisplayMessage } from "@/features/portfolio-ai/client/display";
 import { PortfolioAIConsole } from "@/features/portfolio-ai/components/portfolio-ai-console";
+import { PortfolioAIConversation } from "@/features/portfolio-ai/components/portfolio-ai-conversation";
 import { PortfolioAIEmptyState } from "@/features/portfolio-ai/components/portfolio-ai-empty-state";
 import { PortfolioAISources } from "@/features/portfolio-ai/components/portfolio-ai-sources";
 
@@ -212,6 +213,51 @@ test("source rendering exposes labels and types, not evidence ids", () => {
   assert.doesNotMatch(markup, /medical-rag-platform/);
 });
 
+test("conversation scroll area reserves composer clearance for final sources", () => {
+  const content = portfolioContentByLocale.fr.aiConsole;
+  const markup = renderToStaticMarkup(
+    createElement(PortfolioAIConversation, {
+      content,
+      messages: [
+        {
+          id: "msg_user",
+          role: "user",
+          content: "Quels sont ses projets IA ?",
+          status: "success",
+        },
+        {
+          id: "msg_assistant",
+          role: "assistant",
+          content: "Voici les projets IA documentés.",
+          status: "success",
+          sources: [
+            {
+              id: "source_medical",
+              entityId: "medical-rag-platform",
+              type: "project",
+              label: "Medical RAG Platform",
+            },
+            {
+              id: "source_recommendation",
+              entityId: "personalized-recommendation-system",
+              type: "project",
+              label: "Personalized Recommendation System",
+            },
+          ],
+        },
+      ],
+      status: "success",
+      isActive: false,
+      onSuggestion: () => {},
+      onRetry: () => {},
+    }),
+  );
+
+  assert.match(markup, /scroll-pb-\[var\(--portfolio-ai-composer-clearance\)\]/);
+  assert.match(markup, /pb-\[var\(--portfolio-ai-composer-clearance\)\]/);
+  assert.match(markup, /Personalized Recommendation System/);
+});
+
 test("HTTP RATE_LIMITED error remains public and retryable", async () => {
   const fetcher: typeof fetch = async () =>
     new Response(
@@ -364,6 +410,7 @@ test("open console renders as modal and reduced motion omits panel animation", (
 
   assert.match(markup, /role="dialog"/);
   assert.match(markup, /aria-modal="true"/);
+  assert.match(markup, /--portfolio-ai-composer-clearance/);
   assert.match(markup, /Ask a question about the portfolio/);
   assert.doesNotMatch(markup, /portfolio-ai-console-in/);
 });
