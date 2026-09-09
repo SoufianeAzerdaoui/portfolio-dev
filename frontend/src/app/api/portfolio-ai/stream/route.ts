@@ -7,6 +7,10 @@ import { createPortfolioAIStreamResponse } from "@/features/portfolio-ai/api/por
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+const JSON_RESPONSE_HEADERS = {
+  "Cache-Control": "no-store",
+};
+
 export async function POST(request: Request) {
   const requestId = createPortfolioAIRequestId();
   let payload: unknown;
@@ -23,7 +27,7 @@ export async function POST(request: Request) {
           retryable: false,
         },
       },
-      { status: 400 },
+      { status: 400, headers: JSON_RESPONSE_HEADERS },
     );
   }
 
@@ -34,7 +38,10 @@ export async function POST(request: Request) {
   });
 
   if (result.status !== 200) {
-    return NextResponse.json(result.body, { status: result.status });
+    return NextResponse.json(result.body, {
+      status: result.status,
+      headers: JSON_RESPONSE_HEADERS,
+    });
   }
 
   return result.response;

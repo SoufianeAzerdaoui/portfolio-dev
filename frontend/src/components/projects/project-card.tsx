@@ -21,6 +21,7 @@ type ProjectCardProps = {
   project: Project;
   view: ProjectViewMode;
   locale?: SupportedLocale;
+  highlighted?: boolean;
 };
 
 type ProjectMetaTone = "accent" | "neutral";
@@ -368,10 +369,33 @@ function ListProjectCard({
   );
 }
 
-export function ProjectCard({ project, view, locale = "fr" }: ProjectCardProps) {
-  if (view === "list") {
-    return <ListProjectCard project={project} locale={locale} />;
-  }
+export function getProjectAnchorId(project: Pick<Project, "id">) {
+  return project.id;
+}
 
-  return <GridProjectCard project={project} locale={locale} />;
+export function ProjectCard({
+  project,
+  view,
+  locale = "fr",
+  highlighted = false,
+}: ProjectCardProps) {
+  const className = [
+    "portfolio-ai-project-target h-full scroll-mt-24 sm:scroll-mt-28",
+    highlighted ? "portfolio-ai-project-target-active" : "",
+  ].join(" ");
+
+  return (
+    <div
+      id={getProjectAnchorId(project)}
+      data-project-id={project.id}
+      data-portfolio-ai-highlighted={highlighted ? "true" : undefined}
+      className={className}
+    >
+      {view === "list" ? (
+        <ListProjectCard project={project} locale={locale} />
+      ) : (
+        <GridProjectCard project={project} locale={locale} />
+      )}
+    </div>
+  );
 }

@@ -58,17 +58,23 @@ export type PortfolioAIConsolePublicErrorCode =
 export type PortfolioAIConsoleContent = {
   ariaLabel: string;
   mark: string;
-  status: string;
   close: string;
   languageLabel: string;
   title: string;
   intro: string;
+  subtitle: string;
   suggestions: string[];
   userLabel: string;
   assistantLabel: string;
   sourcesTitle: string;
   inputPlaceholder: string;
   send: string;
+  minimize: string;
+  expand: string;
+  restore: string;
+  minimizedReady: string;
+  minimizedActive: string;
+  sourceProjectAction: string;
   retry: string;
   processing: string;
   sourceTypeLabels: Record<string, string>;

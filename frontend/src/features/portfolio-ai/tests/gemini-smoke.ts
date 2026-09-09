@@ -20,7 +20,10 @@ function sanitizeError(error: unknown) {
 
 async function main() {
   const envLoadResult = loadEnvConfig(process.cwd());
-  const model = process.env.PORTFOLIO_AI_MODEL ?? "gemini-2.5-flash";
+  const { DEFAULT_PORTFOLIO_AI_MODEL } = await import(
+    "@/features/portfolio-ai/generation"
+  );
+  const model = process.env.PORTFOLIO_AI_MODEL ?? DEFAULT_PORTFOLIO_AI_MODEL;
   const credentialDetected = process.env.GEMINI_API_KEY?.trim() ? "YES" : "NO";
   const environmentLoaded =
     envLoadResult.loadedEnvFiles.length > 0 || credentialDetected === "YES"

@@ -1,30 +1,24 @@
 "use client";
 
-import {
-  BriefcaseBusiness,
-  FileText,
-  FolderKanban,
-  GraduationCap,
-  UserRound,
-  type LucideIcon,
-} from "lucide-react";
+import Link from "next/link";
+import { ArrowUpRight } from "lucide-react";
 
-import { getPortfolioAISourceTypeLabel } from "@/features/portfolio-ai/client/display";
 import type { PublicPortfolioAISource } from "@/features/portfolio-ai/client/portfolio-ai-client";
+import { getPortfolioAISourceTypeLabel } from "@/features/portfolio-ai/client/display";
 import type { PortfolioAIConsoleContent } from "@/types/portfolio";
-
-const sourceIcons: Record<string, LucideIcon> = {
-  project: FolderKanban,
-  experience: BriefcaseBusiness,
-  education: GraduationCap,
-  profile: UserRound,
-  default: FileText,
-};
 
 type PortfolioAISourcesProps = {
   content: PortfolioAIConsoleContent;
   sources: PublicPortfolioAISource[];
 };
+
+export function isPortfolioAIProjectSource(source: PublicPortfolioAISource) {
+  return source.type.toLowerCase() === "project";
+}
+
+export function getPortfolioAIProjectSourceHref(source: PublicPortfolioAISource) {
+  return `/projects#${encodeURIComponent(source.entityId)}`;
+}
 
 export function PortfolioAISources({ content, sources }: PortfolioAISourcesProps) {
   if (sources.length === 0) {
@@ -38,24 +32,50 @@ export function PortfolioAISources({ content, sources }: PortfolioAISourcesProps
       </p>
       <ul className="mt-2 divide-y divide-[var(--home-line-muted)]">
         {sources.map((source) => {
-          const Icon = sourceIcons[source.type] ?? sourceIcons.default;
-
-          return (
-            <li
-              key={`${source.id}-${source.entityId}`}
-              className="grid min-h-14 grid-cols-[2rem_minmax(0,1fr)] items-center gap-3 py-3"
-            >
-              <span className="inline-grid h-8 w-8 place-items-center text-[#8B80D9]">
-                <Icon aria-hidden="true" className="h-3.5 w-3.5" />
-              </span>
+          const sourceType = getPortfolioAISourceTypeLabel(content, source.type);
+          const sourceContent = (
+            <>
+              <span
+                aria-hidden="true"
+                className="absolute bottom-3 left-0 top-3 w-px bg-[#8B80D9] opacity-50 transition-opacity duration-150 group-hover/source:opacity-90 group-focus-visible/source:opacity-90 motion-reduce:transition-none"
+              />
               <span className="min-w-0">
                 <span className="block font-mono text-[0.58rem] font-semibold uppercase tracking-[0.16em] text-[var(--home-muted)]">
-                  {getPortfolioAISourceTypeLabel(content, source.type)}
+                  {sourceType}
                 </span>
-                <span className="block truncate text-[0.82rem] font-medium text-[#B9B6C6]">
+                <span className="block truncate text-[0.84rem] font-medium text-[#B9B6C6] transition-colors duration-150 group-hover/source:text-[var(--home-text)] group-focus-visible/source:text-[var(--home-text)] motion-reduce:transition-none">
                   {source.label}
                 </span>
               </span>
+            </>
+          );
+          const sourceAction = (
+            <span className="inline-flex min-h-7 shrink-0 items-center gap-1.5 justify-self-start font-mono text-[0.58rem] font-semibold uppercase tracking-[0.14em] text-[#A7A5AF] transition-[border-color,color] duration-150 group-hover/source:text-[#8B80D9] group-focus-visible/source:text-[#8B80D9] motion-reduce:transition-none sm:justify-self-end">
+              <span className="border-b border-[rgba(139,128,217,0.22)] pb-0.5 transition-colors duration-150 group-hover/source:border-[rgba(139,128,217,0.62)] group-focus-visible/source:border-[rgba(139,128,217,0.62)] motion-reduce:transition-none">
+                {content.sourceProjectAction}
+              </span>
+              <ArrowUpRight
+                aria-hidden="true"
+                className="h-3.5 w-3.5 transition-transform duration-150 group-hover/source:translate-x-1 group-focus-visible/source:translate-x-1 motion-reduce:transform-none motion-reduce:transition-none"
+              />
+            </span>
+          );
+
+          return (
+            <li key={`${source.id}-${source.entityId}`}>
+              {isPortfolioAIProjectSource(source) ? (
+                <Link
+                  href={getPortfolioAIProjectSourceHref(source)}
+                  className="group/source relative grid min-h-14 grid-cols-1 items-center gap-2 py-3 pl-3 pr-2 transition-[background-color] duration-150 hover:bg-[rgba(97,85,185,0.045)] focus-visible:bg-[rgba(97,85,185,0.06)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--home-accent-2)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#17161C] motion-reduce:transition-none sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-3"
+                >
+                  {sourceContent}
+                  {sourceAction}
+                </Link>
+              ) : (
+                <div className="relative grid min-h-14 grid-cols-[minmax(0,1fr)] items-center py-3 pl-3 pr-1">
+                  {sourceContent}
+                </div>
+              )}
             </li>
           );
         })}

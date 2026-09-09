@@ -970,6 +970,154 @@ html[data-motion="reduce"] .selected-project-link-icon {
     color 200ms ease-out;
 }
 
+.portfolio-ai-window-control {
+  display: inline-grid;
+  width: 11px;
+  height: 11px;
+  place-items: center;
+  border: 0;
+  border-radius: 9999px;
+  padding: 0;
+  color: rgba(20, 18, 24, 0.58);
+  line-height: 1;
+}
+
+button.portfolio-ai-window-control {
+  cursor: pointer;
+}
+
+button.portfolio-ai-window-control:focus-visible {
+  outline: 2px solid var(--home-accent-2);
+  outline-offset: 4px;
+}
+
+.portfolio-ai-window-control-red {
+  background: #ff5f57;
+}
+
+.portfolio-ai-window-control-yellow {
+  background: #ffbd2e;
+}
+
+.portfolio-ai-window-control-green {
+  background: #28c840;
+}
+
+.portfolio-ai-window-control-symbol {
+  opacity: 0;
+  font-size: 8px;
+  font-weight: 700;
+  transform: translateY(-0.25px);
+  transition: opacity 120ms ease-out;
+}
+
+.portfolio-ai-window-control-mobile-hidden {
+  display: none;
+}
+
+@media (min-width: 640px) {
+  .portfolio-ai-window-control-mobile-hidden {
+    display: inline-grid;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .portfolio-ai-window-control:hover .portfolio-ai-window-control-symbol {
+    opacity: 0.54;
+  }
+}
+
+.portfolio-ai-activity-line {
+  transform-origin: left center;
+}
+
+.portfolio-ai-minimized-activity {
+  transform-origin: left center;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .portfolio-ai-activity-line {
+    animation: portfolio-ai-activity 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+
+  .portfolio-ai-minimized-activity {
+    animation: portfolio-ai-minimized-activity 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+}
+
+.portfolio-ai-project-target {
+  position: relative;
+  border-radius: 12px;
+  transition: background-color 420ms ease-out;
+}
+
+.portfolio-ai-project-target::before {
+  content: "";
+  position: absolute;
+  left: -0.35rem;
+  top: 0.45rem;
+  bottom: 0.45rem;
+  width: 2px;
+  border-radius: 9999px;
+  background: rgba(139, 128, 217, 0.82);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 360ms ease-out;
+}
+
+.portfolio-ai-project-target-active {
+  background: rgba(97, 85, 185, 0.055);
+}
+
+.portfolio-ai-project-target-active::before {
+  opacity: 0.82;
+}
+
+.portfolio-ai-project-target-active .project-card-title {
+  color: var(--home-text);
+}
+
+html[data-motion="reduce"] .portfolio-ai-window-control-symbol,
+html[data-motion="reduce"] .portfolio-ai-activity-line,
+html[data-motion="reduce"] .portfolio-ai-minimized-activity,
+html[data-motion="reduce"] .portfolio-ai-project-target,
+html[data-motion="reduce"] .portfolio-ai-project-target::before {
+  animation: none;
+  transition: none;
+}
+
+@keyframes portfolio-ai-activity {
+  0% {
+    transform: translateX(-105%) scaleX(0.65);
+    opacity: 0.18;
+  }
+
+  45% {
+    opacity: 0.72;
+  }
+
+  100% {
+    transform: translateX(310%) scaleX(0.9);
+    opacity: 0.12;
+  }
+}
+
+@keyframes portfolio-ai-minimized-activity {
+  0% {
+    transform: translateX(-72%) scaleX(0.28);
+    opacity: 0.12;
+  }
+
+  45% {
+    opacity: 0.58;
+  }
+
+  100% {
+    transform: translateX(260%) scaleX(0.34);
+    opacity: 0.1;
+  }
+}
+
 @keyframes home-orbit-drift {
   0%,
   100% {

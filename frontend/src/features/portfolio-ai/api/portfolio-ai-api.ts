@@ -239,18 +239,20 @@ export function projectPublicSources(
   usedEvidenceIds: readonly string[],
 ): PublicPortfolioAISource[] {
   const sources: PublicPortfolioAISource[] = [];
-  const emittedIds = new Set<string>();
+  const emittedPublicEntityKeys = new Set<string>();
 
   for (const evidenceId of usedEvidenceIds) {
-    if (emittedIds.has(evidenceId)) {
-      continue;
-    }
-
     const matchingGroup = retrieval.results.find((group) =>
       collectGroupEvidenceIds(group).has(evidenceId),
     );
 
     if (!matchingGroup) {
+      continue;
+    }
+
+    const publicEntityKey = `${matchingGroup.entity.type}:${matchingGroup.entity.id}`;
+
+    if (emittedPublicEntityKeys.has(publicEntityKey)) {
       continue;
     }
 
@@ -262,7 +264,7 @@ export function projectPublicSources(
         matchingGroup.entity.localeContent?.fr?.title ??
         matchingGroup.entity.canonicalName,
     });
-    emittedIds.add(evidenceId);
+    emittedPublicEntityKeys.add(publicEntityKey);
   }
 
   return sources;

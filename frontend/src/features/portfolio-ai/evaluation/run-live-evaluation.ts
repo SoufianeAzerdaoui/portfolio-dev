@@ -2,6 +2,7 @@ import "server-only";
 
 import {
   buildGroundedContext,
+  DEFAULT_PORTFOLIO_AI_MODEL,
   getAllowedEvidenceIds,
   generatePortfolioAnswer,
   GenerationConfigurationError,
@@ -261,7 +262,7 @@ export async function runLivePortfolioAIEvaluation() {
 
   return {
     blocked: false,
-    model: process.env.PORTFOLIO_AI_MODEL ?? "gemini-2.5-flash",
+    model: process.env.PORTFOLIO_AI_MODEL ?? DEFAULT_PORTFOLIO_AI_MODEL,
     totalQueries: rows.length,
     successfulQueries: rows.filter((row) => !row.error).length,
     failedQueries: rows.filter((row) => row.error).length,

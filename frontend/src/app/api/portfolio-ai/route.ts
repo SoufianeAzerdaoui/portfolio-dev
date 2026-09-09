@@ -9,7 +9,12 @@ import { getPortfolioAIClientRateLimitKey } from "@/features/portfolio-ai/api/ra
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+const JSON_RESPONSE_HEADERS = {
+  "Cache-Control": "no-store",
+};
+
 export async function POST(request: Request) {
+  const requestId = createPortfolioAIRequestId();
   let payload: unknown;
 
   try {
@@ -17,20 +22,24 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json(
       {
-        requestId: createPortfolioAIRequestId(),
+        requestId,
         error: {
           code: "INVALID_REQUEST",
           message: "Request body must be valid JSON.",
           retryable: false,
         },
       },
-      { status: 400 },
+      { status: 400, headers: JSON_RESPONSE_HEADERS },
     );
   }
 
   const result = await handlePortfolioAIRequest(payload, {
+    requestId,
     clientKey: getPortfolioAIClientRateLimitKey(request),
   });
 
-  return NextResponse.json(result.body, { status: result.status });
+  return NextResponse.json(result.body, {
+    status: result.status,
+    headers: JSON_RESPONSE_HEADERS,
+  });
 }
