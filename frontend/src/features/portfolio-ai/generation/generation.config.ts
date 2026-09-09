@@ -3,6 +3,9 @@ import "server-only";
 import { GenerationConfigurationError } from "@/features/portfolio-ai/generation/generation.errors";
 
 export const DEFAULT_PORTFOLIO_AI_MODEL = "gemini-3.6-flash";
+export const DEFAULT_FREELLMAPI_BASE_URL = "http://127.0.0.1:3001/v1";
+export const DEFAULT_FREELLMAPI_MODEL = "auto:reliable";
+export const PORTFOLIO_AI_PRIMARY_TIMEOUT_MS = 6_000;
 export const PORTFOLIO_AI_PROVIDER_TIMEOUT_MS = 25_000;
 export const DEFAULT_GENERATION_MAX_OUTPUT_TOKENS = 512;
 export const DEFAULT_GENERATION_MAX_RETRIES = 1;
@@ -17,6 +20,14 @@ export type PortfolioAIGenerationConfig = {
   maxRetries: number;
 };
 
+export type FreeLLMAPIGenerationConfig = {
+  enabled: boolean;
+  apiKey?: string;
+  baseUrl: string;
+  model: string;
+  timeoutMs: number;
+};
+
 export type PortfolioAIGenerationEnvironmentValidation = {
   valid: boolean;
   errors: string[];
@@ -24,6 +35,10 @@ export type PortfolioAIGenerationEnvironmentValidation = {
   googleCredentialDetected: boolean;
   publicCredentialDetected: boolean;
   model: string;
+  freeLLMAPIEnabled: boolean;
+  freeLLMAPICredentialDetected: boolean;
+  freeLLMAPIPublicCredentialDetected: boolean;
+  freeLLMAPIModel: string;
 };
 
 function hasValue(value: string | undefined) {
@@ -38,21 +53,75 @@ function resolveModel(env: Partial<Record<string, string | undefined>>) {
   return env.PORTFOLIO_AI_MODEL.trim();
 }
 
+function isEnabled(value: string | undefined) {
+  return value?.trim().toLowerCase() === "true";
+}
+
+function resolveFreeLLMAPIBaseUrl(
+  env: Partial<Record<string, string | undefined>>,
+) {
+  return env.FREELLMAPI_BASE_URL?.trim() || DEFAULT_FREELLMAPI_BASE_URL;
+}
+
+function resolveFreeLLMAPIModel(
+  env: Partial<Record<string, string | undefined>>,
+) {
+  if (env.FREELLMAPI_MODEL === undefined) {
+    return DEFAULT_FREELLMAPI_MODEL;
+  }
+
+  return env.FREELLMAPI_MODEL.trim();
+}
+
+function isValidHTTPUrl(value: string) {
+  try {
+    const url = new URL(value);
+
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 export function validatePortfolioAIGenerationEnvironment(
   env: Partial<Record<string, string | undefined>> = process.env,
 ): PortfolioAIGenerationEnvironmentValidation {
   const errors: string[] = [];
   const model = resolveModel(env);
+  const freeLLMAPIEnabled = isEnabled(env.FREELLMAPI_ENABLED);
+  const freeLLMAPIBaseUrl = resolveFreeLLMAPIBaseUrl(env);
+  const freeLLMAPIModel = resolveFreeLLMAPIModel(env);
   const publicCredentialDetected =
     hasValue(env.NEXT_PUBLIC_GEMINI_API_KEY) ||
     hasValue(env.NEXT_PUBLIC_GOOGLE_API_KEY);
+  const freeLLMAPIPublicCredentialDetected = hasValue(
+    env.NEXT_PUBLIC_FREELLMAPI_API_KEY,
+  );
 
   if (publicCredentialDetected) {
     errors.push("Gemini credentials must not be exposed with NEXT_PUBLIC_*.");
   }
 
+  if (freeLLMAPIPublicCredentialDetected) {
+    errors.push("FreeLLMAPI credentials must not be exposed with NEXT_PUBLIC_*.");
+  }
+
   if (!model) {
     errors.push("PORTFOLIO_AI_MODEL cannot be empty.");
+  }
+
+  if (freeLLMAPIEnabled) {
+    if (!hasValue(env.FREELLMAPI_API_KEY)) {
+      errors.push("FREELLMAPI_API_KEY is required when FREELLMAPI_ENABLED=true.");
+    }
+
+    if (!freeLLMAPIModel) {
+      errors.push("FREELLMAPI_MODEL cannot be empty when FreeLLMAPI is enabled.");
+    }
+
+    if (!isValidHTTPUrl(freeLLMAPIBaseUrl)) {
+      errors.push("FREELLMAPI_BASE_URL must be a valid HTTP(S) URL.");
+    }
   }
 
   return {
@@ -62,6 +131,10 @@ export function validatePortfolioAIGenerationEnvironment(
     googleCredentialDetected: hasValue(env.GOOGLE_API_KEY),
     publicCredentialDetected,
     model: model || DEFAULT_PORTFOLIO_AI_MODEL,
+    freeLLMAPIEnabled,
+    freeLLMAPICredentialDetected: hasValue(env.FREELLMAPI_API_KEY),
+    freeLLMAPIPublicCredentialDetected,
+    freeLLMAPIModel: freeLLMAPIModel || DEFAULT_FREELLMAPI_MODEL,
   };
 }
 
@@ -89,6 +162,24 @@ export function assertPortfolioAIGeminiConfig(
   }
 }
 
+export function assertFreeLLMAPIConfig(config: FreeLLMAPIGenerationConfig) {
+  if (!config.enabled) {
+    throw new GenerationConfigurationError("FreeLLMAPI fallback is disabled.");
+  }
+
+  if (!config.apiKey?.trim()) {
+    throw new GenerationConfigurationError("FREELLMAPI_API_KEY is required.");
+  }
+
+  if (!config.model.trim()) {
+    throw new GenerationConfigurationError("FREELLMAPI_MODEL is required.");
+  }
+
+  if (!isValidHTTPUrl(config.baseUrl)) {
+    throw new GenerationConfigurationError("FREELLMAPI_BASE_URL is invalid.");
+  }
+}
+
 export function getPortfolioAIGenerationConfig(
   env: Partial<Record<string, string | undefined>> = process.env,
 ): PortfolioAIGenerationConfig {
@@ -101,5 +192,19 @@ export function getPortfolioAIGenerationConfig(
     timeoutMs: PORTFOLIO_AI_PROVIDER_TIMEOUT_MS,
     maxOutputTokens: DEFAULT_GENERATION_MAX_OUTPUT_TOKENS,
     maxRetries: DEFAULT_GENERATION_MAX_RETRIES,
+  };
+}
+
+export function getFreeLLMAPIGenerationConfig(
+  env: Partial<Record<string, string | undefined>> = process.env,
+): FreeLLMAPIGenerationConfig {
+  assertPortfolioAIGenerationEnvironment(env);
+
+  return {
+    enabled: isEnabled(env.FREELLMAPI_ENABLED),
+    apiKey: env.FREELLMAPI_API_KEY,
+    baseUrl: resolveFreeLLMAPIBaseUrl(env).replace(/\/+$/g, ""),
+    model: resolveFreeLLMAPIModel(env),
+    timeoutMs: PORTFOLIO_AI_PROVIDER_TIMEOUT_MS,
   };
 }

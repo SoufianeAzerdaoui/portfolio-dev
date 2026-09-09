@@ -96,6 +96,7 @@ export type PortfolioAIServiceOptions = {
   requestId?: string;
   clientKey?: string;
   rateLimiter?: PortfolioAIRateLimiter | false;
+  signal?: AbortSignal;
 };
 
 class PortfolioAIRequestValidationError extends Error {
@@ -456,6 +457,10 @@ export async function generatePublicPortfolioAIResponse(
 
   if (options.provider) {
     generationOptions.provider = options.provider;
+  }
+
+  if (options.signal) {
+    generationOptions.signal = options.signal;
   }
 
   const result = await generatePortfolioAnswer(

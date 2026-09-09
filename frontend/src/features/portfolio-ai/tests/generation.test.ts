@@ -7,7 +7,10 @@ import { ThinkingLevel } from "@google/genai";
 import {
   buildGenerationUserPrompt,
   buildGroundedContext,
+  DEFAULT_FREELLMAPI_BASE_URL,
+  DEFAULT_FREELLMAPI_MODEL,
   DEFAULT_PORTFOLIO_AI_MODEL,
+  FreeLLMAPIPortfolioAIProvider,
   GeminiPortfolioAIProvider,
   GenerationConfigurationError,
   GenerationGroundingError,
@@ -16,12 +19,17 @@ import {
   GenerationRateLimitError,
   GenerationTimeoutError,
   getAllowedEvidenceIds,
+  getFreeLLMAPIGenerationConfig,
   getPortfolioAIGenerationConfig,
   generatePortfolioAnswer,
+  isFallbackEligibleGenerationError,
   normalizeGenerationError,
+  PORTFOLIO_AI_PRIMARY_TIMEOUT_MS,
   PORTFOLIO_AI_PROVIDER_TIMEOUT_MS,
   PORTFOLIO_AI_SYSTEM_PROMPT,
+  ResilientPortfolioAIProvider,
   validatePortfolioAIGenerationEnvironment,
+  buildVerifiedTechnologyFastPathAnswer,
   type GroundedGenerationInput,
   type PortfolioAIProvider,
   type ProviderGenerationResult,
@@ -75,16 +83,90 @@ function firstEvidenceAnswer(input: GroundedGenerationInput, answer: string) {
   };
 }
 
+const GENERATED_TEST_QUESTION = "Parle-moi de Medical RAG";
+
+function createGroundedGenerationInput(
+  question = "A-t-il utilisé Qdrant ?",
+  locale: "fr" | "en" = "fr",
+): GroundedGenerationInput {
+  const retrieval = retrievePortfolioKnowledge(question, {
+    locale,
+    topK: 5,
+  });
+  const groundedContext = buildGroundedContext({
+    question,
+    locale,
+    retrieval,
+  });
+
+  return {
+    question,
+    locale,
+    model: DEFAULT_PORTFOLIO_AI_MODEL,
+    groundedContext,
+    allowedEvidenceIds: getAllowedEvidenceIds(groundedContext),
+    systemPrompt: PORTFOLIO_AI_SYSTEM_PROMPT,
+    userPrompt: buildGenerationUserPrompt(
+      {
+        question,
+        locale,
+        retrieval,
+      },
+      groundedContext,
+    ),
+  };
+}
+
+function freeLLMAPIConfig() {
+  return {
+    enabled: true,
+    apiKey: "test-free-key",
+    baseUrl: DEFAULT_FREELLMAPI_BASE_URL,
+    model: DEFAULT_FREELLMAPI_MODEL,
+    timeoutMs: PORTFOLIO_AI_PROVIDER_TIMEOUT_MS,
+  };
+}
+
+function chatCompletionResponse(content: string, init: ResponseInit = {}) {
+  return new Response(
+    JSON.stringify({
+      id: "chatcmpl_test",
+      model: "upstream-model",
+      choices: [
+        {
+          message: {
+            role: "assistant",
+            content,
+          },
+        },
+      ],
+      usage: {
+        prompt_tokens: 11,
+        completion_tokens: 7,
+        total_tokens: 18,
+      },
+      reasoning: "provider-specific envelope field",
+      _routed_via: "provider-specific route",
+    }),
+    {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+      ...init,
+    },
+  );
+}
+
 test("provider timeout config is centralized at 25 seconds", () => {
   const config = getPortfolioAIGenerationConfig({
     GEMINI_API_KEY: "test-api-key",
   });
 
+  assert.equal(PORTFOLIO_AI_PRIMARY_TIMEOUT_MS, 6_000);
   assert.equal(PORTFOLIO_AI_PROVIDER_TIMEOUT_MS, 25_000);
   assert.equal(config.timeoutMs, PORTFOLIO_AI_PROVIDER_TIMEOUT_MS);
 });
 
-test("Qdrant context and answer are grounded in supplied evidence", async () => {
+test("Qdrant verified technology lookup uses deterministic fast path", async () => {
   const retrieval = retrievePortfolioKnowledge("A-t-il utilisé Qdrant ?", {
     locale: "fr",
   });
@@ -104,14 +186,49 @@ test("Qdrant context and answer are grounded in supplied evidence", async () => 
 
   assert.equal(JSON.stringify(context).includes("Qdrant"), true);
   assert.equal(context.entities[0]?.id, "medical-rag-platform");
-  assert.equal(provider.callCount, 1);
+  assert.equal(provider.callCount, 0);
+  assert.equal(result.metadata.providerCalled, false);
+  assert.equal(result.metadata.fastPathUsed, true);
+  assert.equal(result.metadata.model, "deterministic-verified-technology");
+  assert.equal(result.answer.answer.includes("Qdrant"), true);
   assert.equal(result.answer.uncertainty, "none");
   assert.equal(result.metadata.usedEvidenceCount, 1);
   assert.ok(
-    provider.inputs[0]?.allowedEvidenceIds.every((id) =>
+    result.answer.usedEvidenceIds.every((id) =>
       getAllowedEvidenceIds(context).includes(id),
     ),
   );
+});
+
+test("Kafka verified technology lookup uses deterministic fast path", async () => {
+  const retrieval = retrievePortfolioKnowledge("A-t-il utilisé Kafka ?", {
+    locale: "fr",
+  });
+  const provider = new MockPortfolioAIProvider(() => {
+    throw new Error("Provider should not be called.");
+  });
+  const result = await generatePortfolioAnswer(
+    { question: "A-t-il utilisé Kafka ?", locale: "fr", retrieval },
+    { provider },
+  );
+
+  assert.equal(retrieval.intent, "technology_evidence");
+  assert.equal(retrieval.status, "verified");
+  assert.equal(provider.callCount, 0);
+  assert.equal(result.metadata.fastPathUsed, true);
+  assert.equal(result.answer.answer.includes("Apache Kafka"), true);
+  assert.equal(
+    result.answer.answer.includes("Personalized Recommendation System"),
+    true,
+  );
+  assert.equal(
+    result.answer.answer.includes("Real-time E-commerce Activity Tracking"),
+    true,
+  );
+  assert.deepEqual(result.answer.usedEvidenceIds, [
+    "ev:project:personalized-recommendation-system:technologies:primary",
+    "ev:project:real-time-ecommerce-activity-tracking:technologies:primary",
+  ]);
 });
 
 test("Kubernetes not-documented uses local answer and bypasses provider", async () => {
@@ -192,25 +309,39 @@ test("education context keeps Master SIAD in_progress", () => {
   assert.equal(payload.includes("educationStatus"), true);
 });
 
-test("English generation input asks for English output", async () => {
+test("English verified technology lookup uses deterministic English output", async () => {
   const retrieval = retrievePortfolioKnowledge("Has he used Kafka?", {
     locale: "en",
     topK: 5,
   });
-  const provider = new MockPortfolioAIProvider((input) => ({
-    answer: "Yes. Apache Kafka is documented in his project work.",
-    usedEvidenceIds: input.allowedEvidenceIds.slice(0, 1),
-    uncertainty: "none",
-    language: "en",
-  }));
+  const provider = new MockPortfolioAIProvider(() => {
+    throw new Error("Provider should not be called.");
+  });
 
   const result = await generatePortfolioAnswer(
     { question: "Has he used Kafka?", locale: "en", retrieval },
     { provider },
   );
 
-  assert.equal(provider.inputs[0]?.locale, "en");
+  assert.equal(provider.callCount, 0);
+  assert.equal(result.metadata.fastPathUsed, true);
   assert.equal(result.answer.language, "en");
+  assert.equal(result.answer.answer.startsWith("Yes."), true);
+  assert.equal(result.answer.answer.includes("Apache Kafka"), true);
+});
+
+test("ambiguous technology lookup does not use verified fast path", () => {
+  const retrieval = retrievePortfolioKnowledge("A-t-il utilisé Chroma ?", {
+    locale: "fr",
+  });
+  const answer = buildVerifiedTechnologyFastPathAnswer({
+    question: "A-t-il utilisé Chroma ?",
+    locale: "fr",
+    retrieval,
+  });
+
+  assert.equal(retrieval.status, "ambiguous");
+  assert.equal(answer, undefined);
 });
 
 test("generation config defaults to Gemini 3.6 Flash", () => {
@@ -232,6 +363,57 @@ test("generation environment validation rejects unsafe public credentials", () =
   assert.equal(JSON.stringify(validation).includes("test-public-key"), false);
 });
 
+test("generation environment validation rejects public FreeLLMAPI credentials", () => {
+  const validation = validatePortfolioAIGenerationEnvironment({
+    GEMINI_API_KEY: "test-api-key",
+    NEXT_PUBLIC_FREELLMAPI_API_KEY: "test-public-free-key",
+  });
+
+  assert.equal(validation.valid, false);
+  assert.equal(validation.freeLLMAPIPublicCredentialDetected, true);
+  assert.equal(validation.errors[0]?.includes("NEXT_PUBLIC"), true);
+  assert.equal(JSON.stringify(validation).includes("test-public-free-key"), false);
+});
+
+test("FreeLLMAPI fallback config is optional unless enabled", () => {
+  const disabledConfig = getFreeLLMAPIGenerationConfig({
+    GEMINI_API_KEY: "test-api-key",
+  });
+  const enabledConfig = getFreeLLMAPIGenerationConfig({
+    GEMINI_API_KEY: "test-api-key",
+    FREELLMAPI_ENABLED: "true",
+    FREELLMAPI_API_KEY: "test-free-key",
+  });
+
+  assert.equal(disabledConfig.enabled, false);
+  assert.equal(disabledConfig.model, DEFAULT_FREELLMAPI_MODEL);
+  assert.equal(enabledConfig.enabled, true);
+  assert.equal(enabledConfig.baseUrl, DEFAULT_FREELLMAPI_BASE_URL);
+  assert.equal(enabledConfig.model, DEFAULT_FREELLMAPI_MODEL);
+  assert.equal(enabledConfig.timeoutMs, PORTFOLIO_AI_PROVIDER_TIMEOUT_MS);
+});
+
+test("enabled FreeLLMAPI fallback requires server-only key and valid model", () => {
+  assert.throws(
+    () =>
+      getFreeLLMAPIGenerationConfig({
+        GEMINI_API_KEY: "test-api-key",
+        FREELLMAPI_ENABLED: "true",
+      }),
+    GenerationConfigurationError,
+  );
+  assert.throws(
+    () =>
+      getFreeLLMAPIGenerationConfig({
+        GEMINI_API_KEY: "test-api-key",
+        FREELLMAPI_ENABLED: "true",
+        FREELLMAPI_API_KEY: "test-free-key",
+        FREELLMAPI_MODEL: "   ",
+      }),
+    GenerationConfigurationError,
+  );
+});
+
 test("generation config rejects empty model values", () => {
   assert.throws(
     () =>
@@ -240,6 +422,194 @@ test("generation config rejects empty model values", () => {
         PORTFOLIO_AI_MODEL: "   ",
       }),
     GenerationConfigurationError,
+  );
+});
+
+test("FreeLLMAPI provider accepts strict structured JSON content", async () => {
+  const input = createGroundedGenerationInput();
+  let fetchCount = 0;
+  let capturedUrl: RequestInfo | URL | undefined;
+  let capturedRequest: RequestInit | undefined;
+  const provider = new FreeLLMAPIPortfolioAIProvider(
+    freeLLMAPIConfig(),
+    async (url, init) => {
+      fetchCount += 1;
+      capturedUrl = url;
+      capturedRequest = init;
+
+      return chatCompletionResponse(
+        JSON.stringify(firstEvidenceAnswer(input, "Oui, Qdrant est documenté.")),
+      );
+    },
+  );
+  const result = await provider.generate(input);
+  const body = JSON.parse(String(capturedRequest?.body)) as {
+    model: string;
+    stream: boolean;
+    messages: Array<{ role: string; content: string }>;
+  };
+
+  assert.equal(fetchCount, 1);
+  assert.equal(String(capturedUrl), `${DEFAULT_FREELLMAPI_BASE_URL}/chat/completions`);
+  assert.equal(capturedRequest?.method, "POST");
+  assert.equal(
+    (capturedRequest?.headers as Record<string, string>)?.Authorization,
+    "Bearer test-free-key",
+  );
+  assert.equal(
+    (capturedRequest?.headers as Record<string, string>)?.["Content-Type"],
+    "application/json",
+  );
+  assert.equal(body.model, DEFAULT_FREELLMAPI_MODEL);
+  assert.equal(body.stream, false);
+  assert.deepEqual(
+    body.messages.map((message) => message.role),
+    ["system", "user"],
+  );
+  assert.equal(result.provider, "freellmapi");
+  assert.equal(result.model, DEFAULT_FREELLMAPI_MODEL);
+  assert.equal(result.usage?.promptTokenCount, 11);
+  assert.deepEqual(result.output, firstEvidenceAnswer(input, "Oui, Qdrant est documenté."));
+});
+
+test("FreeLLMAPI malformed JSON content maps to invalid output", async () => {
+  const input = createGroundedGenerationInput();
+
+  await assert.rejects(
+    () =>
+      new FreeLLMAPIPortfolioAIProvider(
+        freeLLMAPIConfig(),
+        async () => chatCompletionResponse("not json"),
+      ).generate(input),
+    GenerationInvalidOutputError,
+  );
+  await assert.rejects(
+    () =>
+      new FreeLLMAPIPortfolioAIProvider(
+        freeLLMAPIConfig(),
+        async () =>
+          new Response("not response json", {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }),
+      ).generate(input),
+    GenerationInvalidOutputError,
+  );
+  await assert.rejects(
+    () =>
+      new FreeLLMAPIPortfolioAIProvider(
+        freeLLMAPIConfig(),
+        async () =>
+          new Response(JSON.stringify({ choices: [] }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }),
+      ).generate(input),
+    GenerationInvalidOutputError,
+  );
+});
+
+test("FreeLLMAPI fetch timeout maps to existing timeout error", async () => {
+  const input = createGroundedGenerationInput();
+  const provider = new FreeLLMAPIPortfolioAIProvider(
+    {
+      ...freeLLMAPIConfig(),
+      timeoutMs: 1,
+    },
+    async (_url, init) =>
+      new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener(
+          "abort",
+          () => {
+            reject(
+              Object.assign(new Error("The operation was aborted."), {
+                name: "AbortError",
+              }),
+            );
+          },
+          { once: true },
+        );
+      }),
+  );
+
+  await assert.rejects(() => provider.generate(input), GenerationTimeoutError);
+});
+
+test("FreeLLMAPI invented evidence is rejected by existing grounding validation", async () => {
+  const question = GENERATED_TEST_QUESTION;
+  const retrieval = retrievePortfolioKnowledge(question, { locale: "fr" });
+  const provider = new FreeLLMAPIPortfolioAIProvider(
+    freeLLMAPIConfig(),
+    async () =>
+      chatCompletionResponse(
+        JSON.stringify({
+          answer: "Oui, avec une source inventée.",
+          usedEvidenceIds: ["fake:evidence"],
+          uncertainty: "none",
+          language: "fr",
+        }),
+      ),
+  );
+
+  await assert.rejects(
+    () => generatePortfolioAnswer({ question, locale: "fr", retrieval }, { provider }),
+    GenerationGroundingError,
+  );
+});
+
+test("FreeLLMAPI provider-specific fields are ignored", async () => {
+  const input = createGroundedGenerationInput();
+  const provider = new FreeLLMAPIPortfolioAIProvider(
+    freeLLMAPIConfig(),
+    async () =>
+      chatCompletionResponse(
+        JSON.stringify({
+          ...firstEvidenceAnswer(input, "Oui, Qdrant est documenté."),
+          reasoning: "private chain details",
+        }),
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "X-Routed-Via": "ollama/test-model",
+          },
+        },
+      ),
+  );
+  const result = await provider.generate(input);
+  const serializedResult = JSON.stringify(result);
+
+  assert.equal(result.rawText, undefined);
+  assert.equal(serializedResult.includes("private chain details"), false);
+  assert.equal(serializedResult.includes("ollama/test-model"), false);
+  assert.equal(serializedResult.includes("provider-specific route"), false);
+});
+
+test("FreeLLMAPI HTTP errors normalize to existing generation errors", async () => {
+  const input = createGroundedGenerationInput();
+
+  await assert.rejects(
+    () =>
+      new FreeLLMAPIPortfolioAIProvider(
+        freeLLMAPIConfig(),
+        async () => new Response("{}", { status: 429 }),
+      ).generate(input),
+    GenerationRateLimitError,
+  );
+  await assert.rejects(
+    () =>
+      new FreeLLMAPIPortfolioAIProvider(
+        freeLLMAPIConfig(),
+        async () => new Response("{}", { status: 403 }),
+      ).generate(input),
+    GenerationConfigurationError,
+  );
+  await assert.rejects(
+    () =>
+      new FreeLLMAPIPortfolioAIProvider(
+        freeLLMAPIConfig(),
+        async () => new Response("{}", { status: 500 }),
+      ).generate(input),
+    GenerationProviderError,
   );
 });
 
@@ -365,14 +735,14 @@ test("fake evidence is rejected", () => {
 });
 
 test("empty answer and invalid uncertainty are rejected", async () => {
-  const retrieval = retrievePortfolioKnowledge("A-t-il utilisé Qdrant ?", {
+  const retrieval = retrievePortfolioKnowledge(GENERATED_TEST_QUESTION, {
     locale: "fr",
   });
 
   await assert.rejects(
     () =>
       generatePortfolioAnswer(
-        { question: "A-t-il utilisé Qdrant ?", locale: "fr", retrieval },
+        { question: GENERATED_TEST_QUESTION, locale: "fr", retrieval },
         {
           provider: new MockPortfolioAIProvider(() => ({
             answer: "",
@@ -388,7 +758,7 @@ test("empty answer and invalid uncertainty are rejected", async () => {
   await assert.rejects(
     () =>
       generatePortfolioAnswer(
-        { question: "A-t-il utilisé Qdrant ?", locale: "fr", retrieval },
+        { question: GENERATED_TEST_QUESTION, locale: "fr", retrieval },
         {
           provider: new MockPortfolioAIProvider((input) => ({
             answer: "Oui.",
@@ -542,6 +912,8 @@ test("provider timeout value is not duplicated inconsistently", () => {
   const files = [
     "src/features/portfolio-ai/generation/generation.config.ts",
     "src/features/portfolio-ai/generation/gemini-provider.ts",
+    "src/features/portfolio-ai/generation/freellmapi-provider.ts",
+    "src/features/portfolio-ai/generation/resilient-provider.ts",
     "src/features/portfolio-ai/api/portfolio-ai-api.ts",
     "src/features/portfolio-ai/api/portfolio-ai-stream.ts",
     "src/features/portfolio-ai/client/portfolio-ai-client.ts",
@@ -553,6 +925,8 @@ test("provider timeout value is not duplicated inconsistently", () => {
 
   assert.equal((joinedSource.match(/25_000/g) ?? []).length, 1);
   assert.equal((joinedSource.match(/\b25000\b/g) ?? []).length, 0);
+  assert.equal((joinedSource.match(/6_000/g) ?? []).length, 1);
+  assert.equal((joinedSource.match(/\b6000\b/g) ?? []).length, 0);
   assert.equal((joinedSource.match(/12_000/g) ?? []).length, 0);
   assert.equal((joinedSource.match(/\b12000\b/g) ?? []).length, 0);
 });
@@ -565,7 +939,7 @@ test("Gemini auth failures normalize to configuration errors", () => {
 });
 
 test("custom model option flows through provider and metadata", async () => {
-  const retrieval = retrievePortfolioKnowledge("A-t-il utilisé Qdrant ?", {
+  const retrieval = retrievePortfolioKnowledge(GENERATED_TEST_QUESTION, {
     locale: "fr",
   });
   const provider = new MockPortfolioAIProvider((input) => ({
@@ -576,7 +950,7 @@ test("custom model option flows through provider and metadata", async () => {
   }));
 
   const result = await generatePortfolioAnswer(
-    { question: "A-t-il utilisé Qdrant ?", locale: "fr", retrieval },
+    { question: GENERATED_TEST_QUESTION, locale: "fr", retrieval },
     { provider, model: "gemini-custom-flash" },
   );
 
@@ -584,8 +958,277 @@ test("custom model option flows through provider and metadata", async () => {
   assert.equal(result.metadata.model, "gemini-custom-flash");
 });
 
+test("resilient provider does not call FreeLLMAPI when Gemini succeeds", async () => {
+  const retrieval = retrievePortfolioKnowledge(GENERATED_TEST_QUESTION, {
+    locale: "fr",
+  });
+  const gemini = new MockPortfolioAIProvider((input) =>
+    firstEvidenceAnswer(input, "Oui."),
+  );
+  const freeLLMAPI = new MockPortfolioAIProvider((input) =>
+    firstEvidenceAnswer(input, "Fallback."),
+  );
+  const provider = new ResilientPortfolioAIProvider(gemini, freeLLMAPI);
+  const result = await generatePortfolioAnswer(
+    { question: GENERATED_TEST_QUESTION, locale: "fr", retrieval },
+    { provider },
+  );
+
+  assert.equal(result.answer.answer, "Oui.");
+  assert.equal(gemini.callCount, 1);
+  assert.equal(freeLLMAPI.callCount, 0);
+});
+
+test("resilient provider falls back once on Gemini rate limit, timeout, and provider errors", async () => {
+  const retrieval = retrievePortfolioKnowledge(GENERATED_TEST_QUESTION, {
+    locale: "fr",
+  });
+  const fallbackEligibleErrors = [
+    new GenerationRateLimitError("quota"),
+    new GenerationTimeoutError("timeout"),
+    new GenerationProviderError("provider"),
+  ];
+
+  for (const error of fallbackEligibleErrors) {
+    const gemini = new MockPortfolioAIProvider(() => {
+      throw error;
+    });
+    const freeLLMAPI = new MockPortfolioAIProvider((input) =>
+      firstEvidenceAnswer(input, "Fallback."),
+    );
+    const provider = new ResilientPortfolioAIProvider(gemini, freeLLMAPI);
+    const result = await generatePortfolioAnswer(
+      { question: GENERATED_TEST_QUESTION, locale: "fr", retrieval },
+      { provider },
+    );
+
+    assert.equal(isFallbackEligibleGenerationError(error), true);
+    assert.equal(result.answer.answer, "Fallback.");
+    assert.equal(gemini.callCount, 1);
+    assert.equal(freeLLMAPI.callCount, 1);
+  }
+});
+
+test("complex synthesis still calls the primary provider", async () => {
+  const question = "Compare Medical RAG et SyndiSmart.";
+  const retrieval = retrievePortfolioKnowledge(question, {
+    locale: "fr",
+  });
+  const gemini = new MockPortfolioAIProvider((input) =>
+    firstEvidenceAnswer(input, "Medical RAG et SyndiSmart sont documentés."),
+  );
+  const freeLLMAPI = new MockPortfolioAIProvider((input) =>
+    firstEvidenceAnswer(input, "Fallback."),
+  );
+  const provider = new ResilientPortfolioAIProvider(gemini, freeLLMAPI);
+  const result = await generatePortfolioAnswer(
+    { question, locale: "fr", retrieval },
+    { provider },
+  );
+
+  assert.equal(retrieval.intent, "comparison");
+  assert.equal(result.metadata.fastPathUsed, false);
+  assert.equal(gemini.callCount, 1);
+  assert.equal(freeLLMAPI.callCount, 0);
+});
+
+test("primary timeout aborts Gemini and calls FreeLLMAPI exactly once", async () => {
+  const question = GENERATED_TEST_QUESTION;
+  const retrieval = retrievePortfolioKnowledge(question, {
+    locale: "fr",
+  });
+  let primaryAborted = false;
+  const gemini = new MockPortfolioAIProvider(
+    (input) =>
+      new Promise((resolve, reject) => {
+        input.signal?.addEventListener(
+          "abort",
+          () => {
+            primaryAborted = true;
+            reject(
+              Object.assign(new Error("The operation was aborted."), {
+                name: "AbortError",
+              }),
+            );
+          },
+          { once: true },
+        );
+        setTimeout(
+          () => resolve(firstEvidenceAnswer(input, "Primary was late.")),
+          25,
+        );
+      }),
+  );
+  const freeLLMAPI = new MockPortfolioAIProvider((input) =>
+    firstEvidenceAnswer(input, "Fallback."),
+  );
+  const provider = new ResilientPortfolioAIProvider(gemini, freeLLMAPI, {
+    primaryTimeoutMs: 1,
+  });
+  const result = await generatePortfolioAnswer(
+    { question, locale: "fr", retrieval },
+    { provider },
+  );
+
+  assert.equal(primaryAborted, true);
+  assert.equal(result.answer.answer, "Fallback.");
+  assert.equal(gemini.callCount, 1);
+  assert.equal(freeLLMAPI.callCount, 1);
+});
+
+test("Gemini rate limit starts FreeLLMAPI fallback immediately", async () => {
+  const question = GENERATED_TEST_QUESTION;
+  const retrieval = retrievePortfolioKnowledge(question, {
+    locale: "fr",
+  });
+  const startedAt = Date.now();
+  let fallbackStartedAt = 0;
+  const gemini = new MockPortfolioAIProvider(() => {
+    throw new GenerationRateLimitError("primary quota");
+  });
+  const freeLLMAPI = new MockPortfolioAIProvider((input) => {
+    fallbackStartedAt = Date.now();
+    return firstEvidenceAnswer(input, "Fallback.");
+  });
+  const provider = new ResilientPortfolioAIProvider(gemini, freeLLMAPI, {
+    primaryTimeoutMs: 1_000,
+  });
+  const result = await generatePortfolioAnswer(
+    { question, locale: "fr", retrieval },
+    { provider },
+  );
+
+  assert.equal(result.answer.answer, "Fallback.");
+  assert.equal(gemini.callCount, 1);
+  assert.equal(freeLLMAPI.callCount, 1);
+  assert.ok(fallbackStartedAt - startedAt < 100);
+});
+
+test("client cancellation before primary timeout does not start FreeLLMAPI", async () => {
+  const controller = new AbortController();
+  const input = {
+    ...createGroundedGenerationInput(GENERATED_TEST_QUESTION),
+    signal: controller.signal,
+  };
+  const gemini = new MockPortfolioAIProvider(
+    (primaryInput) =>
+      new Promise((_resolve, reject) => {
+        primaryInput.signal?.addEventListener(
+          "abort",
+          () =>
+            reject(
+              Object.assign(new Error("The operation was aborted."), {
+                name: "AbortError",
+              }),
+            ),
+          { once: true },
+        );
+        setTimeout(() => controller.abort(), 1);
+      }),
+  );
+  const freeLLMAPI = new MockPortfolioAIProvider((fallbackInput) =>
+    firstEvidenceAnswer(fallbackInput, "Fallback."),
+  );
+  const provider = new ResilientPortfolioAIProvider(gemini, freeLLMAPI, {
+    primaryTimeoutMs: 1_000,
+  });
+
+  await assert.rejects(() => provider.generate(input));
+  assert.equal(gemini.callCount, 1);
+  assert.equal(freeLLMAPI.callCount, 0);
+});
+
+test("resilient provider does not fall back for configuration or client abort errors", async () => {
+  const input = createGroundedGenerationInput();
+  const abortError = Object.assign(new Error("The operation was aborted."), {
+    name: "AbortError",
+  });
+
+  for (const error of [
+    new GenerationConfigurationError("missing primary key"),
+    abortError,
+  ]) {
+    const gemini = new MockPortfolioAIProvider(() => {
+      throw error;
+    });
+    const freeLLMAPI = new MockPortfolioAIProvider((fallbackInput) =>
+      firstEvidenceAnswer(fallbackInput, "Fallback."),
+    );
+    const provider = new ResilientPortfolioAIProvider(gemini, freeLLMAPI);
+
+    await assert.rejects(() => provider.generate(input));
+    assert.equal(freeLLMAPI.callCount, 0);
+  }
+});
+
+test("resilient provider does not fall back for invalid or ungrounded answers", async () => {
+  const input = createGroundedGenerationInput();
+
+  for (const error of [
+    new GenerationInvalidOutputError("primary malformed output"),
+    new GenerationGroundingError("primary grounding failure"),
+  ]) {
+    const gemini = new MockPortfolioAIProvider(() => {
+      throw error;
+    });
+    const freeLLMAPI = new MockPortfolioAIProvider((fallbackInput) =>
+      firstEvidenceAnswer(fallbackInput, "Fallback."),
+    );
+    const provider = new ResilientPortfolioAIProvider(gemini, freeLLMAPI);
+
+    assert.equal(isFallbackEligibleGenerationError(error), false);
+    await assert.rejects(() => provider.generate(input));
+    assert.equal(gemini.callCount, 1);
+    assert.equal(freeLLMAPI.callCount, 0);
+  }
+});
+
+test("resilient provider stops before primary when signal is already aborted", async () => {
+  const controller = new AbortController();
+  const input = {
+    ...createGroundedGenerationInput(),
+    signal: controller.signal,
+  };
+  const gemini = new MockPortfolioAIProvider((primaryInput) =>
+    firstEvidenceAnswer(primaryInput, "Oui."),
+  );
+  const freeLLMAPI = new MockPortfolioAIProvider((fallbackInput) =>
+    firstEvidenceAnswer(fallbackInput, "Fallback."),
+  );
+  const provider = new ResilientPortfolioAIProvider(gemini, freeLLMAPI);
+
+  controller.abort();
+  await assert.rejects(() => provider.generate(input));
+  assert.equal(gemini.callCount, 0);
+  assert.equal(freeLLMAPI.callCount, 0);
+});
+
+test("resilient provider marks failed fallback as non-retryable", async () => {
+  const retrieval = retrievePortfolioKnowledge(GENERATED_TEST_QUESTION, {
+    locale: "fr",
+  });
+  const gemini = new MockPortfolioAIProvider(() => {
+    throw new GenerationTimeoutError("primary timeout");
+  });
+  const freeLLMAPI = new MockPortfolioAIProvider(() => {
+    throw new GenerationProviderError("secondary failed");
+  });
+  const provider = new ResilientPortfolioAIProvider(gemini, freeLLMAPI);
+
+  await assert.rejects(
+    () =>
+      generatePortfolioAnswer(
+        { question: GENERATED_TEST_QUESTION, locale: "fr", retrieval },
+        { provider },
+      ),
+    GenerationProviderError,
+  );
+  assert.equal(gemini.callCount, 1);
+  assert.equal(freeLLMAPI.callCount, 1);
+});
+
 test("provider, rate-limit, timeout, and malformed output retry are handled", async () => {
-  const retrieval = retrievePortfolioKnowledge("A-t-il utilisé Qdrant ?", {
+  const retrieval = retrievePortfolioKnowledge(GENERATED_TEST_QUESTION, {
     locale: "fr",
   });
   const failingProvider = new MockPortfolioAIProvider(() => {
@@ -612,7 +1255,7 @@ test("provider, rate-limit, timeout, and malformed output retry are handled", as
   await assert.rejects(
     () =>
       generatePortfolioAnswer(
-        { question: "A-t-il utilisé Qdrant ?", locale: "fr", retrieval },
+        { question: GENERATED_TEST_QUESTION, locale: "fr", retrieval },
         { provider: failingProvider },
       ),
     GenerationProviderError,
@@ -622,7 +1265,7 @@ test("provider, rate-limit, timeout, and malformed output retry are handled", as
   await assert.rejects(
     () =>
       generatePortfolioAnswer(
-        { question: "A-t-il utilisé Qdrant ?", locale: "fr", retrieval },
+        { question: GENERATED_TEST_QUESTION, locale: "fr", retrieval },
         { provider: rateLimitedProvider },
       ),
     GenerationRateLimitError,
@@ -632,7 +1275,7 @@ test("provider, rate-limit, timeout, and malformed output retry are handled", as
   await assert.rejects(
     () =>
       generatePortfolioAnswer(
-        { question: "A-t-il utilisé Qdrant ?", locale: "fr", retrieval },
+        { question: GENERATED_TEST_QUESTION, locale: "fr", retrieval },
         { provider: timeoutProvider },
       ),
     GenerationTimeoutError,
@@ -640,7 +1283,7 @@ test("provider, rate-limit, timeout, and malformed output retry are handled", as
   assert.equal(timeoutProvider.callCount, 2);
 
   const validAfterRetry = await generatePortfolioAnswer(
-    { question: "A-t-il utilisé Qdrant ?", locale: "fr", retrieval },
+    { question: GENERATED_TEST_QUESTION, locale: "fr", retrieval },
     { provider: validAfterRetryProvider },
   );
   assert.equal(validAfterRetryProvider.callCount, 2);

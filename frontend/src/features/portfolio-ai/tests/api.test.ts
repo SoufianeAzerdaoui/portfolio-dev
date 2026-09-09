@@ -7,9 +7,14 @@ import {
   GenerationProviderError,
   GenerationRateLimitError,
   GenerationTimeoutError,
+  FreeLLMAPIPortfolioAIProvider,
+  ResilientPortfolioAIProvider,
   createEvidenceId,
+  DEFAULT_FREELLMAPI_BASE_URL,
+  DEFAULT_FREELLMAPI_MODEL,
   DEFAULT_PORTFOLIO_AI_MODEL,
   getAllowedEvidenceIds,
+  PORTFOLIO_AI_PROVIDER_TIMEOUT_MS,
   type GroundedGenerationInput,
   type PortfolioAIProvider,
   type ProviderGenerationResult,
@@ -67,6 +72,39 @@ function firstEvidenceAnswer(input: GroundedGenerationInput) {
     uncertainty: "none",
     language: input.locale,
   };
+}
+
+const GENERATED_API_TEST_MESSAGE = "Parle-moi de Medical RAG";
+
+function freeLLMAPIConfig() {
+  return {
+    enabled: true,
+    apiKey: "test-free-key",
+    baseUrl: DEFAULT_FREELLMAPI_BASE_URL,
+    model: DEFAULT_FREELLMAPI_MODEL,
+    timeoutMs: PORTFOLIO_AI_PROVIDER_TIMEOUT_MS,
+  };
+}
+
+function freeLLMAPIChatResponse(content: string, init: ResponseInit = {}) {
+  return new Response(
+    JSON.stringify({
+      choices: [
+        {
+          message: {
+            role: "assistant",
+            content,
+          },
+        },
+      ],
+      _routed_via: "internal-provider-route",
+    }),
+    {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+      ...init,
+    },
+  );
 }
 
 function createTestLimiter(now = 0) {
@@ -141,7 +179,7 @@ async function expectPublicError(
     throw error;
   });
   const result = await handlePortfolioAIRequest(
-    { message: "A-t-il utilisé Qdrant ?", locale: "fr" },
+    { message: GENERATED_API_TEST_MESSAGE, locale: "fr" },
     { provider, requestId: "req_test" },
   );
 
@@ -154,7 +192,7 @@ async function expectPublicError(
   }
 }
 
-test("valid Qdrant-like request returns answer and public sources", async () => {
+test("valid Qdrant-like request uses verified technology fast path", async () => {
   const provider = new MockPortfolioAIProvider(firstEvidenceAnswer);
   const result = await handlePortfolioAIRequest(
     { message: "A-t-il utilisé Qdrant ?", locale: "fr" },
@@ -168,13 +206,39 @@ test("valid Qdrant-like request returns answer and public sources", async () => 
     assert.equal(result.body.requestId, "req_qdrant");
     assert.equal(result.body.language, "fr");
     assert.equal(result.body.uncertainty, "none");
+    assert.equal(result.body.answer.includes("Qdrant"), true);
     assert.equal(result.body.sources.length, 1);
     assert.equal(result.body.sources[0]?.entityId, "medical-rag-platform");
     assert.equal(result.body.sources[0]?.type, "project");
     assert.ok(result.body.sources[0]?.label);
   }
 
-  assert.equal(provider.callCount, 1);
+  assert.equal(provider.callCount, 0);
+});
+
+test("Kafka verified technology fast path returns both project sources", async () => {
+  const provider = new MockPortfolioAIProvider(() => {
+    throw new Error("Provider should not be called.");
+  });
+  const result = await handlePortfolioAIRequest(
+    { message: "A-t-il utilisé Kafka ?", locale: "fr" },
+    { provider, requestId: "req_kafka_fast_path" },
+  );
+
+  assert.equal(result.status, 200);
+  assert.equal(provider.callCount, 0);
+
+  if ("answer" in result.body) {
+    assert.equal(result.body.answer.includes("Apache Kafka"), true);
+    assert.equal(result.body.language, "fr");
+    assert.deepEqual(
+      result.body.sources.map((source) => source.entityId),
+      [
+        "personalized-recommendation-system",
+        "real-time-ecommerce-activity-tracking",
+      ],
+    );
+  }
 });
 
 test("broad AI project discovery reaches provider with grounded projects", async () => {
@@ -217,7 +281,7 @@ test("unknown request fields cannot control provider configuration", async () =>
     assert.equal(JSON.stringify(input.groundedContext).includes("fake:evidence"), false);
 
     return {
-      answer: "Oui, Qdrant est documenté dans Medical RAG.",
+      answer: "Medical RAG est documenté dans le portfolio.",
       usedEvidenceIds: input.allowedEvidenceIds.slice(0, 1),
       uncertainty: "none",
       language: "fr",
@@ -225,7 +289,7 @@ test("unknown request fields cannot control provider configuration", async () =>
   });
   const result = await handlePortfolioAIRequest(
     {
-      message: "A-t-il utilisé Qdrant ?",
+      message: GENERATED_API_TEST_MESSAGE,
       locale: "fr",
       model: "attacker-model",
       provider: "attacker-provider",
@@ -507,13 +571,13 @@ test("different client keys do not share quota", async () => {
 test("request without history preserves single-turn behavior", async () => {
   const provider = new MockPortfolioAIProvider(firstEvidenceAnswer);
   const result = await handlePortfolioAIRequest(
-    { message: "A-t-il utilisé Qdrant ?", locale: "fr" },
+    { message: GENERATED_API_TEST_MESSAGE, locale: "fr" },
     { provider, requestId: "req_no_history" },
   );
 
   assert.equal(result.status, 200);
   assert.equal(provider.callCount, 1);
-  assert.equal(provider.inputs[0]?.question, "A-t-il utilisé Qdrant ?");
+  assert.equal(provider.inputs[0]?.question, GENERATED_API_TEST_MESSAGE);
   assert.equal(provider.inputs[0]?.userPrompt.includes("conversationContext"), false);
 });
 
@@ -535,9 +599,11 @@ test("French follow-up uses bounded history for contextual retrieval", async () 
   );
 
   assert.equal(result.status, 200);
-  assert.equal(provider.inputs[0]?.groundedContext.entities[0]?.id, "medical-rag-platform");
-  assert.equal(provider.inputs[0]?.userPrompt.includes("conversationContext"), true);
-  assert.equal(provider.inputs[0]?.userPrompt.includes("not evidence"), true);
+  assert.equal(provider.callCount, 0);
+
+  if ("answer" in result.body) {
+    assert.equal(result.body.sources[0]?.entityId, "medical-rag-platform");
+  }
 });
 
 test("English follow-up resolves Qdrant through contextual retrieval", async () => {
@@ -560,10 +626,11 @@ test("English follow-up resolves Qdrant through contextual retrieval", async () 
   );
 
   assert.equal(result.status, 200);
-  assert.equal(provider.inputs[0]?.groundedContext.entities[0]?.id, "medical-rag-platform");
+  assert.equal(provider.callCount, 0);
 
   if ("answer" in result.body) {
     assert.equal(result.body.language, "en");
+    assert.equal(result.body.sources[0]?.entityId, "medical-rag-platform");
   }
 });
 
@@ -608,8 +675,11 @@ test("history prompt injection does not affect grounded evidence behavior", asyn
   );
 
   assert.equal(result.status, 200);
-  assert.equal(provider.callCount, 1);
-  assert.equal(provider.inputs[0]?.groundedContext.entities[0]?.id, "medical-rag-platform");
+  assert.equal(provider.callCount, 0);
+
+  if ("answer" in result.body) {
+    assert.equal(result.body.sources[0]?.entityId, "medical-rag-platform");
+  }
 });
 
 test("not-documented deterministic bypass returns 200 without provider call", async () => {
@@ -757,6 +827,24 @@ test("deterministic not-documented bypass remains provider-free with history", a
   }
 });
 
+test("deterministic not-documented bypass calls neither resilient provider", async () => {
+  const gemini = new MockPortfolioAIProvider(() => {
+    throw new Error("Primary provider should not be called.");
+  });
+  const freeLLMAPI = new MockPortfolioAIProvider(() => {
+    throw new Error("Fallback provider should not be called.");
+  });
+  const provider = new ResilientPortfolioAIProvider(gemini, freeLLMAPI);
+  const result = await handlePortfolioAIRequest(
+    { message: "Est-il expert Kubernetes ?", locale: "fr" },
+    { provider, requestId: "req_no_provider_bypass" },
+  );
+
+  assert.equal(result.status, 200);
+  assert.equal(gemini.callCount, 0);
+  assert.equal(freeLLMAPI.callCount, 0);
+});
+
 test("empty message is rejected", async () => {
   const result = await handlePortfolioAIRequest(
     { message: "   ", locale: "fr" },
@@ -865,7 +953,7 @@ test("current clear message remains dominant over old history", async () => {
   const provider = new MockPortfolioAIProvider(firstEvidenceAnswer);
   const result = await handlePortfolioAIRequest(
     {
-      message: "A-t-il utilisé Qdrant ?",
+      message: GENERATED_API_TEST_MESSAGE,
       locale: "fr",
       history: [
         { role: "user", content: "Quels projets utilisent Kafka ?" },
@@ -925,6 +1013,43 @@ test("local limiter maps to 429 RATE_LIMITED separately from provider 503", asyn
   }
 });
 
+test("local RATE_LIMITED does not start Gemini or FreeLLMAPI fallback", async () => {
+  const gemini = new MockPortfolioAIProvider(() => {
+    throw new Error("Primary provider should not be called.");
+  });
+  const freeLLMAPI = new MockPortfolioAIProvider(() => {
+    throw new Error("Fallback provider should not be called.");
+  });
+  const provider = new ResilientPortfolioAIProvider(gemini, freeLLMAPI);
+  const blockingLimiter = {
+    acquireGenerationSlot: () =>
+      ({
+        allowed: false,
+        retryAfterSeconds: 5,
+        reason: "concurrency",
+      }) as const,
+    checkProviderLimit: () => ({ allowed: true }) as const,
+    releaseGenerationSlot: () => {},
+  };
+  const result = await handlePortfolioAIRequest(
+    { message: "A-t-il utilisé Qdrant ?", locale: "fr" },
+    {
+      provider,
+      requestId: "req_local_limited_no_fallback",
+      clientKey: "client-local-limited",
+      rateLimiter: blockingLimiter,
+    },
+  );
+
+  assert.equal(result.status, 429);
+  assert.equal(gemini.callCount, 0);
+  assert.equal(freeLLMAPI.callCount, 0);
+
+  if ("error" in result.body) {
+    assert.equal(result.body.error.code, "RATE_LIMITED");
+  }
+});
+
 test("timeout maps to stable 504 public error", async () => {
   await expectPublicError(
     new GenerationTimeoutError("raw timeout details"),
@@ -936,7 +1061,7 @@ test("timeout maps to stable 504 public error", async () => {
 
 test("non-stream timeout response keeps existing public retryable contract", async () => {
   const result = await handlePortfolioAIRequest(
-    { message: "A-t-il utilisé Qdrant ?", locale: "fr" },
+    { message: GENERATED_API_TEST_MESSAGE, locale: "fr" },
     {
       provider: new MockPortfolioAIProvider(() => {
         throw new GenerationTimeoutError("raw timeout details");
@@ -963,7 +1088,7 @@ test("grounding failure maps to stable 502 public error", async () => {
     language: "fr",
   }));
   const result = await handlePortfolioAIRequest(
-    { message: "A-t-il utilisé Qdrant ?", locale: "fr" },
+    { message: GENERATED_API_TEST_MESSAGE, locale: "fr" },
     { provider, requestId: "req_grounding" },
   );
 
@@ -990,6 +1115,33 @@ test("generic provider failure maps to stable 502 public error", async () => {
     "AI_PROVIDER_ERROR",
     true,
   );
+});
+
+test("both resilient providers failing returns existing safe public error contract", async () => {
+  const gemini = new MockPortfolioAIProvider(() => {
+    throw new GenerationTimeoutError("primary raw timeout");
+  });
+  const freeLLMAPI = new MockPortfolioAIProvider(() => {
+    throw new GenerationProviderError("secondary raw provider detail");
+  });
+  const result = await handlePortfolioAIRequest(
+    { message: GENERATED_API_TEST_MESSAGE, locale: "fr" },
+    {
+      provider: new ResilientPortfolioAIProvider(gemini, freeLLMAPI),
+      requestId: "req_both_providers_fail",
+    },
+  );
+
+  assert.equal(result.status, 502);
+  assert.equal(gemini.callCount, 1);
+  assert.equal(freeLLMAPI.callCount, 1);
+
+  if ("error" in result.body) {
+    assert.equal(result.body.error.code, "AI_PROVIDER_ERROR");
+    assert.equal(result.body.error.retryable, true);
+    assert.equal(result.body.error.message.includes("raw"), false);
+    assert.equal(result.body.error.message.includes("secondary"), false);
+  }
 });
 
 test("configuration failure maps to stable 500 public error", async () => {
@@ -1075,7 +1227,7 @@ test("non-stream and stream expose identical deduped sources", async () => {
     language: "fr",
   }));
   const nonStream = await handlePortfolioAIRequest(
-    { message: "A-t-il utilisé Qdrant ?", locale: "fr" },
+    { message: GENERATED_API_TEST_MESSAGE, locale: "fr" },
     { provider: duplicateEvidenceProvider, requestId: "req_dedupe_http" },
   );
   const streamProvider = new MockPortfolioAIProvider((input) => ({
@@ -1085,7 +1237,7 @@ test("non-stream and stream expose identical deduped sources", async () => {
     language: "fr",
   }));
   const stream = createPortfolioAIStreamResponse(
-    { message: "A-t-il utilisé Qdrant ?", locale: "fr" },
+    { message: GENERATED_API_TEST_MESSAGE, locale: "fr" },
     { provider: streamProvider, requestId: "req_dedupe_stream" },
   );
 
@@ -1108,7 +1260,7 @@ test("used evidence IDs remain a subset of current retrieval evidence", async ()
   const provider = new MockPortfolioAIProvider(firstEvidenceAnswer);
   const result = await handlePortfolioAIRequest(
     {
-      message: "Et lequel utilise Qdrant ?",
+      message: GENERATED_API_TEST_MESSAGE,
       locale: "fr",
       history: [{ role: "user", content: "Quels projets utilisent du RAG ?" }],
     },
@@ -1126,7 +1278,7 @@ test("used evidence IDs remain a subset of current retrieval evidence", async ()
 
 test("raw provider error message does not leak to API response", async () => {
   const result = await handlePortfolioAIRequest(
-    { message: "A-t-il utilisé Qdrant ?", locale: "fr" },
+    { message: GENERATED_API_TEST_MESSAGE, locale: "fr" },
     {
       provider: new MockPortfolioAIProvider(() => {
         throw new GenerationProviderError("secret raw provider payload");
@@ -1142,10 +1294,45 @@ test("raw provider error message does not leak to API response", async () => {
   }
 });
 
+test("FreeLLMAPI routing metadata is not exposed in public API response", async () => {
+  const provider = new FreeLLMAPIPortfolioAIProvider(
+    freeLLMAPIConfig(),
+    async () =>
+      freeLLMAPIChatResponse(
+        JSON.stringify({
+          answer: "Oui, Qdrant est documenté dans Medical RAG.",
+          usedEvidenceIds: [
+            "ev:project:medical-rag-platform:technologies:primary",
+          ],
+          uncertainty: "none",
+          language: "fr",
+          reasoning: "private reasoning",
+        }),
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "X-Routed-Via": "ollama/private-route",
+          },
+        },
+      ),
+  );
+  const result = await handlePortfolioAIRequest(
+    { message: GENERATED_API_TEST_MESSAGE, locale: "fr" },
+    { provider, requestId: "req_route_metadata_no_leak" },
+  );
+  const serialized = JSON.stringify(result.body);
+
+  assert.equal(result.status, 200);
+  assert.equal(serialized.includes("ollama/private-route"), false);
+  assert.equal(serialized.includes("private reasoning"), false);
+  assert.equal(serialized.includes("internal-provider-route"), false);
+  assert.equal(serialized.includes("freellmapi"), false);
+});
+
 test("provider secret text never appears in public API response", async () => {
   const fakeSecret = "FAKE_GEMINI_SECRET_DO_NOT_LEAK";
   const result = await handlePortfolioAIRequest(
-    { message: "A-t-il utilisé Qdrant ?", locale: "fr" },
+    { message: GENERATED_API_TEST_MESSAGE, locale: "fr" },
     {
       provider: new MockPortfolioAIProvider(() => {
         throw new GenerationConfigurationError(
@@ -1169,7 +1356,7 @@ test("valid streamed response emits meta, deltas, sources, and done", async () =
     language: "fr",
   }));
   const result = createPortfolioAIStreamResponse(
-    { message: "A-t-il utilisé Qdrant ?", locale: "fr" },
+    { message: GENERATED_API_TEST_MESSAGE, locale: "fr" },
     { provider, requestId: "req_stream" },
   );
 
@@ -1199,7 +1386,7 @@ test("streamed deltas concatenate to the exact validated answer", async () => {
     language: "fr",
   }));
   const result = createPortfolioAIStreamResponse(
-    { message: "A-t-il utilisé Qdrant ?", locale: "fr" },
+    { message: GENERATED_API_TEST_MESSAGE, locale: "fr" },
     { provider, requestId: "req_stream_concat" },
   );
 
@@ -1219,7 +1406,7 @@ test("streamed deltas concatenate to the exact validated answer", async () => {
 test("streamed sources derive only from validated usedEvidenceIds", async () => {
   const provider = new MockPortfolioAIProvider(firstEvidenceAnswer);
   const result = createPortfolioAIStreamResponse(
-    { message: "A-t-il utilisé Qdrant ?", locale: "fr" },
+    { message: GENERATED_API_TEST_MESSAGE, locale: "fr" },
     { provider, requestId: "req_stream_sources" },
   );
 
@@ -1263,7 +1450,7 @@ test("history request works through streaming endpoint", async () => {
   const provider = new MockPortfolioAIProvider(firstEvidenceAnswer);
   const result = createPortfolioAIStreamResponse(
     {
-      message: "Et lequel utilise Qdrant ?",
+      message: GENERATED_API_TEST_MESSAGE,
       locale: "fr",
       history: [{ role: "user", content: "Quels projets utilisent du RAG ?" }],
     },
@@ -1296,7 +1483,7 @@ test("invalid streaming request is rejected before stream creation", async () =>
 
 test("rate limit streams safe public error", async () => {
   const result = createPortfolioAIStreamResponse(
-    { message: "A-t-il utilisé Qdrant ?", locale: "fr" },
+    { message: GENERATED_API_TEST_MESSAGE, locale: "fr" },
     {
       provider: new MockPortfolioAIProvider(() => {
         throw new GenerationRateLimitError("raw quota details");
@@ -1316,7 +1503,7 @@ test("rate limit streams safe public error", async () => {
 
 test("timeout streams safe public error", async () => {
   const result = createPortfolioAIStreamResponse(
-    { message: "A-t-il utilisé Qdrant ?", locale: "fr" },
+    { message: GENERATED_API_TEST_MESSAGE, locale: "fr" },
     {
       provider: new MockPortfolioAIProvider(() => {
         throw new GenerationTimeoutError("raw timeout details");
@@ -1335,9 +1522,39 @@ test("timeout streams safe public error", async () => {
   }
 });
 
-test("grounding error emits zero answer deltas", async () => {
+test("client cancellation closes stream without starting fallback providers", async () => {
+  const controller = new AbortController();
+  const gemini = new MockPortfolioAIProvider(() => {
+    throw new Error("Primary provider should not be called.");
+  });
+  const freeLLMAPI = new MockPortfolioAIProvider(() => {
+    throw new Error("Fallback provider should not be called.");
+  });
+
+  controller.abort();
   const result = createPortfolioAIStreamResponse(
     { message: "A-t-il utilisé Qdrant ?", locale: "fr" },
+    {
+      provider: new ResilientPortfolioAIProvider(gemini, freeLLMAPI),
+      requestId: "req_stream_aborted_no_fallback",
+      signal: controller.signal,
+    },
+  );
+
+  assert.equal(result.status, 200);
+
+  if ("response" in result) {
+    const events = await readSSEEvents(result.response);
+
+    assert.deepEqual(events, []);
+    assert.equal(gemini.callCount, 0);
+    assert.equal(freeLLMAPI.callCount, 0);
+  }
+});
+
+test("grounding error emits zero answer deltas", async () => {
+  const result = createPortfolioAIStreamResponse(
+    { message: GENERATED_API_TEST_MESSAGE, locale: "fr" },
     {
       provider: new MockPortfolioAIProvider(() => ({
         answer: "Source inventée.",
@@ -1360,7 +1577,7 @@ test("grounding error emits zero answer deltas", async () => {
 
 test("invalid structured output emits zero answer deltas", async () => {
   const result = createPortfolioAIStreamResponse(
-    { message: "A-t-il utilisé Qdrant ?", locale: "fr" },
+    { message: GENERATED_API_TEST_MESSAGE, locale: "fr" },
     {
       provider: new MockPortfolioAIProvider(() => ({
         answer: "",
@@ -1383,7 +1600,7 @@ test("invalid structured output emits zero answer deltas", async () => {
 
 test("streamed provider raw error does not leak", async () => {
   const result = createPortfolioAIStreamResponse(
-    { message: "A-t-il utilisé Qdrant ?", locale: "fr" },
+    { message: GENERATED_API_TEST_MESSAGE, locale: "fr" },
     {
       provider: new MockPortfolioAIProvider(() => {
         throw new GenerationProviderError("secret raw provider payload");
@@ -1435,7 +1652,7 @@ test("streaming local rate limit returns HTTP 429 before SSE begins", async () =
 
 test("stream emits request ID and closes", async () => {
   const result = createPortfolioAIStreamResponse(
-    { message: "A-t-il utilisé Qdrant ?", locale: "fr" },
+    { message: GENERATED_API_TEST_MESSAGE, locale: "fr" },
     { provider: new MockPortfolioAIProvider(firstEvidenceAnswer), requestId: "req_stream_id" },
   );
 
@@ -1450,7 +1667,7 @@ test("stream emits request ID and closes", async () => {
 test("existing non-streaming API remains backward-compatible", async () => {
   const provider = new MockPortfolioAIProvider(firstEvidenceAnswer);
   const result = await handlePortfolioAIRequest(
-    { message: "A-t-il utilisé Qdrant ?", locale: "fr" },
+    { message: GENERATED_API_TEST_MESSAGE, locale: "fr" },
     { provider, requestId: "req_http_compat" },
   );
 
@@ -1472,15 +1689,15 @@ test("maximum two provider requests can be in flight per client", async () => {
       }),
   );
   const first = handlePortfolioAIRequest(
-    { message: "A-t-il utilisé Qdrant ?", locale: "fr" },
+    { message: GENERATED_API_TEST_MESSAGE, locale: "fr" },
     { provider, requestId: "req_concurrent_1", clientKey: "client-concurrent", rateLimiter: limiter },
   );
   const second = handlePortfolioAIRequest(
-    { message: "A-t-il utilisé Qdrant ?", locale: "fr" },
+    { message: GENERATED_API_TEST_MESSAGE, locale: "fr" },
     { provider, requestId: "req_concurrent_2", clientKey: "client-concurrent", rateLimiter: limiter },
   );
   const third = await handlePortfolioAIRequest(
-    { message: "A-t-il utilisé Qdrant ?", locale: "fr" },
+    { message: GENERATED_API_TEST_MESSAGE, locale: "fr" },
     { provider, requestId: "req_concurrent_3", clientKey: "client-concurrent", rateLimiter: limiter },
   );
 
@@ -1494,7 +1711,7 @@ test("generation slot releases after success and provider errors", async () => {
   const { limiter } = createTestLimiter();
 
   await handlePortfolioAIRequest(
-    { message: "A-t-il utilisé Qdrant ?", locale: "fr" },
+    { message: GENERATED_API_TEST_MESSAGE, locale: "fr" },
     {
       provider: new MockPortfolioAIProvider(firstEvidenceAnswer),
       requestId: "req_release_success",
@@ -1506,7 +1723,7 @@ test("generation slot releases after success and provider errors", async () => {
   assert.equal(limiter.snapshotForTests()[0]?.inFlightGenerations, 0);
 
   await handlePortfolioAIRequest(
-    { message: "A-t-il utilisé Qdrant ?", locale: "fr" },
+    { message: GENERATED_API_TEST_MESSAGE, locale: "fr" },
     {
       provider: new MockPortfolioAIProvider(() => {
         throw new GenerationProviderError("raw");
@@ -1524,7 +1741,7 @@ test("generation slot releases after timeout and grounding failure", async () =>
   const { limiter } = createTestLimiter();
 
   await handlePortfolioAIRequest(
-    { message: "A-t-il utilisé Qdrant ?", locale: "fr" },
+    { message: GENERATED_API_TEST_MESSAGE, locale: "fr" },
     {
       provider: new MockPortfolioAIProvider(() => {
         throw new GenerationTimeoutError("raw");
@@ -1538,7 +1755,7 @@ test("generation slot releases after timeout and grounding failure", async () =>
   assert.equal(limiter.snapshotForTests()[0]?.inFlightGenerations, 0);
 
   await handlePortfolioAIRequest(
-    { message: "A-t-il utilisé Qdrant ?", locale: "fr" },
+    { message: GENERATED_API_TEST_MESSAGE, locale: "fr" },
     {
       provider: new MockPortfolioAIProvider(() => ({
         answer: "Source inventée.",

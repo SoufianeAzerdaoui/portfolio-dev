@@ -36,6 +36,7 @@ export async function POST(request: Request) {
   const result = await handlePortfolioAIRequest(payload, {
     requestId,
     clientKey: getPortfolioAIClientRateLimitKey(request),
+    signal: request.signal,
   });
 
   return NextResponse.json(result.body, {

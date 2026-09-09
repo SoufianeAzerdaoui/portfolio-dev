@@ -9,7 +9,9 @@
     "lint": "eslint .",
     "format": "eslint . --fix",
     "test": "node --test --require ./src/features/portfolio-ai/tests/register-ts-test-runner.cjs ./src/features/portfolio-ai/tests/*.test.ts",
+    "test:portfolio-ai:diagnose": "node --require ./src/features/portfolio-ai/tests/register-ts-test-runner.cjs ./src/features/portfolio-ai/tests/diagnose.ts",
     "eval:portfolio-ai:live": "node --require ./src/features/portfolio-ai/tests/register-ts-test-runner.cjs ./src/features/portfolio-ai/evaluation/run-live-evaluation.ts",
+    "test:portfolio-ai:freellmapi": "node --require ./src/features/portfolio-ai/tests/register-ts-test-runner.cjs ./src/features/portfolio-ai/tests/freellmapi-smoke.ts",
     "test:portfolio-ai:gemini": "node --require ./src/features/portfolio-ai/tests/register-ts-test-runner.cjs ./src/features/portfolio-ai/tests/gemini-smoke.ts",
     "typecheck": "tsc --noEmit --project tsconfig.typecheck.json"
   },

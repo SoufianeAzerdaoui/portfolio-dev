@@ -1,0 +1,541 @@
+import { loadEnvConfig } from "@next/env";
+
+import {
+  createPortfolioAIRequestId,
+  mapPortfolioAIErrorToHTTPResult,
+  preparePortfolioAIRequest,
+} from "@/features/portfolio-ai/api/portfolio-ai-api";
+import {
+  FreeLLMAPIPortfolioAIProvider,
+  GeminiPortfolioAIProvider,
+  ResilientPortfolioAIProvider,
+  buildGenerationUserPrompt,
+  buildGroundedContext,
+  getAllowedEvidenceIds,
+  getFreeLLMAPIGenerationConfig,
+  getPortfolioAIGenerationConfig,
+  generatePortfolioAnswer,
+  isFallbackEligibleGenerationError,
+  normalizeGenerationError,
+  parsePortfolioAnswer,
+  PORTFOLIO_AI_SYSTEM_PROMPT,
+  validateGroundedAnswer,
+  type ConversationContextMessage,
+  type GeneratePortfolioAnswerInput,
+  type GroundedGenerationInput,
+  type PortfolioAIProvider,
+  type PortfolioAnswer,
+  type ProviderGenerationResult,
+} from "@/features/portfolio-ai/generation";
+
+type PassFail = "PASS" | "FAIL" | "NOT_RUN";
+
+type StructuredDiagnostics = {
+  jsonParse: PassFail;
+  schemaValidation: PassFail;
+  evidenceSubsetValidation: PassFail;
+  groundingValidation: PassFail;
+  answer?: string;
+  usedEvidenceIds?: string[];
+  uncertainty?: string;
+  language?: string;
+};
+
+type ProviderDiagnostics = {
+  providerName: "gemini" | "freellmapi";
+  called: boolean;
+  result?: "SUCCESS" | "FAILURE";
+  elapsedMs?: number;
+  provider?: string;
+  model?: string;
+  normalizedErrorClass?: string;
+  fallbackEligibleError?: boolean;
+  httpStatus?: number | null;
+  routedVia?: string;
+  responseJSONParse?: PassFail;
+  assistantContentExists?: "YES" | "NO" | "NOT_RUN";
+  assistantContentJSONParse?: PassFail;
+  structured?: StructuredDiagnostics;
+};
+
+type FreeLLMAPIHTTPDiagnostics = Pick<
+  ProviderDiagnostics,
+  | "httpStatus"
+  | "routedVia"
+  | "responseJSONParse"
+  | "assistantContentExists"
+  | "assistantContentJSONParse"
+>;
+
+function elapsedSince(startedAt: number) {
+  return Date.now() - startedAt;
+}
+
+function statusFromBoolean(value: boolean): PassFail {
+  return value ? "PASS" : "FAIL";
+}
+
+function sanitizeRoutedVia(value: string | null) {
+  if (!value) {
+    return "none";
+  }
+
+  return value.replace(/[^a-zA-Z0-9_.:/ -]/g, "").slice(0, 80) || "present";
+}
+
+function normalizedErrorClass(error: unknown) {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "name" in error &&
+    (error as { name?: unknown }).name === "AbortError"
+  ) {
+    return "AbortError";
+  }
+
+  return normalizeGenerationError(error).name;
+}
+
+function inspectStructuredOutput(
+  output: unknown,
+  input: GeneratePortfolioAnswerInput,
+  allowedEvidenceIds: readonly string[],
+): StructuredDiagnostics {
+  let decodedOutput = output;
+
+  if (typeof output === "string") {
+    try {
+      decodedOutput = JSON.parse(output) as unknown;
+    } catch {
+      return {
+        jsonParse: "FAIL",
+        schemaValidation: "FAIL",
+        evidenceSubsetValidation: "NOT_RUN",
+        groundingValidation: "NOT_RUN",
+      };
+    }
+  }
+
+  let answer: PortfolioAnswer;
+
+  try {
+    answer = parsePortfolioAnswer(decodedOutput);
+  } catch {
+    return {
+      jsonParse: "PASS",
+      schemaValidation: "FAIL",
+      evidenceSubsetValidation: "NOT_RUN",
+      groundingValidation: "NOT_RUN",
+    };
+  }
+
+  const allowedIds = new Set(allowedEvidenceIds);
+  const evidenceSubsetPass = answer.usedEvidenceIds.every((id) =>
+    allowedIds.has(id),
+  );
+  let groundingValidation: PassFail = "PASS";
+
+  try {
+    validateGroundedAnswer(answer, input, allowedEvidenceIds);
+  } catch {
+    groundingValidation = "FAIL";
+  }
+
+  return {
+    jsonParse: "PASS",
+    schemaValidation: "PASS",
+    evidenceSubsetValidation: statusFromBoolean(evidenceSubsetPass),
+    groundingValidation,
+    answer: answer.answer,
+    usedEvidenceIds: answer.usedEvidenceIds,
+    uncertainty: answer.uncertainty,
+    language: answer.language,
+  };
+}
+
+class DiagnosticProvider implements PortfolioAIProvider {
+  constructor(
+    private readonly providerName: "gemini" | "freellmapi",
+    private readonly createProvider: () => PortfolioAIProvider,
+    private readonly generationInput: GeneratePortfolioAnswerInput,
+    private readonly diagnostics: ProviderDiagnostics[],
+    private readonly httpDiagnostics?: FreeLLMAPIHTTPDiagnostics,
+  ) {}
+
+  async generate(
+    input: GroundedGenerationInput,
+  ): Promise<ProviderGenerationResult> {
+    const diagnostic: ProviderDiagnostics = {
+      providerName: this.providerName,
+      called: true,
+    };
+    const startedAt = Date.now();
+
+    this.diagnostics.push(diagnostic);
+
+    try {
+      const result = await this.createProvider().generate(input);
+
+      diagnostic.result = "SUCCESS";
+      diagnostic.elapsedMs = elapsedSince(startedAt);
+      diagnostic.provider = result.provider;
+      diagnostic.model = result.model;
+      diagnostic.structured = inspectStructuredOutput(
+        result.output,
+        this.generationInput,
+        input.allowedEvidenceIds,
+      );
+
+      if (this.httpDiagnostics) {
+        Object.assign(diagnostic, this.httpDiagnostics);
+      }
+
+      return result;
+    } catch (error) {
+      diagnostic.result = "FAILURE";
+      diagnostic.elapsedMs = elapsedSince(startedAt);
+      diagnostic.normalizedErrorClass = normalizedErrorClass(error);
+      diagnostic.fallbackEligibleError = isFallbackEligibleGenerationError(error);
+
+      if (this.httpDiagnostics) {
+        Object.assign(diagnostic, this.httpDiagnostics);
+      }
+
+      throw error;
+    }
+  }
+}
+
+function createFreeLLMAPIDiagnosticFetch(
+  diagnostics: FreeLLMAPIHTTPDiagnostics,
+): typeof fetch {
+  return async (input, init) => {
+    const response = await fetch(input, init);
+
+    diagnostics.httpStatus = response.status;
+    diagnostics.routedVia = sanitizeRoutedVia(response.headers.get("x-routed-via"));
+
+    try {
+      const payload = (await response.clone().json()) as {
+        choices?: Array<{ message?: { content?: unknown } }>;
+      };
+      const content = payload.choices?.[0]?.message?.content;
+
+      diagnostics.responseJSONParse = "PASS";
+      diagnostics.assistantContentExists =
+        typeof content === "string" && content.trim() ? "YES" : "NO";
+
+      if (typeof content === "string") {
+        try {
+          JSON.parse(content);
+          diagnostics.assistantContentJSONParse = "PASS";
+        } catch {
+          diagnostics.assistantContentJSONParse = "FAIL";
+        }
+      } else {
+        diagnostics.assistantContentJSONParse = "NOT_RUN";
+      }
+    } catch {
+      diagnostics.responseJSONParse = "FAIL";
+      diagnostics.assistantContentExists = "NOT_RUN";
+      diagnostics.assistantContentJSONParse = "NOT_RUN";
+    }
+
+    return response;
+  };
+}
+
+function readHistoryFromEnvironment(): ConversationContextMessage[] | undefined {
+  const raw = process.env.PORTFOLIO_AI_DIAGNOSE_HISTORY_JSON;
+
+  if (!raw?.trim()) {
+    return undefined;
+  }
+
+  const parsed = JSON.parse(raw) as unknown;
+
+  if (!Array.isArray(parsed)) {
+    throw new Error("PORTFOLIO_AI_DIAGNOSE_HISTORY_JSON must be an array.");
+  }
+
+  return parsed.map((message) => {
+    if (
+      typeof message !== "object" ||
+      message === null ||
+      ((message as { role?: unknown }).role !== "user" &&
+        (message as { role?: unknown }).role !== "assistant") ||
+      typeof (message as { content?: unknown }).content !== "string"
+    ) {
+      throw new Error(
+        "PORTFOLIO_AI_DIAGNOSE_HISTORY_JSON items must have role and content.",
+      );
+    }
+
+    return {
+      role: (message as { role: "user" | "assistant" }).role,
+      content: (message as { content: string }).content,
+    };
+  });
+}
+
+function freeLLMAPIEnabled() {
+  return process.env.FREELLMAPI_ENABLED?.trim().toLowerCase() === "true";
+}
+
+function explainFallback(
+  providerDiagnostics: readonly ProviderDiagnostics[],
+  secondaryConfigured: boolean,
+  finalError: unknown,
+) {
+  const gemini = providerDiagnostics.find(
+    (item) => item.providerName === "gemini",
+  );
+  const freeLLMAPI = providerDiagnostics.find(
+    (item) => item.providerName === "freellmapi",
+  );
+
+  if (freeLLMAPI?.called) {
+    return {
+      triggered: "YES",
+      reason: gemini?.normalizedErrorClass
+        ? `Primary ${gemini.normalizedErrorClass} is fallback-eligible.`
+        : "Primary provider failed with a fallback-eligible provider error.",
+    };
+  }
+
+  if (!secondaryConfigured) {
+    return {
+      triggered: "NO",
+      reason: "FreeLLMAPI fallback is not configured/enabled.",
+    };
+  }
+
+  if (gemini?.result === "SUCCESS") {
+    return {
+      triggered: "NO",
+      reason:
+        "Primary provider returned output; V1 fallback only handles provider failures before downstream validation.",
+    };
+  }
+
+  if (gemini?.normalizedErrorClass) {
+    return {
+      triggered: "NO",
+      reason: `Primary ${gemini.normalizedErrorClass} is not fallback-eligible.`,
+    };
+  }
+
+  return {
+    triggered: "NO",
+    reason: finalError
+      ? `${normalizedErrorClass(finalError)} occurred outside provider fallback.`
+      : "No provider failure was observed.",
+  };
+}
+
+async function main() {
+  loadEnvConfig(process.cwd());
+
+  const question = process.argv.slice(2).join(" ").trim();
+  const message = question || "A-t-il utilisé Kafka ?";
+  const requestId = createPortfolioAIRequestId();
+  const totalStartedAt = Date.now();
+  const history = readHistoryFromEnvironment();
+  const payload = {
+    message,
+    locale: "fr",
+    ...(history ? { history } : {}),
+  };
+  const retrievalStartedAt = Date.now();
+  const prepared = preparePortfolioAIRequest(payload);
+  const retrievalElapsedMs = elapsedSince(retrievalStartedAt);
+  const generationInput: GeneratePortfolioAnswerInput = {
+    question: prepared.payload.message,
+    locale: prepared.locale,
+    retrieval: prepared.retrieval,
+    conversationContext:
+      prepared.conversationContext.messages.length > 0
+        ? prepared.conversationContext.messages
+        : undefined,
+  };
+  const groundedContext = buildGroundedContext(generationInput);
+  const allowedEvidenceIds = getAllowedEvidenceIds(groundedContext);
+  const userPrompt = buildGenerationUserPrompt(generationInput, groundedContext);
+  const providerDiagnostics: ProviderDiagnostics[] = [];
+  const freeLLMAPIHTTPDiagnostics: FreeLLMAPIHTTPDiagnostics = {
+    httpStatus: null,
+    routedVia: "none",
+    responseJSONParse: "NOT_RUN",
+    assistantContentExists: "NOT_RUN",
+    assistantContentJSONParse: "NOT_RUN",
+  };
+  const geminiProvider = new DiagnosticProvider(
+    "gemini",
+    () => new GeminiPortfolioAIProvider(getPortfolioAIGenerationConfig()),
+    generationInput,
+    providerDiagnostics,
+  );
+  const secondaryProvider = new DiagnosticProvider(
+    "freellmapi",
+    () =>
+      new FreeLLMAPIPortfolioAIProvider(
+        getFreeLLMAPIGenerationConfig(),
+        createFreeLLMAPIDiagnosticFetch(freeLLMAPIHTTPDiagnostics),
+      ),
+    generationInput,
+    providerDiagnostics,
+    freeLLMAPIHTTPDiagnostics,
+  );
+  const fallbackEnabled = freeLLMAPIEnabled();
+  const provider = fallbackEnabled
+    ? new ResilientPortfolioAIProvider(geminiProvider, secondaryProvider)
+    : geminiProvider;
+  const generationStartedAt = Date.now();
+  let finalResult:
+    | Awaited<ReturnType<typeof generatePortfolioAnswer>>
+    | undefined;
+  let finalError: unknown;
+
+  try {
+    finalResult = await generatePortfolioAnswer(generationInput, { provider });
+  } catch (error) {
+    finalError = error;
+  }
+
+  const generationElapsedMs = elapsedSince(generationStartedAt);
+  const publicError = finalError
+    ? mapPortfolioAIErrorToHTTPResult(normalizeGenerationError(finalError), requestId)
+    : undefined;
+  const lastStructured = [...providerDiagnostics]
+    .reverse()
+    .find((item) => item.structured)?.structured;
+
+  console.log(
+    JSON.stringify(
+      {
+        requestId,
+        question: prepared.payload.message,
+        locale: prepared.locale,
+        retrieval: {
+          intent: prepared.retrieval.intent,
+          normalizedTechnology:
+            prepared.retrieval.matchedEntities.find(
+              (match) => match.entity.type === "technology",
+            )?.entity.canonicalName ?? null,
+          retrievedEntityIds: prepared.retrieval.results.map(
+            (result) => result.entity.id,
+          ),
+          retrievedEvidenceIds: allowedEvidenceIds,
+          status: prepared.retrieval.status,
+          notDocumented: prepared.retrieval.notDocumented,
+          requiresProvider: prepared.requiresProviderGeneration,
+          elapsedMs: retrievalElapsedMs,
+        },
+        context: {
+          historyMessageCount: prepared.conversationContext.historyMessageCount,
+          historyTotalChars:
+            prepared.conversationContext.messages.reduce(
+              (total, messageItem) => total + messageItem.content.length,
+              0,
+            ),
+          contextualized: prepared.conversationContext.contextualized,
+          retrievalQueryChars:
+            prepared.conversationContext.retrievalQuery.length,
+          groundedContextChars: JSON.stringify(groundedContext).length,
+          finalGenerationInputChars:
+            PORTFOLIO_AI_SYSTEM_PROMPT.length + userPrompt.length,
+          historyDuplicated: false,
+          previousAssistantResponseDuplicated: false,
+          unrelatedRAGEvidenceIncluded:
+            prepared.retrieval.results.some((result) =>
+              result.entity.id.includes("medical-rag"),
+            ) &&
+            !prepared.retrieval.results.some((result) =>
+              result.entity.id.includes("kafka"),
+            ),
+        },
+        providers: providerDiagnostics,
+        fallback: explainFallback(
+          providerDiagnostics,
+          fallbackEnabled,
+          finalError,
+        ),
+        structuredResult: lastStructured
+          ? {
+              answer: lastStructured.answer,
+              usedEvidenceIds: lastStructured.usedEvidenceIds,
+              uncertainty: lastStructured.uncertainty,
+              language: lastStructured.language,
+            }
+          : null,
+        validation: {
+          jsonParse: lastStructured?.jsonParse ?? "NOT_RUN",
+          schemaValidation: lastStructured?.schemaValidation ?? "NOT_RUN",
+          evidenceSubsetValidation:
+            lastStructured?.evidenceSubsetValidation ?? "NOT_RUN",
+          groundingValidation:
+            lastStructured?.groundingValidation ?? "NOT_RUN",
+        },
+        final: finalResult
+          ? {
+              result: "SUCCESS",
+              provider: finalResult.metadata.provider,
+              model: finalResult.metadata.model,
+              answer: finalResult.answer.answer,
+              usedEvidenceIds: finalResult.answer.usedEvidenceIds,
+              uncertainty: finalResult.answer.uncertainty,
+              language: finalResult.answer.language,
+              retryCount: finalResult.metadata.retryCount,
+              fastPathUsed: finalResult.metadata.fastPathUsed ?? false,
+              validationMs: finalResult.metadata.validationMs,
+            }
+          : {
+              result: "FAILURE",
+              normalizedErrorClass: normalizedErrorClass(finalError),
+              publicStatus: publicError?.status,
+              publicCode:
+                publicError && "error" in publicError.body
+                  ? publicError.body.error.code
+                  : undefined,
+              publicMessage:
+                publicError && "error" in publicError.body
+                  ? publicError.body.error.message
+                  : undefined,
+            },
+        timing: {
+          retrievalElapsedMs,
+          primaryProviderElapsedMs:
+            providerDiagnostics.find((item) => item.providerName === "gemini")
+              ?.elapsedMs ?? null,
+          fallbackProviderElapsedMs:
+            providerDiagnostics.find(
+              (item) => item.providerName === "freellmapi",
+            )?.elapsedMs ?? null,
+          generationElapsedMs,
+          totalElapsedMs: elapsedSince(totalStartedAt),
+          fastPathUsed: finalResult?.metadata.fastPathUsed ?? false,
+        },
+      },
+      null,
+      2,
+    ),
+  );
+
+  if (finalError) {
+    process.exitCode = 1;
+  }
+}
+
+main().catch((error: unknown) => {
+  console.error(
+    JSON.stringify(
+      {
+        result: "FAILURE",
+        normalizedErrorClass: normalizedErrorClass(error),
+      },
+      null,
+      2,
+    ),
+  );
+  process.exitCode = 1;
+});

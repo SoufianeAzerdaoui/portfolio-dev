@@ -71,6 +71,7 @@ export type GroundedGenerationInput = {
   allowedEvidenceIds: string[];
   systemPrompt: string;
   userPrompt: string;
+  signal?: AbortSignal;
 };
 
 export type ProviderUsageMetadata = {
@@ -95,6 +96,7 @@ export interface PortfolioAIProvider {
 export type GeneratePortfolioAnswerOptions = {
   provider?: PortfolioAIProvider;
   model?: string;
+  signal?: AbortSignal;
 };
 
 export type PortfolioAnswerResult = {
@@ -109,6 +111,8 @@ export type PortfolioAnswerResult = {
     usedEvidenceCount: number;
     providerCalled: boolean;
     retryCount: number;
+    fastPathUsed?: boolean;
+    validationMs?: number;
     usage?: ProviderUsageMetadata;
   };
 };
