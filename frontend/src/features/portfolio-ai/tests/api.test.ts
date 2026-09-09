@@ -699,6 +699,43 @@ test("explicit unsupported Kubernetes question does not inherit RAG history", as
   }
 });
 
+test("current academic program after RAG history keeps retrieval focused", async () => {
+  const previousQuestion = "Quelle est son expérience avec le RAG ?";
+  const previousAnswer =
+    "Son expérience avec le RAG est documentée via Medical RAG et SyndiSmart AI.";
+  const history = [
+    { role: "user" as const, content: previousQuestion },
+    { role: "assistant" as const, content: previousAnswer },
+  ];
+  const provider = new MockPortfolioAIProvider((input) => ({
+    answer: "His current academic program is documented in the portfolio.",
+    usedEvidenceIds: input.allowedEvidenceIds.slice(0, 1),
+    uncertainty: "none",
+    language: "en",
+  }));
+  const result = await handlePortfolioAIRequest(
+    {
+      message: "What is his current academic program?",
+      locale: "en",
+      history,
+    },
+    { provider, requestId: "req_current_program_after_rag" },
+  );
+  const input = provider.inputs[0];
+
+  assert.equal(result.status, 200);
+  assert.ok(input);
+  assert.equal(input.groundedContext.intent, "education_lookup");
+  assert.deepEqual(
+    input.groundedContext.entities.map((entity) => entity.id),
+    ["education-isima-siad-2026"],
+  );
+  assert.equal(input.userPrompt.split(previousQuestion).length - 1, 1);
+  assert.equal(input.userPrompt.split(previousAnswer).length - 1, 1);
+  assert.equal(JSON.stringify(input.groundedContext).includes("Medical RAG"), false);
+  assert.equal(JSON.stringify(input.groundedContext).includes("Qdrant"), false);
+});
+
 test("deterministic not-documented bypass remains provider-free with history", async () => {
   const provider = new MockPortfolioAIProvider(() => {
     throw new Error("Provider should not be called.");
@@ -895,6 +932,27 @@ test("timeout maps to stable 504 public error", async () => {
     "AI_TIMEOUT",
     true,
   );
+});
+
+test("non-stream timeout response keeps existing public retryable contract", async () => {
+  const result = await handlePortfolioAIRequest(
+    { message: "A-t-il utilisé Qdrant ?", locale: "fr" },
+    {
+      provider: new MockPortfolioAIProvider(() => {
+        throw new GenerationTimeoutError("raw timeout details");
+      }),
+      requestId: "req_timeout_contract",
+    },
+  );
+
+  assert.equal(result.status, 504);
+
+  if ("error" in result.body) {
+    assert.equal(result.body.error.code, "AI_TIMEOUT");
+    assert.equal(result.body.error.retryable, true);
+    assert.equal(result.body.error.message.includes("raw timeout"), false);
+    assert.equal(result.body.error.message.includes("quota"), false);
+  }
 });
 
 test("grounding failure maps to stable 502 public error", async () => {
@@ -1272,6 +1330,8 @@ test("timeout streams safe public error", async () => {
 
     assert.deepEqual(events.map((event) => event.event), ["error"]);
     assert.equal(events[0]?.data.code, "AI_TIMEOUT");
+    assert.equal(events[0]?.data.retryable, true);
+    assert.equal(String(events[0]?.data.message).includes("raw timeout"), false);
   }
 });
 

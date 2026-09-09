@@ -1,6 +1,5 @@
 "use client";
 
-import { ArrowRight } from "lucide-react";
 import type { KeyboardEvent, RefObject } from "react";
 
 import { PORTFOLIO_AI_CLIENT_MAX_MESSAGE_LENGTH } from "@/features/portfolio-ai/client/portfolio-ai-client";
@@ -46,25 +45,30 @@ export function PortfolioAIComposer({
         <label className="sr-only" htmlFor="portfolio-ai-composer">
           {content.inputPlaceholder}
         </label>
-        <textarea
-          ref={inputRef}
-          id="portfolio-ai-composer"
-          value={value}
-          maxLength={PORTFOLIO_AI_CLIENT_MAX_MESSAGE_LENGTH}
-          rows={1}
-          disabled={disabled}
-          placeholder={content.inputPlaceholder}
-          onChange={(event) => onChange(event.target.value)}
-          onKeyDown={handleKeyDown}
-          className="min-h-[3.25rem] max-h-[8.5rem] min-w-0 flex-1 resize-none rounded-[8px] border border-[rgba(180,177,194,0.1)] bg-[rgba(23,22,28,0.5)] px-4 py-3 text-[0.92rem] leading-6 text-[var(--home-text)] outline-none transition duration-150 placeholder:text-[var(--home-muted)] focus:border-[rgba(139,128,217,0.48)] focus:bg-[rgba(23,22,28,0.72)] focus:shadow-[0_0_0_3px_rgba(97,85,185,0.09)] disabled:cursor-not-allowed disabled:opacity-65 motion-reduce:transition-none"
-        />
+        <div className="group/composer relative min-w-0 flex-1">
+          <span className="pointer-events-none absolute left-4 top-3.5 font-mono text-[1rem] leading-6 text-[var(--home-muted)] transition-colors duration-150 group-focus-within/composer:text-[#8B80D9] motion-reduce:transition-none">
+            ›
+          </span>
+          <textarea
+            ref={inputRef}
+            id="portfolio-ai-composer"
+            value={value}
+            maxLength={PORTFOLIO_AI_CLIENT_MAX_MESSAGE_LENGTH}
+            rows={1}
+            disabled={disabled}
+            placeholder={content.inputPlaceholder}
+            onChange={(event) => onChange(event.target.value)}
+            onKeyDown={handleKeyDown}
+            className="min-h-[3.25rem] max-h-[8.5rem] w-full min-w-0 resize-none rounded-[8px] border border-[rgba(180,177,194,0.1)] bg-[rgba(32,33,38,0.42)] py-3 pl-8 pr-4 text-[0.92rem] leading-6 text-[var(--home-text)] outline-none transition-[background-color,border-color] duration-150 placeholder:text-[var(--home-muted)] focus:border-[rgba(139,128,217,0.42)] focus:bg-[rgba(32,33,38,0.58)] disabled:cursor-not-allowed disabled:opacity-65 motion-reduce:transition-none"
+          />
+        </div>
         <button
           type="submit"
           disabled={disabled || !trimmedValue}
           aria-label={content.send}
-          className="inline-grid h-[3.25rem] w-[3.25rem] shrink-0 place-items-center rounded-[8px] border border-[var(--home-button-primary-border)] bg-[var(--home-button-primary-bg)] text-[#F8F7FB] shadow-[var(--home-button-primary-shadow)] transition duration-150 hover:-translate-y-px hover:bg-[var(--home-button-primary-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--home-accent-2)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#17161C] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 motion-reduce:transition-none"
+          className="inline-grid h-[3.25rem] w-[3.25rem] shrink-0 place-items-center rounded-[8px] border border-[rgba(139,128,217,0.34)] bg-[rgba(32,33,38,0.62)] font-mono text-[1.12rem] leading-none text-[#F8F7FB] transition-[background-color,border-color,color,transform] duration-150 hover:-translate-y-px hover:border-[rgba(139,128,217,0.56)] hover:bg-[rgba(97,85,185,0.2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--home-accent-2)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#17161C] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 motion-reduce:transition-none"
         >
-          <ArrowRight aria-hidden="true" className="h-4 w-4" />
+          <span aria-hidden="true">→</span>
         </button>
       </div>
       {showCounter ? (

@@ -90,9 +90,17 @@ export function PortfolioAIMessage({
         ) : null}
 
         {!hasError && !message.content && processing ? (
-          <p className="font-mono text-[0.68rem] font-medium uppercase tracking-[0.22em] text-[var(--home-muted)]">
-            {content.processing}
-          </p>
+          <div className="max-w-[22rem]">
+            <p className="font-mono text-[0.68rem] font-medium uppercase tracking-[0.22em] text-[var(--home-muted)]">
+              {content.processing}
+            </p>
+            <div
+              aria-hidden="true"
+              className="mt-3 h-px overflow-hidden bg-[var(--home-line-muted)]"
+            >
+              <span className="portfolio-ai-activity-line block h-px w-1/3 bg-[rgba(139,128,217,0.62)]" />
+            </div>
+          </div>
         ) : null}
 
         {!isUser && message.sources ? (

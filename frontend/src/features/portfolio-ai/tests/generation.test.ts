@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import { test } from "node:test";
 
 import { ThinkingLevel } from "@google/genai";
@@ -18,6 +19,7 @@ import {
   getPortfolioAIGenerationConfig,
   generatePortfolioAnswer,
   normalizeGenerationError,
+  PORTFOLIO_AI_PROVIDER_TIMEOUT_MS,
   PORTFOLIO_AI_SYSTEM_PROMPT,
   validatePortfolioAIGenerationEnvironment,
   type GroundedGenerationInput,
@@ -72,6 +74,15 @@ function firstEvidenceAnswer(input: GroundedGenerationInput, answer: string) {
     language: input.locale,
   };
 }
+
+test("provider timeout config is centralized at 25 seconds", () => {
+  const config = getPortfolioAIGenerationConfig({
+    GEMINI_API_KEY: "test-api-key",
+  });
+
+  assert.equal(PORTFOLIO_AI_PROVIDER_TIMEOUT_MS, 25_000);
+  assert.equal(config.timeoutMs, PORTFOLIO_AI_PROVIDER_TIMEOUT_MS);
+});
 
 test("Qdrant context and answer are grounded in supplied evidence", async () => {
   const retrieval = retrievePortfolioKnowledge("A-t-il utilisé Qdrant ?", {
@@ -516,12 +527,34 @@ test("Gemini provider uses Gemini 3 thinking level without legacy controls", asy
   const config = capturedRequest.config;
   assert.ok(config);
   const thinkingConfig = config.thinkingConfig as Record<string, unknown>;
+  const requestHTTPOptions = config.httpOptions as Record<string, unknown>;
 
   assert.equal(thinkingConfig.thinkingLevel, ThinkingLevel.LOW);
+  assert.equal(requestHTTPOptions.timeout, PORTFOLIO_AI_PROVIDER_TIMEOUT_MS);
+  assert.ok(config.abortSignal instanceof AbortSignal);
   assert.equal("thinkingBudget" in thinkingConfig, false);
   assert.equal("candidateCount" in config, false);
   assert.equal("temperature" in config, false);
   assert.equal("topP" in config, false);
+});
+
+test("provider timeout value is not duplicated inconsistently", () => {
+  const files = [
+    "src/features/portfolio-ai/generation/generation.config.ts",
+    "src/features/portfolio-ai/generation/gemini-provider.ts",
+    "src/features/portfolio-ai/api/portfolio-ai-api.ts",
+    "src/features/portfolio-ai/api/portfolio-ai-stream.ts",
+    "src/features/portfolio-ai/client/portfolio-ai-client.ts",
+    "src/features/portfolio-ai/hooks/use-portfolio-ai.ts",
+  ];
+  const joinedSource = files
+    .map((file) => fs.readFileSync(file, "utf8"))
+    .join("\n");
+
+  assert.equal((joinedSource.match(/25_000/g) ?? []).length, 1);
+  assert.equal((joinedSource.match(/\b25000\b/g) ?? []).length, 0);
+  assert.equal((joinedSource.match(/12_000/g) ?? []).length, 0);
+  assert.equal((joinedSource.match(/\b12000\b/g) ?? []).length, 0);
 });
 
 test("Gemini auth failures normalize to configuration errors", () => {

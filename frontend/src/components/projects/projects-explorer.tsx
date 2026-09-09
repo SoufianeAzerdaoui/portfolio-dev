@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Grid2X2, List, RotateCcw, Search, X } from "lucide-react";
 
@@ -40,6 +40,8 @@ type ProjectsExplorerProps = {
 
 type CommitMode = "push" | "replace";
 const PROJECTS_VIEW_STORAGE_KEY = "portfolio.projects.view";
+const PROJECT_TARGET_CUE_MS = 1600;
+const PROJECT_TARGET_REDUCED_CUE_MS = 1200;
 
 type CountedProjectDomainFilterOption = ProjectDomainFilterOption & {
   count: number;
@@ -106,6 +108,25 @@ function buildHref(pathname: string, state: ProjectExplorerState) {
   return queryString ? `${pathname}?${queryString}` : pathname;
 }
 
+export function resolveProjectHashTarget(
+  hash: string,
+  projectIds: ReadonlySet<string>,
+) {
+  const rawHash = hash.startsWith("#") ? hash.slice(1) : hash;
+
+  if (!rawHash) {
+    return null;
+  }
+
+  try {
+    const projectId = decodeURIComponent(rawHash);
+
+    return projectIds.has(projectId) ? projectId : null;
+  } catch {
+    return null;
+  }
+}
+
 export function ProjectsExplorer({
   projects,
   domains,
@@ -117,7 +138,12 @@ export function ProjectsExplorer({
   const pathname = usePathname();
   const resultsRef = useRef<HTMLDivElement>(null);
   const hasSyncedStoredViewRef = useRef(false);
+  const targetCueTimeoutRef = useRef<number | null>(null);
+  const targetCueFrameRef = useRef<number | null>(null);
   const [state, setState] = useState<ProjectExplorerState>(initialState);
+  const [highlightedProjectId, setHighlightedProjectId] = useState<string | null>(
+    null,
+  );
   const copy = projectsExplorerCopy[locale];
 
   useEffect(() => {
@@ -190,6 +216,14 @@ export function ProjectsExplorer({
       }),
     [locale, projects, state.domain, state.query],
   );
+  const projectIds = useMemo(
+    () => new Set(projects.map((project) => project.id)),
+    [projects],
+  );
+  const filteredProjectIds = useMemo(
+    () => new Set(filteredProjects.map((project) => project.id)),
+    [filteredProjects],
+  );
   const domainCounts = useMemo(() => getProjectDomainCounts(projects), [projects]);
   const domainOptions = useMemo<CountedProjectDomainFilterOption[]>(
     () =>
@@ -244,6 +278,76 @@ export function ProjectsExplorer({
   const resetFilters = () => {
     commitState({ query: "", domain: "all", view: state.view, page: 1 }, "replace");
   };
+
+  const clearTargetCue = useCallback(() => {
+    if (targetCueTimeoutRef.current !== null) {
+      window.clearTimeout(targetCueTimeoutRef.current);
+      targetCueTimeoutRef.current = null;
+    }
+
+    if (targetCueFrameRef.current !== null) {
+      window.cancelAnimationFrame(targetCueFrameRef.current);
+      targetCueFrameRef.current = null;
+    }
+  }, []);
+
+  const revealHashTarget = useCallback(() => {
+    const projectId = resolveProjectHashTarget(window.location.hash, projectIds);
+
+    if (!projectId) {
+      return;
+    }
+
+    if (!filteredProjectIds.has(projectId)) {
+      setState((current) =>
+        hasActiveFilters(current)
+          ? { query: "", domain: "all", view: current.view, page: 1 }
+          : current,
+      );
+      return;
+    }
+
+    clearTargetCue();
+    targetCueFrameRef.current = window.requestAnimationFrame(() => {
+      targetCueFrameRef.current = null;
+      const target = document.getElementById(projectId);
+
+      if (!target) {
+        return;
+      }
+
+      const reducedMotion =
+        document.documentElement.dataset.motion === "reduce" ||
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      target.scrollIntoView({
+        block: "start",
+        behavior: reducedMotion ? "auto" : "smooth",
+      });
+      setHighlightedProjectId(projectId);
+      targetCueTimeoutRef.current = window.setTimeout(
+        () => {
+          setHighlightedProjectId((current) =>
+            current === projectId ? null : current,
+          );
+          targetCueTimeoutRef.current = null;
+        },
+        reducedMotion ? PROJECT_TARGET_REDUCED_CUE_MS : PROJECT_TARGET_CUE_MS,
+      );
+    });
+  }, [clearTargetCue, filteredProjectIds, projectIds]);
+
+  useEffect(() => {
+    const initialFrame = window.requestAnimationFrame(revealHashTarget);
+
+    window.addEventListener("hashchange", revealHashTarget);
+
+    return () => {
+      window.cancelAnimationFrame(initialFrame);
+      clearTargetCue();
+      window.removeEventListener("hashchange", revealHashTarget);
+    };
+  }, [clearTargetCue, revealHashTarget]);
 
   return (
     <div className="mt-9 sm:mt-10 lg:mt-12">
@@ -419,6 +523,7 @@ export function ProjectsExplorer({
                 project={project}
                 locale={locale}
                 view={state.view}
+                highlighted={highlightedProjectId === project.id}
               />
             ))}
           </div>
