@@ -9,6 +9,10 @@ import {
   getPortfolioAIGenerationConfig,
 } from "@/features/portfolio-ai/generation/generation.config";
 import {
+  logPortfolioAIDebug,
+} from "@/features/portfolio-ai/generation/debug";
+import {
+  GenerationGroundingError,
   GenerationInvalidOutputError,
   GenerationProviderError,
   isRetryableGenerationError,
@@ -24,6 +28,10 @@ import {
   isPortfolioAIGreeting,
 } from "@/features/portfolio-ai/generation/response-language";
 import {
+  buildProjectAttributeFastPathAnswer,
+} from "@/features/portfolio-ai/generation/project-attribute-fast-path";
+import {
+  buildProjectTechnologyFastPathAnswer,
   buildVerifiedTechnologyFastPathAnswer,
 } from "@/features/portfolio-ai/generation/verified-technology-fast-path";
 import type {
@@ -116,15 +124,37 @@ async function generateValidatedWithRetry(
         input,
         allowedEvidenceIds,
       );
+      const validationMs = Date.now() - validationStartedAt;
+
+      logPortfolioAIDebug("generation.validation", {
+        requestId: groundedInput.requestId,
+        intent: input.retrieval.intent,
+        provider: providerResult.provider,
+        elapsedMs: validationMs,
+        validation: "PASS",
+      });
 
       return {
         providerResult,
         answer,
         retryCount: attempt,
-        validationMs: Date.now() - validationStartedAt,
+        validationMs,
       };
     } catch (error) {
       lastError = error;
+
+      if (
+        error instanceof GenerationInvalidOutputError ||
+        error instanceof GenerationGroundingError
+      ) {
+        logPortfolioAIDebug("generation.validation", {
+          requestId: groundedInput.requestId,
+          intent: input.retrieval.intent,
+          elapsedMs: 0,
+          validation: "FAIL",
+          normalizedErrorClass: normalizeGenerationError(error).name,
+        });
+      }
 
       if (isAbortError(error)) {
         throw error;
@@ -162,14 +192,37 @@ export async function generatePortfolioAnswer(
   const retrievedEntityCount = input.retrieval.results.length;
   const verifiedEvidenceCount = countEvidenceByStatus(input, "verified");
   const ambiguousEvidenceCount = countEvidenceByStatus(input, "ambiguous");
-  const fastPathAnswer = buildVerifiedTechnologyFastPathAnswer(input);
+  const projectTechnologyFastPathAnswer =
+    buildProjectTechnologyFastPathAnswer(input);
+  const projectAttributeFastPathAnswer =
+    buildProjectAttributeFastPathAnswer(input);
+  const verifiedTechnologyFastPathAnswer =
+    buildVerifiedTechnologyFastPathAnswer(input);
+  const fastPathAnswer =
+    projectTechnologyFastPathAnswer ??
+    projectAttributeFastPathAnswer ??
+    verifiedTechnologyFastPathAnswer;
 
   if (fastPathAnswer) {
+    logPortfolioAIDebug("generation.fast_path", {
+      requestId: options.requestId,
+      intent: input.retrieval.intent,
+      fastPathUsed: "YES",
+      retrievedEntityIds: input.retrieval.results.map(
+        (result) => result.entity.id,
+      ),
+      evidenceIds: fastPathAnswer.usedEvidenceIds,
+    });
+
     return {
       answer: fastPathAnswer,
       metadata: {
         provider: "local",
-        model: "deterministic-verified-technology",
+        model: projectTechnologyFastPathAnswer
+          ? "deterministic-project-technology"
+          : projectAttributeFastPathAnswer
+            ? "deterministic-project-attribute"
+            : "deterministic-verified-technology",
         latencyMs: 0,
         retrievedEntityCount,
         verifiedEvidenceCount,
@@ -222,11 +275,19 @@ export async function generatePortfolioAnswer(
   }
 
   const provider = options.provider ?? getDefaultPortfolioAIProvider();
+  logPortfolioAIDebug("generation.fast_path", {
+    requestId: options.requestId,
+    intent: input.retrieval.intent,
+    fastPathUsed: "NO",
+    retrievedEntityIds: input.retrieval.results.map((result) => result.entity.id),
+    evidenceIds: allowedEvidenceIds,
+  });
   const userPrompt = buildGenerationUserPrompt(input, groundedContext);
   const { providerResult, answer, retryCount, validationMs } =
     await generateValidatedWithRetry(
       provider,
       {
+        requestId: options.requestId,
         question: input.question,
         locale: input.locale,
         model,

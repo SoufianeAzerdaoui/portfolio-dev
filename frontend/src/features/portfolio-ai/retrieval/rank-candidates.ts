@@ -11,6 +11,13 @@ function uniqueByStableKey<T>(
 }
 
 function limitFacts(candidate: RetrievalCandidate) {
+  if (
+    candidate.facts.length > 0 &&
+    candidate.facts.every((fact) => fact.predicate === "usesTechnology")
+  ) {
+    return candidate.facts;
+  }
+
   if (candidate.facts.length <= 12) {
     return candidate.facts;
   }

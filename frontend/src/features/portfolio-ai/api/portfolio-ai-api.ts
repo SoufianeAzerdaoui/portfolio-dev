@@ -14,6 +14,7 @@ import {
   createEvidenceId,
   detectPortfolioAIResponseLanguage,
   generatePortfolioAnswer,
+  logPortfolioAIDebug,
 } from "@/features/portfolio-ai/generation";
 import {
   GenerationConfigurationError,
@@ -463,6 +464,8 @@ export async function generatePublicPortfolioAIResponse(
     generationOptions.signal = options.signal;
   }
 
+  generationOptions.requestId = requestId;
+
   const result = await generatePortfolioAnswer(
     {
       question: prepared.payload.message,
@@ -493,9 +496,25 @@ export async function handlePortfolioAIRequest(
   options: PortfolioAIServiceOptions = {},
 ): Promise<PortfolioAIHTTPResult> {
   const requestId = options.requestId ?? createPortfolioAIRequestId();
+  const requestStartedAt = Date.now();
+  let debugStatus: number | undefined;
+  let debugErrorClass: string | undefined;
 
   try {
+    const retrievalStartedAt = Date.now();
     const prepared = preparePortfolioAIRequest(rawPayload);
+    logPortfolioAIDebug("api.retrieval", {
+      requestId,
+      intent: prepared.retrieval.intent,
+      requestedProjectAttribute: prepared.retrieval.requestedProjectAttribute,
+      elapsedMs: Date.now() - retrievalStartedAt,
+      retrievedEntityIds: prepared.retrieval.results.map(
+        (result) => result.entity.id,
+      ),
+      evidenceIds: prepared.retrieval.results.flatMap((result) =>
+        [...collectGroupEvidenceIds(result)],
+      ),
+    });
     const release = acquirePortfolioAIGenerationAccessForTransport(
       prepared,
       options,
@@ -512,11 +531,25 @@ export async function handlePortfolioAIRequest(
       release();
     }
 
+    debugStatus = 200;
+
     return {
       status: 200,
       body,
     };
   } catch (error) {
-    return mapPortfolioAIErrorToHTTPResult(error, requestId);
+    const result = mapPortfolioAIErrorToHTTPResult(error, requestId);
+
+    debugStatus = result.status;
+    debugErrorClass = error instanceof Error ? error.name : "UnknownError";
+
+    return result;
+  } finally {
+    logPortfolioAIDebug("api.request", {
+      requestId,
+      elapsedMs: Date.now() - requestStartedAt,
+      status: debugStatus,
+      normalizedErrorClass: debugErrorClass,
+    });
   }
 }

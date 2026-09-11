@@ -20,6 +20,20 @@ function factValues(result: PortfolioRetrievalResult, entityId: string) {
   );
 }
 
+function factPredicates(result: PortfolioRetrievalResult, entityId: string) {
+  return groupFor(result, entityId)?.facts.map((fact) => fact.predicate) ?? [];
+}
+
+function factEvidenceFields(result: PortfolioRetrievalResult, entityId: string) {
+  return [
+    ...new Set(
+      groupFor(result, entityId)?.facts.flatMap((fact) =>
+        fact.evidence.map((evidence) => evidence.field ?? ""),
+      ) ?? [],
+    ),
+  ];
+}
+
 function assertEntityStatus(
   result: PortfolioRetrievalResult,
   entityId: string,
@@ -42,6 +56,13 @@ function assertIncludesEntities(
   });
 }
 
+function assertExactEntities(
+  result: PortfolioRetrievalResult,
+  expectedEntityIds: readonly string[],
+) {
+  assert.deepEqual(entityIds(result), expectedEntityIds);
+}
+
 function assertNotDocumented(result: PortfolioRetrievalResult) {
   assert.equal(result.status, "not-documented");
   assert.equal(result.notDocumented, true);
@@ -59,6 +80,60 @@ const qdrantEn = retrievePortfolioKnowledge("Has he used Qdrant?", {
 });
 assert.equal(qdrantEn.intent, "technology_evidence");
 assertEntityStatus(qdrantEn, "medical-rag-platform", "verified");
+
+const qdrantUsedQuestion = retrievePortfolioKnowledge("Qdrant est-il utilisé ?", {
+  locale: "fr",
+});
+assert.equal(qdrantUsedQuestion.intent, "technology_evidence");
+assertExactEntities(qdrantUsedQuestion, ["medical-rag-platform"]);
+
+const qdrantRole = retrievePortfolioKnowledge("Quel rôle joue Qdrant ?", {
+  locale: "fr",
+  topK: 10,
+});
+assert.equal(qdrantRole.intent, "technology_explanation");
+assertExactEntities(qdrantRole, ["medical-rag-platform"]);
+assert.ok(
+  qdrantRole.matchedEntities.some((match) => match.entity.id === "tech:qdrant"),
+);
+assert.ok(
+  factValues(qdrantRole, "medical-rag-platform").includes("tech:qdrant"),
+);
+assert.ok(
+  factValues(qdrantRole, "medical-rag-platform").includes("indexation Qdrant"),
+);
+
+const qdrantUsedFor = retrievePortfolioKnowledge("What is Qdrant used for?", {
+  locale: "en",
+  topK: 10,
+});
+assert.equal(qdrantUsedFor.intent, "technology_explanation");
+assertExactEntities(qdrantUsedFor, ["medical-rag-platform"]);
+
+const qdrantPurposeMedicalRag = retrievePortfolioKnowledge(
+  "À quoi sert Qdrant dans le projet RAG médical ?",
+  { locale: "fr", topK: 10 },
+);
+assert.equal(qdrantPurposeMedicalRag.intent, "project_technology_explanation");
+assertExactEntities(qdrantPurposeMedicalRag, ["medical-rag-platform"]);
+
+const qdrantSelectionRationale = retrievePortfolioKnowledge(
+  "Pourquoi Qdrant plutôt que Pinecone ?",
+  { locale: "fr", topK: 10 },
+);
+assert.equal(qdrantSelectionRationale.intent, "technology_explanation");
+assertExactEntities(qdrantSelectionRationale, ["medical-rag-platform"]);
+
+const kafkaRole = retrievePortfolioKnowledge("Quel rôle joue Kafka ?", {
+  locale: "fr",
+  topK: 10,
+});
+assert.equal(kafkaRole.intent, "technology_explanation");
+assertIncludesEntities(kafkaRole, [
+  "real-time-ecommerce-activity-tracking",
+  "personalized-recommendation-system",
+]);
+assert.equal(entityIds(kafkaRole).length, 2);
 
 const kafka = retrievePortfolioKnowledge("Quels projets utilisent Kafka ?", {
   locale: "fr",
@@ -101,6 +176,188 @@ const ragProjects = retrievePortfolioKnowledge("Quels sont ses projets RAG ?", {
 });
 assert.equal(ragProjects.intent, "projects_by_domain");
 assertIncludesEntities(ragProjects, ["medical-rag-platform", "syndismart-ai"]);
+
+const recommendationObjective = retrievePortfolioKnowledge(
+  "Quel est l’objectif du Personalized Recommendation System ?",
+  { locale: "fr", topK: 10 },
+);
+assert.equal(recommendationObjective.intent, "project_lookup");
+assert.equal(recommendationObjective.requestedProjectAttribute, "objective");
+assertExactEntities(recommendationObjective, [
+  "personalized-recommendation-system",
+]);
+assert.ok(
+  factEvidenceFields(
+    recommendationObjective,
+    "personalized-recommendation-system",
+  ).includes("content.fr.shortDescription"),
+);
+assert.ok(
+  factValues(
+    recommendationObjective,
+    "personalized-recommendation-system",
+  ).some((value) => value.includes("recommandations en temps réel")),
+);
+
+const recommendationObjectiveEn = retrievePortfolioKnowledge(
+  "What is the goal of the Personalized Recommendation System?",
+  { locale: "en", topK: 10 },
+);
+assert.equal(recommendationObjectiveEn.intent, "project_lookup");
+assert.equal(recommendationObjectiveEn.requestedProjectAttribute, "objective");
+assertExactEntities(recommendationObjectiveEn, [
+  "personalized-recommendation-system",
+]);
+assert.ok(
+  factEvidenceFields(
+    recommendationObjectiveEn,
+    "personalized-recommendation-system",
+  ).includes("content.en.shortDescription"),
+);
+
+const ecommerceFunctioning = retrievePortfolioKnowledge(
+  "Comment fonctionne le Real-time E-commerce Activity Tracking ?",
+  { locale: "fr", topK: 10 },
+);
+assert.equal(ecommerceFunctioning.intent, "project_lookup");
+assert.equal(ecommerceFunctioning.requestedProjectAttribute, "approach");
+assertExactEntities(ecommerceFunctioning, [
+  "real-time-ecommerce-activity-tracking",
+]);
+assert.equal(
+  entityIds(ecommerceFunctioning).includes("personalized-recommendation-system"),
+  false,
+);
+assert.ok(
+  factPredicates(
+    ecommerceFunctioning,
+    "real-time-ecommerce-activity-tracking",
+  ).includes("projectApproach"),
+);
+assert.ok(
+  factPredicates(
+    ecommerceFunctioning,
+    "real-time-ecommerce-activity-tracking",
+  ).includes("projectArchitecture"),
+);
+assert.ok(
+  factValues(
+    ecommerceFunctioning,
+    "real-time-ecommerce-activity-tracking",
+  ).includes("Apache Spark"),
+);
+
+const ecommerceFunctioningEn = retrievePortfolioKnowledge(
+  "How does Real-time E-commerce Activity Tracking work?",
+  { locale: "en", topK: 10 },
+);
+assert.equal(ecommerceFunctioningEn.intent, "project_lookup");
+assert.equal(ecommerceFunctioningEn.requestedProjectAttribute, "approach");
+assertExactEntities(ecommerceFunctioningEn, [
+  "real-time-ecommerce-activity-tracking",
+]);
+
+const ecommerceArchitecture = retrievePortfolioKnowledge(
+  "Quelle est l’architecture du Real-time E-commerce Activity Tracking ?",
+  { locale: "fr", topK: 10 },
+);
+assert.equal(ecommerceArchitecture.intent, "project_lookup");
+assert.equal(ecommerceArchitecture.requestedProjectAttribute, "architecture");
+assertExactEntities(ecommerceArchitecture, [
+  "real-time-ecommerce-activity-tracking",
+]);
+assert.ok(
+  factPredicates(
+    ecommerceArchitecture,
+    "real-time-ecommerce-activity-tracking",
+  ).includes("projectArchitectureStep"),
+);
+
+const syndismartProblem = retrievePortfolioKnowledge(
+  "Quel problème résout SyndiSmart AI ?",
+  { locale: "fr", topK: 10 },
+);
+assert.equal(syndismartProblem.intent, "project_lookup");
+assert.equal(syndismartProblem.requestedProjectAttribute, "problem");
+assertExactEntities(syndismartProblem, ["syndismart-ai"]);
+assert.ok(
+  factEvidenceFields(syndismartProblem, "syndismart-ai").includes(
+    "content.fr.caseStudy.problem",
+  ),
+);
+
+const callCenterObjectives = retrievePortfolioKnowledge(
+  "Quels sont les objectifs du Call Center AI ?",
+  { locale: "fr", topK: 10 },
+);
+assert.equal(callCenterObjectives.intent, "project_lookup");
+assert.equal(callCenterObjectives.requestedProjectAttribute, "objective");
+assertExactEntities(callCenterObjectives, ["callcenter-frustration-ai"]);
+assert.ok(
+  factEvidenceFields(callCenterObjectives, "callcenter-frustration-ai").includes(
+    "content.fr.caseStudy.objectives",
+  ),
+);
+
+const ambiguousAiFunctioning = retrievePortfolioKnowledge(
+  "Comment fonctionne son projet AI ?",
+  { locale: "fr", topK: 10 },
+);
+assert.notEqual(ambiguousAiFunctioning.intent, "project_lookup");
+assert.equal(ambiguousAiFunctioning.results.length > 1, true);
+
+const medicalRagTechnologiesEn = retrievePortfolioKnowledge(
+  "What technologies did he use for his medical RAG project?",
+  { locale: "en", topK: 10 },
+);
+assert.equal(medicalRagTechnologiesEn.intent, "project_technology_lookup");
+assert.equal(medicalRagTechnologiesEn.status, "verified");
+assertExactEntities(medicalRagTechnologiesEn, ["medical-rag-platform"]);
+assert.ok(
+  factValues(medicalRagTechnologiesEn, "medical-rag-platform").includes(
+    "tech:qdrant",
+  ),
+);
+
+const medicalRagTechnologiesFr = retrievePortfolioKnowledge(
+  "Quelles technologies a-t-il utilisées pour son projet RAG médical ?",
+  { locale: "fr", topK: 10 },
+);
+assert.equal(medicalRagTechnologiesFr.intent, "project_technology_lookup");
+assertExactEntities(medicalRagTechnologiesFr, ["medical-rag-platform"]);
+
+const syndismartStack = retrievePortfolioKnowledge(
+  "Quelle stack utilise SyndiSmart AI ?",
+  { locale: "fr", topK: 10 },
+);
+assert.equal(syndismartStack.intent, "project_technology_lookup");
+assertExactEntities(syndismartStack, ["syndismart-ai"]);
+assert.ok(factValues(syndismartStack, "syndismart-ai").includes("tech:faiss"));
+assert.equal(
+  factValues(syndismartStack, "syndismart-ai").includes("tech:chroma"),
+  true,
+);
+
+const recommendationStack = retrievePortfolioKnowledge(
+  "What technologies were used in the Personalized Recommendation System?",
+  { locale: "en", topK: 10 },
+);
+assert.equal(recommendationStack.intent, "project_technology_lookup");
+assertExactEntities(recommendationStack, [
+  "personalized-recommendation-system",
+]);
+assert.ok(
+  factValues(recommendationStack, "personalized-recommendation-system").includes(
+    "tech:apache-kafka",
+  ),
+);
+
+const ambiguousAiProjectStack = retrievePortfolioKnowledge(
+  "What technologies did he use in his AI project?",
+  { locale: "en", topK: 10 },
+);
+assert.notEqual(ambiguousAiProjectStack.intent, "project_technology_lookup");
+assert.equal(ambiguousAiProjectStack.results.length > 1, true);
 
 const relevantAiProjects = retrievePortfolioKnowledge(
   "Quels sont ses projets les plus pertinents en IA ?",
@@ -243,6 +500,62 @@ const comparison = retrievePortfolioKnowledge("Compare Medical RAG et SyndiSmart
 assert.equal(comparison.intent, "comparison");
 assert.ok(entityIds(comparison).includes("medical-rag-platform"));
 assert.ok(entityIds(comparison).includes("syndismart-ai"));
+
+const whyQdrantMedicalRag = retrievePortfolioKnowledge(
+  "Why did he use Qdrant in his medical RAG project?",
+  { locale: "en", topK: 10 },
+);
+assert.equal(whyQdrantMedicalRag.intent, "project_technology_explanation");
+assertExactEntities(whyQdrantMedicalRag, ["medical-rag-platform"]);
+assert.ok(
+  whyQdrantMedicalRag.matchedEntities.some(
+    (match) => match.entity.id === "tech:qdrant",
+  ),
+);
+assert.ok(
+  factValues(whyQdrantMedicalRag, "medical-rag-platform").includes(
+    "tech:qdrant",
+  ),
+);
+assert.ok(
+  factValues(whyQdrantMedicalRag, "medical-rag-platform").includes(
+    "indexation Qdrant",
+  ),
+);
+assert.equal(entityIds(whyQdrantMedicalRag).includes("syndismart-ai"), false);
+
+const qdrantUsedForMedicalRag = retrievePortfolioKnowledge(
+  "What was Qdrant used for in the Medical RAG Platform?",
+  { locale: "en", topK: 10 },
+);
+assert.equal(qdrantUsedForMedicalRag.intent, "project_technology_explanation");
+assertExactEntities(qdrantUsedForMedicalRag, ["medical-rag-platform"]);
+
+const qdrantRoleMedicalRagFr = retrievePortfolioKnowledge(
+  "Quel est le rôle de Qdrant dans le projet RAG médical ?",
+  { locale: "fr", topK: 10 },
+);
+assert.equal(qdrantRoleMedicalRagFr.intent, "project_technology_explanation");
+assertExactEntities(qdrantRoleMedicalRagFr, ["medical-rag-platform"]);
+
+const qdrantInsteadOfPinecone = retrievePortfolioKnowledge(
+  "Why Qdrant instead of Pinecone in the medical RAG project?",
+  { locale: "en", topK: 10 },
+);
+assert.equal(qdrantInsteadOfPinecone.intent, "project_technology_explanation");
+assertExactEntities(qdrantInsteadOfPinecone, ["medical-rag-platform"]);
+
+const kafkaRecommendationExplanation = retrievePortfolioKnowledge(
+  "Pourquoi Kafka est utilisé dans son Recommendation System ?",
+  { locale: "fr", topK: 10 },
+);
+assert.equal(
+  kafkaRecommendationExplanation.intent,
+  "project_technology_explanation",
+);
+assertExactEntities(kafkaRecommendationExplanation, [
+  "personalized-recommendation-system",
+]);
 
 const trading = retrievePortfolioKnowledge("Quel est son projet de trading ?", {
   locale: "fr",

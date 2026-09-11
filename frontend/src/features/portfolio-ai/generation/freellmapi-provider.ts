@@ -153,7 +153,7 @@ export class FreeLLMAPIPortfolioAIProvider implements PortfolioAIProvider {
       timedOut = true;
       abortController.abort();
     }, this.config.timeoutMs);
-    const cancelForClientAbort = () => abortController.abort();
+    const cancelForClientAbort = () => abortController.abort(input.signal?.reason);
 
     input.signal?.addEventListener("abort", cancelForClientAbort, { once: true });
 
@@ -215,7 +215,7 @@ export class FreeLLMAPIPortfolioAIProvider implements PortfolioAIProvider {
       }
 
       if (input.signal?.aborted && isAbortError(error)) {
-        throw error;
+        throw abortedError(input.signal);
       }
 
       if (

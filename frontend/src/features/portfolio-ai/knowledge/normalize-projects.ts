@@ -1,5 +1,9 @@
 import { PROJECTS } from "@/features/projects/data/projects";
-import type { Project } from "@/features/projects/domain/project.types";
+import type {
+  Project,
+  ProjectLocalizedContent,
+  SupportedLocale,
+} from "@/features/projects/domain/project.types";
 import {
   medicalRagVerifiedCapabilities,
   overrideEvidence,
@@ -29,6 +33,19 @@ function projectFactId(projectId: string, predicate: string, value: string) {
   return `fact:${projectId}:${predicate}:${value}`;
 }
 
+function projectContentFactId(
+  projectId: string,
+  predicate: string,
+  locale: SupportedLocale,
+  index?: number,
+) {
+  return projectFactId(
+    projectId,
+    predicate,
+    index === undefined ? locale : `${locale}:${index + 1}`,
+  );
+}
+
 function getTechnologyStatus(projectId: string, technologyName: string) {
   return (
     projectTechnologyStatusOverrides[projectId]?.[technologyName] ?? "verified"
@@ -56,6 +73,129 @@ function projectEvidence(project: Project, field: string) {
     field,
     strength: "primary" as const,
   };
+}
+
+function addProjectContentFact(
+  facts: KnowledgeFact[],
+  project: Project,
+  locale: SupportedLocale,
+  predicate: string,
+  value: string,
+  field: string,
+  index?: number,
+) {
+  if (!value.trim()) {
+    return;
+  }
+
+  facts.push({
+    id: projectContentFactId(project.id, predicate, locale, index),
+    subjectId: project.id,
+    predicate,
+    value: value.trim(),
+    status: "verified",
+    evidence: [projectEvidence(project, field)],
+  });
+}
+
+function addProjectLocalizedContentFacts(
+  facts: KnowledgeFact[],
+  project: Project,
+  locale: SupportedLocale,
+  content: ProjectLocalizedContent | undefined,
+) {
+  if (!content) {
+    return;
+  }
+
+  addProjectContentFact(
+    facts,
+    project,
+    locale,
+    "projectShortDescription",
+    content.shortDescription,
+    `content.${locale}.shortDescription`,
+  );
+
+  const caseStudy = content.caseStudy;
+
+  if (!caseStudy) {
+    return;
+  }
+
+  addProjectContentFact(
+    facts,
+    project,
+    locale,
+    "projectOverview",
+    caseStudy.overview ?? "",
+    `content.${locale}.caseStudy.overview`,
+  );
+  addProjectContentFact(
+    facts,
+    project,
+    locale,
+    "projectContext",
+    caseStudy.context ?? "",
+    `content.${locale}.caseStudy.context`,
+  );
+  addProjectContentFact(
+    facts,
+    project,
+    locale,
+    "projectProblem",
+    caseStudy.problem ?? "",
+    `content.${locale}.caseStudy.problem`,
+  );
+  caseStudy.objectives?.forEach((objective, index) =>
+    addProjectContentFact(
+      facts,
+      project,
+      locale,
+      "projectObjective",
+      objective,
+      `content.${locale}.caseStudy.objectives`,
+      index,
+    ),
+  );
+  addProjectContentFact(
+    facts,
+    project,
+    locale,
+    "projectApproach",
+    caseStudy.approach ?? "",
+    `content.${locale}.caseStudy.approach`,
+  );
+  addProjectContentFact(
+    facts,
+    project,
+    locale,
+    "projectArchitecture",
+    caseStudy.architecture ?? "",
+    `content.${locale}.caseStudy.architecture`,
+  );
+  caseStudy.architectureSteps?.forEach((step, index) =>
+    addProjectContentFact(
+      facts,
+      project,
+      locale,
+      "projectArchitectureStep",
+      step,
+      `content.${locale}.caseStudy.architectureSteps`,
+      index,
+    ),
+  );
+  caseStudy.results?.forEach((result, index) =>
+    addProjectContentFact(
+      facts,
+      project,
+      locale,
+      "projectResult",
+      [result.label, result.value, result.description].filter(Boolean).join(": "),
+      `content.${locale}.caseStudy.results`,
+      index,
+    ),
+  );
 }
 
 function projectOverrideEvidence(projectId: string) {
@@ -129,6 +269,9 @@ export function normalizeProjects(projects: readonly Project[] = PROJECTS) {
       };
 
       entities.push(projectEntity);
+
+      addProjectLocalizedContentFacts(facts, project, "fr", project.content.fr);
+      addProjectLocalizedContentFacts(facts, project, "en", project.content.en);
 
       facts.push(
         {

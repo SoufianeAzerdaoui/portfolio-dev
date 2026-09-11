@@ -48,6 +48,17 @@ function isAbortError(error: unknown) {
   );
 }
 
+function abortedError(signal: AbortSignal) {
+  if (signal.reason instanceof Error) {
+    return signal.reason;
+  }
+
+  const error = new Error("Portfolio AI generation was aborted.");
+  error.name = "AbortError";
+
+  return error;
+}
+
 export class GeminiPortfolioAIProvider implements PortfolioAIProvider {
   private readonly config: PortfolioAIGenerationConfig;
   private client?: GoogleGenAI;
@@ -73,9 +84,7 @@ export class GeminiPortfolioAIProvider implements PortfolioAIProvider {
     input: GroundedGenerationInput,
   ): Promise<ProviderGenerationResult> {
     if (input.signal?.aborted) {
-      throw input.signal.reason ?? Object.assign(new Error("Aborted"), {
-        name: "AbortError",
-      });
+      throw abortedError(input.signal);
     }
 
     const startedAt = Date.now();
@@ -85,7 +94,7 @@ export class GeminiPortfolioAIProvider implements PortfolioAIProvider {
       timedOut = true;
       abortController.abort();
     }, this.config.timeoutMs);
-    const cancelForClientAbort = () => abortController.abort();
+    const cancelForClientAbort = () => abortController.abort(input.signal?.reason);
 
     input.signal?.addEventListener("abort", cancelForClientAbort, { once: true });
 
@@ -127,7 +136,7 @@ export class GeminiPortfolioAIProvider implements PortfolioAIProvider {
       }
 
       if (input.signal?.aborted && isAbortError(error)) {
-        throw error;
+        throw abortedError(input.signal);
       }
 
       throw normalizeGenerationError(error);

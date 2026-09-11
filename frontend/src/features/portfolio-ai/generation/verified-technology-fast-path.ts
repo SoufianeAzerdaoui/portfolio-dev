@@ -1,5 +1,6 @@
 import "server-only";
 
+import { getEntityById } from "@/features/portfolio-ai/knowledge";
 import { createEvidenceId } from "@/features/portfolio-ai/generation/build-grounded-context";
 import {
   detectPortfolioAIResponseLanguage,
@@ -16,10 +17,20 @@ type VerifiedTechnologyUsage = {
   evidenceIds: string[];
 };
 
+type ProjectTechnologyStack = {
+  projectLabel: string;
+  technologyNames: string[];
+  evidenceIds: string[];
+};
+
 function technologyMatch(input: GeneratePortfolioAnswerInput) {
   return input.retrieval.matchedEntities.find(
     (match) => match.entity.type === "technology",
   )?.entity;
+}
+
+function uniqueStrings(items: readonly string[]) {
+  return [...new Set(items)];
 }
 
 function preferredPrimaryEvidenceIds(
@@ -36,7 +47,7 @@ function preferredPrimaryEvidenceIds(
       ? directTechnologyEvidence
       : primaryEvidence;
 
-  return [...new Set(selectedEvidence.map(createEvidenceId))];
+  return uniqueStrings(selectedEvidence.map(createEvidenceId));
 }
 
 function verifiedTechnologyUsages(
@@ -84,6 +95,10 @@ function joinLabels(labels: readonly string[], language: "fr" | "en") {
   } ${quotedLabels.at(-1)}`;
 }
 
+function joinTechnologyNames(names: readonly string[]) {
+  return names.join(", ");
+}
+
 function entityNoun(
   usages: readonly VerifiedTechnologyUsage[],
   language: "fr" | "en",
@@ -110,6 +125,51 @@ function entityNoun(
   return language === "en" ? "the portfolio items" : "les éléments du portfolio";
 }
 
+function projectLabel(
+  entity: GeneratePortfolioAnswerInput["retrieval"]["results"][number]["entity"],
+  language: "fr" | "en",
+) {
+  return entity.localeContent?.[language]?.title ?? entity.canonicalName;
+}
+
+function projectTechnologyStack(
+  input: GeneratePortfolioAnswerInput,
+  language: "fr" | "en",
+): ProjectTechnologyStack | undefined {
+  const projectResults = input.retrieval.results.filter(
+    (result) => result.entity.type === "project",
+  );
+
+  if (projectResults.length !== 1) {
+    return undefined;
+  }
+
+  const project = projectResults[0];
+  const verifiedTechnologyFacts = project.facts.filter(
+    (fact) => fact.predicate === "usesTechnology" && fact.status === "verified",
+  );
+  const technologyNames = verifiedTechnologyFacts
+    .map((fact) =>
+      typeof fact.value === "string"
+        ? getEntityById(fact.value)?.canonicalName
+        : undefined,
+    )
+    .filter((name): name is string => Boolean(name));
+  const evidenceIds = uniqueStrings(
+    verifiedTechnologyFacts.flatMap(preferredPrimaryEvidenceIds),
+  );
+
+  if (technologyNames.length === 0 || evidenceIds.length === 0) {
+    return undefined;
+  }
+
+  return {
+    projectLabel: projectLabel(project.entity, language),
+    technologyNames: uniqueStrings(technologyNames),
+    evidenceIds,
+  };
+}
+
 function answerFor(
   technologyName: string,
   usages: readonly VerifiedTechnologyUsage[],
@@ -126,6 +186,19 @@ function answerFor(
   }
 
   return `Oui. Soufiane a utilisé ${technologyName}, notamment dans ${noun} ${labels}.`;
+}
+
+function projectTechnologyAnswerFor(
+  stack: ProjectTechnologyStack,
+  language: "fr" | "en",
+) {
+  const technologies = joinTechnologyNames(stack.technologyNames);
+
+  if (language === "en") {
+    return `For the “${stack.projectLabel}” project, Soufiane used: ${technologies}.`;
+  }
+
+  return `Pour le projet « ${stack.projectLabel} », Soufiane a utilisé : ${technologies}.`;
 }
 
 export function buildVerifiedTechnologyFastPathAnswer(
@@ -154,6 +227,35 @@ export function buildVerifiedTechnologyFastPathAnswer(
   return {
     answer: answerFor(technology.canonicalName, usages, language),
     usedEvidenceIds: usages.flatMap((usage) => usage.evidenceIds),
+    uncertainty: "none",
+    language,
+  };
+}
+
+export function buildProjectTechnologyFastPathAnswer(
+  input: GeneratePortfolioAnswerInput,
+): PortfolioAnswer | undefined {
+  if (
+    input.retrieval.intent !== "project_technology_lookup" ||
+    input.retrieval.notDocumented ||
+    input.retrieval.status !== "verified"
+  ) {
+    return undefined;
+  }
+
+  const language = detectPortfolioAIResponseLanguage(
+    input.question,
+    input.locale,
+  );
+  const stack = projectTechnologyStack(input, language);
+
+  if (!stack) {
+    return undefined;
+  }
+
+  return {
+    answer: projectTechnologyAnswerFor(stack, language),
+    usedEvidenceIds: stack.evidenceIds,
     uncertainty: "none",
     language,
   };

@@ -29,6 +29,7 @@ import {
   PORTFOLIO_AI_SYSTEM_PROMPT,
   ResilientPortfolioAIProvider,
   validatePortfolioAIGenerationEnvironment,
+  buildProjectTechnologyFastPathAnswer,
   buildVerifiedTechnologyFastPathAnswer,
   type GroundedGenerationInput,
   type PortfolioAIProvider,
@@ -81,6 +82,17 @@ function firstEvidenceAnswer(input: GroundedGenerationInput, answer: string) {
     uncertainty: "none",
     language: input.locale,
   };
+}
+
+function createAbortError(message = "The operation was aborted.") {
+  const error = new Error(message);
+  error.name = "AbortError";
+
+  return error;
+}
+
+function abortReasonOrError(signal: AbortSignal | undefined) {
+  return signal?.reason instanceof Error ? signal.reason : createAbortError();
 }
 
 const GENERATED_TEST_QUESTION = "Parle-moi de Medical RAG";
@@ -231,6 +243,425 @@ test("Kafka verified technology lookup uses deterministic fast path", async () =
   ]);
 });
 
+test("direct Qdrant usage wording keeps deterministic technology fast path", async () => {
+  const question = "Qdrant est-il utilisé ?";
+  const retrieval = retrievePortfolioKnowledge(question, {
+    locale: "fr",
+  });
+  const provider = new MockPortfolioAIProvider(() => {
+    throw new Error("Provider should not be called.");
+  });
+  const result = await generatePortfolioAnswer(
+    { question, locale: "fr", retrieval },
+    { provider },
+  );
+
+  assert.equal(retrieval.intent, "technology_evidence");
+  assert.equal(provider.callCount, 0);
+  assert.equal(result.metadata.fastPathUsed, true);
+});
+
+test("Qdrant role question bypasses yes-no technology fast path", async () => {
+  const question = "Quel rôle joue Qdrant ?";
+  const retrieval = retrievePortfolioKnowledge(question, {
+    locale: "fr",
+    topK: 10,
+  });
+  const provider = new MockPortfolioAIProvider((input) => ({
+    answer:
+      "Dans le projet RAG médical, Qdrant sert à indexer les embeddings et à soutenir l'étape de retrieval avant la génération de la réponse.",
+    usedEvidenceIds: input.allowedEvidenceIds.filter((id) =>
+      [
+        "ev:project:medical-rag-platform:technologies:primary",
+        "ev:project:medical-rag-platform:content-fr-casestudy:primary",
+      ].includes(id),
+    ),
+    uncertainty: "none",
+    language: "fr",
+  }));
+  const result = await generatePortfolioAnswer(
+    { question, locale: "fr", retrieval },
+    { provider },
+  );
+
+  assert.equal(retrieval.intent, "technology_explanation");
+  assert.equal(result.metadata.fastPathUsed, false);
+  assert.equal(provider.callCount, 1);
+  assert.deepEqual(
+    provider.inputs[0]?.groundedContext.entities.map((entity) => entity.id),
+    ["medical-rag-platform"],
+  );
+  assert.equal(
+    provider.inputs[0]?.groundedContext.focus?.type,
+    "technology_explanation",
+  );
+  assert.equal(
+    provider.inputs[0]?.groundedContext.focus?.project?.id,
+    "medical-rag-platform",
+  );
+  assert.equal(
+    provider.inputs[0]?.groundedContext.focus?.technology?.id,
+    "tech:qdrant",
+  );
+  assert.equal(result.answer.uncertainty, "none");
+  assert.equal(result.answer.language, "fr");
+});
+
+test("Qdrant used-for question uses technology explanation path in English", async () => {
+  const question = "What is Qdrant used for?";
+  const retrieval = retrievePortfolioKnowledge(question, {
+    locale: "en",
+    topK: 10,
+  });
+  const provider = new MockPortfolioAIProvider((input) => ({
+    answer:
+      "In the Medical RAG project, Qdrant is documented as supporting embedding indexing and retrieval before the LLM response.",
+    usedEvidenceIds: input.allowedEvidenceIds.filter((id) =>
+      [
+        "ev:project:medical-rag-platform:technologies:primary",
+        "ev:project:medical-rag-platform:content-fr-casestudy:primary",
+      ].includes(id),
+    ),
+    uncertainty: "none",
+    language: "en",
+  }));
+  const result = await generatePortfolioAnswer(
+    { question, locale: "en", retrieval },
+    { provider },
+  );
+
+  assert.equal(retrieval.intent, "technology_explanation");
+  assert.equal(result.metadata.fastPathUsed, false);
+  assert.equal(provider.callCount, 1);
+  assert.deepEqual(
+    provider.inputs[0]?.groundedContext.entities.map((entity) => entity.id),
+    ["medical-rag-platform"],
+  );
+  assert.equal(result.answer.language, "en");
+});
+
+test("Qdrant selection rationale answer can state documented role and limitation", async () => {
+  const question = "Pourquoi Qdrant plutôt que Pinecone ?";
+  const retrieval = retrievePortfolioKnowledge(question, {
+    locale: "fr",
+    topK: 10,
+  });
+  const provider = new MockPortfolioAIProvider((input) => ({
+    answer:
+      "Le portfolio documente le rôle de Qdrant dans l'indexation et le retrieval, mais ne précise pas pourquoi Qdrant a été choisi plutôt que Pinecone.",
+    usedEvidenceIds: input.allowedEvidenceIds.filter((id) =>
+      [
+        "ev:project:medical-rag-platform:technologies:primary",
+        "ev:project:medical-rag-platform:content-fr-casestudy:primary",
+      ].includes(id),
+    ),
+    uncertainty: "ambiguous",
+    language: "fr",
+  }));
+  const result = await generatePortfolioAnswer(
+    { question, locale: "fr", retrieval },
+    { provider },
+  );
+
+  assert.equal(retrieval.intent, "technology_explanation");
+  assert.equal(provider.callCount, 1);
+  assert.equal(
+    provider.inputs[0]?.groundedContext.focus?.explanationKind,
+    "selection_rationale",
+  );
+  assert.equal(
+    provider.inputs[0]?.groundedContext.focus?.selectionRationaleStatus,
+    "not-documented",
+  );
+  assert.equal(result.answer.uncertainty, "ambiguous");
+  assert.equal(result.answer.answer.includes("ne précise pas pourquoi"), true);
+});
+
+test("Kafka role question retrieves multiple verified projects without fast path", async () => {
+  const question = "Quel rôle joue Kafka ?";
+  const retrieval = retrievePortfolioKnowledge(question, {
+    locale: "fr",
+    topK: 10,
+  });
+  const provider = new MockPortfolioAIProvider((input) => ({
+    answer:
+      "Kafka est documenté dans plusieurs projets, dont Personalized Recommendation System et Real-time E-commerce Activity Tracking.",
+    usedEvidenceIds: input.allowedEvidenceIds.filter((id) =>
+      [
+        "ev:project:personalized-recommendation-system:technologies:primary",
+        "ev:project:real-time-ecommerce-activity-tracking:technologies:primary",
+      ].includes(id),
+    ),
+    uncertainty: "none",
+    language: "fr",
+  }));
+  const result = await generatePortfolioAnswer(
+    { question, locale: "fr", retrieval },
+    { provider },
+  );
+  const entityIds = provider.inputs[0]?.groundedContext.entities.map(
+    (entity) => entity.id,
+  );
+
+  assert.equal(retrieval.intent, "technology_explanation");
+  assert.equal(result.metadata.fastPathUsed, false);
+  assert.equal(provider.callCount, 1);
+  assert.deepEqual(entityIds, [
+    "personalized-recommendation-system",
+    "real-time-ecommerce-activity-tracking",
+  ]);
+  assert.equal(provider.inputs[0]?.groundedContext.focus?.project, undefined);
+  assert.equal(
+    provider.inputs[0]?.groundedContext.focus?.technology?.id,
+    "tech:apache-kafka",
+  );
+});
+
+test("project technology lookup uses deterministic fast path in English", async () => {
+  const question = "What technologies did he use for his medical RAG project?";
+  const retrieval = retrievePortfolioKnowledge(question, {
+    locale: "en",
+    topK: 10,
+  });
+  const provider = new MockPortfolioAIProvider(() => {
+    throw new Error("Provider should not be called.");
+  });
+  const result = await generatePortfolioAnswer(
+    { question, locale: "en", retrieval },
+    { provider },
+  );
+
+  assert.equal(retrieval.intent, "project_technology_lookup");
+  assert.deepEqual(
+    retrieval.results.map((group) => group.entity.id),
+    ["medical-rag-platform"],
+  );
+  assert.equal(provider.callCount, 0);
+  assert.equal(result.metadata.fastPathUsed, true);
+  assert.equal(result.metadata.model, "deterministic-project-technology");
+  assert.equal(result.answer.language, "en");
+  assert.equal(result.answer.answer.startsWith("For the “Medical RAG Platform” project"), true);
+  assert.equal(result.answer.answer.includes("Qdrant"), true);
+  assert.equal(result.answer.answer.includes("Python"), true);
+  assert.ok(
+    result.answer.usedEvidenceIds.every((id) =>
+      getAllowedEvidenceIds(
+        buildGroundedContext({ question, locale: "en", retrieval }),
+      ).includes(id),
+    ),
+  );
+});
+
+test("project technology lookup uses deterministic fast path in French", async () => {
+  const question =
+    "Quelles technologies a-t-il utilisées pour son projet RAG médical ?";
+  const retrieval = retrievePortfolioKnowledge(question, {
+    locale: "fr",
+    topK: 10,
+  });
+  const provider = new MockPortfolioAIProvider(() => {
+    throw new Error("Provider should not be called.");
+  });
+  const result = await generatePortfolioAnswer(
+    { question, locale: "fr", retrieval },
+    { provider },
+  );
+
+  assert.equal(provider.callCount, 0);
+  assert.equal(result.answer.language, "fr");
+  assert.equal(result.answer.answer.includes("Pour le projet « Plateforme intelligente RAG"), true);
+  assert.equal(result.answer.answer.includes("Qdrant"), true);
+});
+
+test("project technology lookup filters ambiguous project technologies", async () => {
+  const question = "Quelle stack utilise SyndiSmart AI ?";
+  const retrieval = retrievePortfolioKnowledge(question, {
+    locale: "fr",
+    topK: 10,
+  });
+  const provider = new MockPortfolioAIProvider(() => {
+    throw new Error("Provider should not be called.");
+  });
+  const result = await generatePortfolioAnswer(
+    { question, locale: "fr", retrieval },
+    { provider },
+  );
+
+  assert.equal(retrieval.intent, "project_technology_lookup");
+  assert.deepEqual(
+    retrieval.results.map((group) => group.entity.id),
+    ["syndismart-ai"],
+  );
+  assert.equal(provider.callCount, 0);
+  assert.equal(result.answer.answer.includes("FAISS"), true);
+  assert.equal(result.answer.answer.includes("Chroma"), false);
+});
+
+test("project technology lookup resolves recommendation system without provider", async () => {
+  const question =
+    "What technologies were used in the Personalized Recommendation System?";
+  const retrieval = retrievePortfolioKnowledge(question, {
+    locale: "en",
+    topK: 10,
+  });
+  const provider = new MockPortfolioAIProvider(() => {
+    throw new Error("Provider should not be called.");
+  });
+  const result = await generatePortfolioAnswer(
+    { question, locale: "en", retrieval },
+    { provider },
+  );
+
+  assert.equal(provider.callCount, 0);
+  assert.equal(result.answer.answer.includes("Apache Kafka"), true);
+  assert.equal(result.answer.answer.includes("Apache Spark"), true);
+});
+
+test("project objective lookup can answer deterministically from shortDescription", async () => {
+  const question = "Quel est l’objectif du Personalized Recommendation System ?";
+  const retrieval = retrievePortfolioKnowledge(question, {
+    locale: "fr",
+    topK: 10,
+  });
+  const context = buildGroundedContext({
+    question,
+    locale: "fr",
+    retrieval,
+  });
+  const provider = new MockPortfolioAIProvider(() => {
+    throw new Error("Provider should not be called.");
+  });
+  const result = await generatePortfolioAnswer(
+    { question, locale: "fr", retrieval },
+    { provider },
+  );
+
+  assert.equal(retrieval.intent, "project_lookup");
+  assert.equal(retrieval.requestedProjectAttribute, "objective");
+  assert.equal(context.requestedProjectAttribute, "objective");
+  assert.equal(context.projectAttributeFocus?.project?.id, "personalized-recommendation-system");
+  assert.equal(provider.callCount, 0);
+  assert.equal(result.metadata.fastPathUsed, true);
+  assert.equal(result.metadata.model, "deterministic-project-attribute");
+  assert.equal(result.answer.answer.includes("générer des recommandations"), true);
+  assert.equal(result.answer.answer.includes("ne documente"), false);
+  assert.equal(
+    result.answer.usedEvidenceIds.includes(
+      "ev:project:personalized-recommendation-system:content-fr-shortdescription:primary",
+    ),
+    true,
+  );
+});
+
+test("project objective lookup uses localized English shortDescription", async () => {
+  const question = "What is the goal of the Personalized Recommendation System?";
+  const retrieval = retrievePortfolioKnowledge(question, {
+    locale: "en",
+    topK: 10,
+  });
+  const provider = new MockPortfolioAIProvider(() => {
+    throw new Error("Provider should not be called.");
+  });
+  const result = await generatePortfolioAnswer(
+    { question, locale: "en", retrieval },
+    { provider },
+  );
+
+  assert.equal(retrieval.requestedProjectAttribute, "objective");
+  assert.equal(provider.callCount, 0);
+  assert.equal(result.answer.language, "en");
+  assert.equal(result.answer.answer.includes("generate real-time recommendations"), true);
+  assert.deepEqual(result.answer.usedEvidenceIds, [
+    "ev:project:personalized-recommendation-system:content-en-shortdescription:primary",
+  ]);
+});
+
+test("project functioning lookup keeps one project and reaches provider with case-study evidence", async () => {
+  const question = "Comment fonctionne le Real-time E-commerce Activity Tracking ?";
+  const retrieval = retrievePortfolioKnowledge(question, {
+    locale: "fr",
+    topK: 10,
+  });
+  const provider = new MockPortfolioAIProvider((input) => ({
+    answer:
+      "Le système collecte les interactions utilisateur depuis l’interface React, les transmet au backend Flask, puis Kafka et Spark assurent leur traitement en temps réel pour l’analyse de l’activité.",
+    usedEvidenceIds: input.allowedEvidenceIds.filter((id) =>
+      [
+        "ev:project:real-time-ecommerce-activity-tracking:content-fr-casestudy-approach:primary",
+        "ev:project:real-time-ecommerce-activity-tracking:content-fr-casestudy-architecture:primary",
+        "ev:project:real-time-ecommerce-activity-tracking:content-fr-casestudy-architecturesteps:primary",
+      ].includes(id),
+    ),
+    uncertainty: "none",
+    language: "fr",
+  }));
+  const result = await generatePortfolioAnswer(
+    { question, locale: "fr", retrieval },
+    { provider },
+  );
+  const context = provider.inputs[0]?.groundedContext;
+
+  assert.equal(retrieval.intent, "project_lookup");
+  assert.equal(retrieval.requestedProjectAttribute, "approach");
+  assert.equal(result.metadata.fastPathUsed, false);
+  assert.equal(provider.callCount, 1);
+  assert.deepEqual(context?.entities.map((entity) => entity.id), [
+    "real-time-ecommerce-activity-tracking",
+  ]);
+  assert.equal(context?.projectAttributeFocus?.attribute, "approach");
+  assert.equal(
+    context?.projectAttributeFocus?.project?.id,
+    "real-time-ecommerce-activity-tracking",
+  );
+  assert.equal(
+    context?.entities.some(
+      (entity) => entity.id === "personalized-recommendation-system",
+    ),
+    false,
+  );
+  assert.equal(
+    provider.inputs[0]?.allowedEvidenceIds.includes(
+      "ev:project:real-time-ecommerce-activity-tracking:content-fr-casestudy-architecturesteps:primary",
+    ),
+    true,
+  );
+  assert.equal(result.answer.uncertainty, "none");
+});
+
+test("project problem and objective attributes expose grounded facts", () => {
+  const syndismartQuestion = "Quel problème résout SyndiSmart AI ?";
+  const syndismartRetrieval = retrievePortfolioKnowledge(syndismartQuestion, {
+    locale: "fr",
+    topK: 10,
+  });
+  const callCenterQuestion = "Quels sont les objectifs du Call Center AI ?";
+  const callCenterRetrieval = retrievePortfolioKnowledge(callCenterQuestion, {
+    locale: "fr",
+    topK: 10,
+  });
+  const syndismartContext = buildGroundedContext({
+    question: syndismartQuestion,
+    locale: "fr",
+    retrieval: syndismartRetrieval,
+  });
+  const callCenterContext = buildGroundedContext({
+    question: callCenterQuestion,
+    locale: "fr",
+    retrieval: callCenterRetrieval,
+  });
+
+  assert.equal(syndismartRetrieval.requestedProjectAttribute, "problem");
+  assert.equal(callCenterRetrieval.requestedProjectAttribute, "objective");
+  assert.equal(
+    JSON.stringify(syndismartContext).includes("projectProblem"),
+    true,
+  );
+  assert.equal(
+    JSON.stringify(callCenterContext).includes("projectObjective"),
+    true,
+  );
+});
+
 test("Kubernetes not-documented uses local answer and bypasses provider", async () => {
   const retrieval = retrievePortfolioKnowledge("A-t-il utilisé Kubernetes ?", {
     locale: "fr",
@@ -341,6 +772,22 @@ test("ambiguous technology lookup does not use verified fast path", () => {
   });
 
   assert.equal(retrieval.status, "ambiguous");
+  assert.equal(answer, undefined);
+});
+
+test("ambiguous project technology request does not choose an arbitrary project", () => {
+  const question = "What technologies did he use in his AI project?";
+  const retrieval = retrievePortfolioKnowledge(question, {
+    locale: "en",
+    topK: 10,
+  });
+  const answer = buildProjectTechnologyFastPathAnswer({
+    question,
+    locale: "en",
+    retrieval,
+  });
+
+  assert.notEqual(retrieval.intent, "project_technology_lookup");
   assert.equal(answer, undefined);
 });
 
@@ -925,8 +1372,19 @@ test("provider timeout value is not duplicated inconsistently", () => {
 
   assert.equal((joinedSource.match(/25_000/g) ?? []).length, 1);
   assert.equal((joinedSource.match(/\b25000\b/g) ?? []).length, 0);
-  assert.equal((joinedSource.match(/6_000/g) ?? []).length, 1);
-  assert.equal((joinedSource.match(/\b6000\b/g) ?? []).length, 0);
+  const primaryTimeoutSource = [
+    "src/features/portfolio-ai/generation/generation.config.ts",
+    "src/features/portfolio-ai/generation/resilient-provider.ts",
+  ]
+    .map((file) => fs.readFileSync(file, "utf8"))
+    .join("\n");
+
+  assert.equal(
+    (primaryTimeoutSource.match(/PORTFOLIO_AI_PRIMARY_TIMEOUT_MS\s*=\s*6_000/g) ??
+      []).length,
+    1,
+  );
+  assert.equal((primaryTimeoutSource.match(/\b6000\b/g) ?? []).length, 0);
   assert.equal((joinedSource.match(/12_000/g) ?? []).length, 0);
   assert.equal((joinedSource.match(/\b12000\b/g) ?? []).length, 0);
 });
@@ -1032,24 +1490,82 @@ test("complex synthesis still calls the primary provider", async () => {
   assert.equal(freeLLMAPI.callCount, 0);
 });
 
+test("project technology reasoning question still calls the primary provider", async () => {
+  const question = "Why did he use Qdrant in his medical RAG project?";
+  const retrieval = retrievePortfolioKnowledge(question, {
+    locale: "en",
+    topK: 10,
+  });
+  const gemini = new MockPortfolioAIProvider((input) => ({
+    answer:
+      "Qdrant was used to index embeddings and support the retrieval stage of the Medical RAG pipeline. The portfolio does not explicitly document why Qdrant was chosen over alternative vector databases.",
+    usedEvidenceIds: input.allowedEvidenceIds.filter((id) =>
+      [
+        "ev:project:medical-rag-platform:technologies:primary",
+        "ev:project:medical-rag-platform:content-fr-casestudy:primary",
+      ].includes(id),
+    ),
+    uncertainty: "ambiguous",
+    language: "en",
+  }));
+  const freeLLMAPI = new MockPortfolioAIProvider((input) =>
+    firstEvidenceAnswer(input, "Fallback."),
+  );
+  const provider = new ResilientPortfolioAIProvider(gemini, freeLLMAPI);
+  const result = await generatePortfolioAnswer(
+    { question, locale: "en", retrieval },
+    { provider },
+  );
+
+  assert.equal(retrieval.intent, "project_technology_explanation");
+  assert.equal(result.metadata.fastPathUsed, false);
+  assert.equal(gemini.callCount, 1);
+  assert.equal(freeLLMAPI.callCount, 0);
+  assert.deepEqual(
+    gemini.inputs[0]?.groundedContext.entities.map((entity) => entity.id),
+    ["medical-rag-platform"],
+  );
+  assert.equal(
+    gemini.inputs[0]?.groundedContext.entities.some(
+      (entity) => entity.id === "syndismart-ai",
+    ),
+    false,
+  );
+  assert.equal(
+    gemini.inputs[0]?.groundedContext.focus?.technology?.id,
+    "tech:qdrant",
+  );
+  assert.equal(
+    gemini.inputs[0]?.groundedContext.focus?.explanationKind,
+    "selection_rationale",
+  );
+  assert.equal(
+    gemini.inputs[0]?.groundedContext.focus?.selectionRationaleStatus,
+    "not-documented",
+  );
+  assert.equal(gemini.inputs[0]?.userPrompt.includes("selection rationale"), true);
+  assert.equal(result.answer.uncertainty, "ambiguous");
+  assert.equal(result.answer.answer.includes("does not explicitly document"), true);
+});
+
 test("primary timeout aborts Gemini and calls FreeLLMAPI exactly once", async () => {
   const question = GENERATED_TEST_QUESTION;
   const retrieval = retrievePortfolioKnowledge(question, {
     locale: "fr",
   });
   let primaryAborted = false;
+  let primaryAbortReasonName = "";
   const gemini = new MockPortfolioAIProvider(
     (input) =>
       new Promise((resolve, reject) => {
         input.signal?.addEventListener(
           "abort",
           () => {
+            const error = abortReasonOrError(input.signal);
+
             primaryAborted = true;
-            reject(
-              Object.assign(new Error("The operation was aborted."), {
-                name: "AbortError",
-              }),
-            );
+            primaryAbortReasonName = error.name;
+            reject(error);
           },
           { once: true },
         );
@@ -1071,9 +1587,69 @@ test("primary timeout aborts Gemini and calls FreeLLMAPI exactly once", async ()
   );
 
   assert.equal(primaryAborted, true);
+  assert.equal(primaryAbortReasonName, "GenerationTimeoutError");
   assert.equal(result.answer.answer, "Fallback.");
   assert.equal(gemini.callCount, 1);
   assert.equal(freeLLMAPI.callCount, 1);
+});
+
+test("primary timeout diagnostics normalize to GenerationTimeoutError before fallback", async () => {
+  const question = GENERATED_TEST_QUESTION;
+  const retrieval = retrievePortfolioKnowledge(question, {
+    locale: "fr",
+  });
+  const originalDebug = process.env.PORTFOLIO_AI_DEBUG;
+  const originalConsoleInfo = console.info;
+  const logs: Array<Record<string, unknown>> = [];
+  const gemini = new MockPortfolioAIProvider(
+    (input) =>
+      new Promise((_resolve, reject) => {
+        input.signal?.addEventListener(
+          "abort",
+          () => reject(abortReasonOrError(input.signal)),
+          { once: true },
+        );
+      }),
+  );
+  const freeLLMAPI = new MockPortfolioAIProvider((input) =>
+    firstEvidenceAnswer(input, "Fallback."),
+  );
+  const provider = new ResilientPortfolioAIProvider(gemini, freeLLMAPI, {
+    primaryTimeoutMs: 1,
+  });
+
+  process.env.PORTFOLIO_AI_DEBUG = "true";
+  console.info = (...args: unknown[]) => {
+    if (args[0] === "[portfolio-ai]" && typeof args[1] === "string") {
+      logs.push(JSON.parse(args[1]) as Record<string, unknown>);
+    }
+  };
+
+  try {
+    const result = await generatePortfolioAnswer(
+      { question, locale: "fr", retrieval },
+      { provider },
+    );
+    const primaryLog = logs.find(
+      (log) =>
+        log.event === "generation.primary" &&
+        log.fallbackTriggered === "YES",
+    );
+
+    assert.equal(result.answer.answer, "Fallback.");
+    assert.equal(gemini.callCount, 1);
+    assert.equal(freeLLMAPI.callCount, 1);
+    assert.equal(primaryLog?.normalizedErrorClass, "GenerationTimeoutError");
+    assert.equal(primaryLog?.fallbackEligibleError, true);
+  } finally {
+    if (originalDebug === undefined) {
+      delete process.env.PORTFOLIO_AI_DEBUG;
+    } else {
+      process.env.PORTFOLIO_AI_DEBUG = originalDebug;
+    }
+
+    console.info = originalConsoleInfo;
+  }
 });
 
 test("Gemini rate limit starts FreeLLMAPI fallback immediately", async () => {
@@ -1110,20 +1686,23 @@ test("client cancellation before primary timeout does not start FreeLLMAPI", asy
     ...createGroundedGenerationInput(GENERATED_TEST_QUESTION),
     signal: controller.signal,
   };
+  let primaryAbortReasonName = "";
+  let fallbackEligibleError = true;
   const gemini = new MockPortfolioAIProvider(
     (primaryInput) =>
       new Promise((_resolve, reject) => {
         primaryInput.signal?.addEventListener(
           "abort",
-          () =>
-            reject(
-              Object.assign(new Error("The operation was aborted."), {
-                name: "AbortError",
-              }),
-            ),
+          () => {
+            const error = abortReasonOrError(primaryInput.signal);
+
+            primaryAbortReasonName = error.name;
+            fallbackEligibleError = isFallbackEligibleGenerationError(error);
+            reject(error);
+          },
           { once: true },
         );
-        setTimeout(() => controller.abort(), 1);
+        setTimeout(() => controller.abort(createAbortError("Client cancelled.")), 1);
       }),
   );
   const freeLLMAPI = new MockPortfolioAIProvider((fallbackInput) =>
@@ -1133,16 +1712,22 @@ test("client cancellation before primary timeout does not start FreeLLMAPI", asy
     primaryTimeoutMs: 1_000,
   });
 
-  await assert.rejects(() => provider.generate(input));
+  await assert.rejects(
+    () => provider.generate(input),
+    (error: unknown) =>
+      error instanceof Error &&
+      error.name === "AbortError" &&
+      error.message === "Client cancelled.",
+  );
+  assert.equal(primaryAbortReasonName, "AbortError");
+  assert.equal(fallbackEligibleError, false);
   assert.equal(gemini.callCount, 1);
   assert.equal(freeLLMAPI.callCount, 0);
 });
 
 test("resilient provider does not fall back for configuration or client abort errors", async () => {
   const input = createGroundedGenerationInput();
-  const abortError = Object.assign(new Error("The operation was aborted."), {
-    name: "AbortError",
-  });
+  const abortError = createAbortError();
 
   for (const error of [
     new GenerationConfigurationError("missing primary key"),

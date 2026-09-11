@@ -241,6 +241,132 @@ test("Kafka verified technology fast path returns both project sources", async (
   }
 });
 
+test("project technology lookup returns one project source without provider", async () => {
+  const provider = new MockPortfolioAIProvider(() => {
+    throw new Error("Provider should not be called.");
+  });
+  const result = await handlePortfolioAIRequest(
+    {
+      message: "What technologies did he use for his medical RAG project?",
+      locale: "en",
+    },
+    { provider, requestId: "req_project_tech_en" },
+  );
+
+  assert.equal(result.status, 200);
+  assert.equal(provider.callCount, 0);
+
+  if ("answer" in result.body) {
+    assert.equal(result.body.language, "en");
+    assert.equal(result.body.uncertainty, "none");
+    assert.equal(result.body.answer.includes("Medical RAG Platform"), true);
+    assert.equal(result.body.answer.includes("Qdrant"), true);
+    assert.deepEqual(
+      result.body.sources.map((source) => source.entityId),
+      ["medical-rag-platform"],
+    );
+  }
+});
+
+test("project objective lookup returns one project source without provider", async () => {
+  const provider = new MockPortfolioAIProvider(() => {
+    throw new Error("Provider should not be called.");
+  });
+  const result = await handlePortfolioAIRequest(
+    {
+      message: "Quel est l’objectif du Personalized Recommendation System ?",
+      locale: "fr",
+    },
+    { provider, requestId: "req_project_objective" },
+  );
+
+  assert.equal(result.status, 200);
+  assert.equal(provider.callCount, 0);
+
+  if ("answer" in result.body) {
+    assert.equal(result.body.language, "fr");
+    assert.equal(result.body.uncertainty, "none");
+    assert.equal(result.body.answer.includes("générer des recommandations"), true);
+    assert.deepEqual(
+      result.body.sources.map((source) => source.entityId),
+      ["personalized-recommendation-system"],
+    );
+  }
+});
+
+test("French project technology lookup remains deterministic", async () => {
+  const provider = new MockPortfolioAIProvider(() => {
+    throw new Error("Provider should not be called.");
+  });
+  const result = await handlePortfolioAIRequest(
+    {
+      message: "Quelles technologies a-t-il utilisées pour son projet RAG médical ?",
+      locale: "fr",
+    },
+    { provider, requestId: "req_project_tech_fr" },
+  );
+
+  assert.equal(result.status, 200);
+  assert.equal(provider.callCount, 0);
+
+  if ("answer" in result.body) {
+    assert.equal(result.body.language, "fr");
+    assert.equal(result.body.answer.includes("Plateforme intelligente RAG"), true);
+    assert.deepEqual(
+      result.body.sources.map((source) => source.entityId),
+      ["medical-rag-platform"],
+    );
+  }
+});
+
+test("project technology explanation reaches provider with scoped context", async () => {
+  const answer =
+    "Qdrant was used to index embeddings and support the retrieval stage of the Medical RAG pipeline. The portfolio does not explicitly document why Qdrant was chosen over alternatives.";
+  const provider = new MockPortfolioAIProvider((input) => ({
+    answer,
+    usedEvidenceIds: input.allowedEvidenceIds.filter((id) =>
+      [
+        "ev:project:medical-rag-platform:technologies:primary",
+        "ev:project:medical-rag-platform:content-fr-casestudy:primary",
+      ].includes(id),
+    ),
+    uncertainty: "ambiguous",
+    language: "en",
+  }));
+  const result = await handlePortfolioAIRequest(
+    {
+      message: "Why did he use Qdrant in his medical RAG project?",
+      locale: "en",
+    },
+    { provider, requestId: "req_project_tech_explanation" },
+  );
+
+  assert.equal(result.status, 200);
+  assert.equal(provider.callCount, 1);
+  assert.deepEqual(
+    provider.inputs[0]?.groundedContext.entities.map((entity) => entity.id),
+    ["medical-rag-platform"],
+  );
+  assert.equal(
+    provider.inputs[0]?.groundedContext.focus?.technology?.id,
+    "tech:qdrant",
+  );
+  assert.equal(
+    provider.inputs[0]?.groundedContext.focus?.selectionRationaleStatus,
+    "not-documented",
+  );
+
+  if ("answer" in result.body) {
+    assert.equal(result.body.language, "en");
+    assert.equal(result.body.uncertainty, "ambiguous");
+    assert.equal(result.body.answer, answer);
+    assert.deepEqual(
+      result.body.sources.map((source) => source.entityId),
+      ["medical-rag-platform"],
+    );
+  }
+});
+
 test("broad AI project discovery reaches provider with grounded projects", async () => {
   const provider = new MockPortfolioAIProvider((input) => ({
     answer: "Ses projets IA documentés incluent notamment Medical RAG.",
@@ -1421,6 +1547,48 @@ test("streamed sources derive only from validated usedEvidenceIds", async () => 
   }
 });
 
+test("streamed project functioning response keeps the resolved project source", async () => {
+  const answer =
+    "Le système collecte les interactions utilisateur depuis l’interface React, les transmet au backend Flask, puis Kafka et Spark assurent leur traitement en temps réel.";
+  const provider = new MockPortfolioAIProvider((input) => ({
+    answer,
+    usedEvidenceIds: input.allowedEvidenceIds.filter((id) =>
+      [
+        "ev:project:real-time-ecommerce-activity-tracking:content-fr-casestudy-approach:primary",
+        "ev:project:real-time-ecommerce-activity-tracking:content-fr-casestudy-architecture:primary",
+        "ev:project:real-time-ecommerce-activity-tracking:content-fr-casestudy-architecturesteps:primary",
+      ].includes(id),
+    ),
+    uncertainty: "none",
+    language: "fr",
+  }));
+  const result = createPortfolioAIStreamResponse(
+    {
+      message: "Comment fonctionne le Real-time E-commerce Activity Tracking ?",
+      locale: "fr",
+    },
+    { provider, requestId: "req_stream_project_functioning" },
+  );
+
+  assert.equal(result.status, 200);
+
+  if ("response" in result) {
+    const events = await readSSEEvents(result.response);
+    const sources = events.find((event) => event.event === "sources")?.data
+      .sources as Array<{ entityId: string }> | undefined;
+
+    assert.equal(provider.callCount, 1);
+    assert.deepEqual(
+      provider.inputs[0]?.groundedContext.entities.map((entity) => entity.id),
+      ["real-time-ecommerce-activity-tracking"],
+    );
+    assert.deepEqual(
+      sources?.map((source) => source.entityId),
+      ["real-time-ecommerce-activity-tracking"],
+    );
+  }
+});
+
 test("deterministic not-documented response streams without provider call", async () => {
   const provider = new MockPortfolioAIProvider(() => {
     throw new Error("Provider should not be called.");
@@ -1443,6 +1611,87 @@ test("deterministic not-documented response streams without provider call", asyn
       "done",
     ]);
     assert.equal(provider.callCount, 0);
+  }
+});
+
+test("project technology lookup streams without provider call", async () => {
+  const provider = new MockPortfolioAIProvider(() => {
+    throw new Error("Provider should not be called.");
+  });
+  const result = createPortfolioAIStreamResponse(
+    {
+      message: "What technologies did he use for his medical RAG project?",
+      locale: "en",
+    },
+    { provider, requestId: "req_stream_project_tech" },
+  );
+
+  assert.equal(result.status, 200);
+
+  if ("response" in result) {
+    const events = await readSSEEvents(result.response);
+
+    assert.equal(events[0]?.event, "meta");
+    assert.equal(events.at(-2)?.event, "sources");
+    assert.equal(events.at(-1)?.event, "done");
+    assert.equal(
+      events.some(
+        (event) =>
+          event.event === "sources" &&
+          Array.isArray(event.data.sources) &&
+          event.data.sources.some(
+            (source: { entityId?: string }) =>
+              source.entityId === "medical-rag-platform",
+          ),
+      ),
+      true,
+    );
+  }
+});
+
+test("project technology explanation streams provider answer with scoped source", async () => {
+  const answer =
+    "Qdrant was used to index embeddings in the Medical RAG pipeline. The portfolio does not explicitly document why Qdrant was chosen over alternatives.";
+  const provider = new MockPortfolioAIProvider((input) => ({
+    answer,
+    usedEvidenceIds: input.allowedEvidenceIds.filter((id) =>
+      [
+        "ev:project:medical-rag-platform:technologies:primary",
+        "ev:project:medical-rag-platform:content-fr-casestudy:primary",
+      ].includes(id),
+    ),
+    uncertainty: "ambiguous",
+    language: "en",
+  }));
+  const result = createPortfolioAIStreamResponse(
+    {
+      message: "What was Qdrant used for in the Medical RAG Platform?",
+      locale: "en",
+    },
+    { provider, requestId: "req_stream_project_tech_explanation" },
+  );
+
+  assert.equal(result.status, 200);
+
+  if ("response" in result) {
+    const events = await readSSEEvents(result.response);
+    const streamedAnswer = events
+      .filter((event) => event.event === "delta")
+      .map((event) => event.data.text)
+      .join("");
+    const sources = events.find((event) => event.event === "sources")?.data
+      .sources as Array<{ entityId: string }> | undefined;
+
+    assert.equal(provider.callCount, 1);
+    assert.equal(streamedAnswer, answer);
+    assert.deepEqual(
+      provider.inputs[0]?.groundedContext.entities.map((entity) => entity.id),
+      ["medical-rag-platform"],
+    );
+    assert.deepEqual(
+      sources?.map((source) => source.entityId),
+      ["medical-rag-platform"],
+    );
   }
 });
 

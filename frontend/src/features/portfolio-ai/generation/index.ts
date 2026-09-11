@@ -5,6 +5,10 @@ export {
   parsePortfolioAnswer,
 } from "@/features/portfolio-ai/generation/answer.schema";
 export {
+  isPortfolioAIDebugEnabled,
+  logPortfolioAIDebug,
+} from "@/features/portfolio-ai/generation/debug";
+export {
   buildGroundedContext,
   createEvidenceId,
   getAllowedEvidenceIds,
@@ -61,6 +65,10 @@ export {
 export { generatePortfolioAnswer } from "@/features/portfolio-ai/generation/generate-answer";
 export { validateGroundedAnswer } from "@/features/portfolio-ai/generation/validate-grounding";
 export {
+  buildProjectAttributeFastPathAnswer,
+} from "@/features/portfolio-ai/generation/project-attribute-fast-path";
+export {
+  buildProjectTechnologyFastPathAnswer,
   buildVerifiedTechnologyFastPathAnswer,
 } from "@/features/portfolio-ai/generation/verified-technology-fast-path";
 export type {

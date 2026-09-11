@@ -16,6 +16,7 @@ export type {
   IntentDetection,
   NormalizedQuery,
   PortfolioRetrievalResult,
+  ProjectAttribute,
   RetrievalCandidate,
   RetrievalIntent,
   RetrievalLocale,

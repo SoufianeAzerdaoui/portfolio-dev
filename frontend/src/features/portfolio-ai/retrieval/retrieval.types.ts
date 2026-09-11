@@ -13,8 +13,11 @@ export const MAX_RETRIEVAL_TOP_K = 20;
 
 export type RetrievalIntent =
   | "technology_evidence"
+  | "technology_explanation"
   | "projects_by_technology"
   | "projects_by_domain"
+  | "project_technology_lookup"
+  | "project_technology_explanation"
   | "experience_lookup"
   | "education_lookup"
   | "project_lookup"
@@ -24,6 +27,17 @@ export type RetrievalIntent =
   | "unknown";
 
 export type RetrievalLocale = LocaleCode;
+
+export type ProjectAttribute =
+  | "overview"
+  | "objective"
+  | "problem"
+  | "approach"
+  | "architecture"
+  | "technologies"
+  | "results"
+  | "role"
+  | "metadata";
 
 export type RetrievalOptions = {
   locale?: RetrievalLocale;
@@ -42,6 +56,7 @@ export type IntentDetection = {
   intent: RetrievalIntent;
   confidence: number;
   reasons: string[];
+  requestedProjectAttribute?: ProjectAttribute;
 };
 
 export type EntityMatchType =
@@ -91,6 +106,7 @@ export type RetrievalResultGroup = {
 
 export type PortfolioRetrievalResult = {
   intent: RetrievalIntent;
+  requestedProjectAttribute?: ProjectAttribute;
   normalizedQuery: string;
   originalQuery: string;
   matchedEntities: DetectedEntity[];

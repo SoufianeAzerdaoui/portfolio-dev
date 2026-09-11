@@ -9,6 +9,7 @@ import {
 import type {
   DetectedEntity,
   IntentDetection,
+  ProjectAttribute,
   RetrievalCandidate,
 } from "@/features/portfolio-ai/retrieval/retrieval.types";
 
@@ -64,12 +65,20 @@ function statusScore(status: KnowledgeVerificationStatus) {
   return 0;
 }
 
+function normalizeText(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
 function createCandidate(
   entity: KnowledgeEntity,
   matchedEntities: readonly DetectedEntity[],
   reason: string,
   baseScore = 0,
   factFilter?: (fact: KnowledgeFact) => boolean,
+  relationFilter?: (relation: KnowledgeRelation) => boolean,
 ): RetrievalCandidate {
   const knowledgeBase = getKnowledgeBase();
   const facts = knowledgeBase.facts.filter(
@@ -77,7 +86,8 @@ function createCandidate(
   );
   const relations = knowledgeBase.relations.filter(
     (relation) =>
-      relation.fromEntityId === entity.id || relation.toEntityId === entity.id,
+      (relation.fromEntityId === entity.id || relation.toEntityId === entity.id) &&
+      (!relationFilter || relationFilter(relation)),
   );
   const evidence = uniqueEvidence([
     ...facts.flatMap((fact) => fact.evidence),
@@ -190,6 +200,25 @@ function candidatesForDirectEntities(
     .map((match) =>
       createCandidate(match.entity, matchedEntities, match.reasons[0] ?? "entity matched"),
     );
+}
+
+function isStrongProjectIdentityMatch(match: DetectedEntity) {
+  return (
+    match.entity.type === "project" &&
+    (match.matchType === "exact-canonical" ||
+      match.matchType === "exact-alias" ||
+      match.matchType === "normalized-canonical" ||
+      match.matchType === "normalized-alias")
+  );
+}
+
+function resolvedProjectMatches(matchedEntities: readonly DetectedEntity[]) {
+  const projectMatches = matchedEntities.filter(
+    (match) => match.entity.type === "project",
+  );
+  const strongProjectMatches = projectMatches.filter(isStrongProjectIdentityMatch);
+
+  return strongProjectMatches.length > 0 ? strongProjectMatches : projectMatches;
 }
 
 function candidatesForCurrentEducation(
@@ -360,6 +389,228 @@ function candidatesForBusinessIntelligenceExperience(
     );
 }
 
+function candidatesForProjectTechnologyLookup(
+  matchedEntities: readonly DetectedEntity[],
+) {
+  return resolvedProjectMatches(matchedEntities).map((match) =>
+    createCandidate(
+      match.entity,
+      matchedEntities,
+      "project technology attribute lookup matched",
+      match.score + 70,
+      (fact) => fact.predicate === "usesTechnology",
+      (relation) => relation.type === "project-technology",
+    ),
+  );
+}
+
+const PROJECT_ATTRIBUTE_FACTS: Record<ProjectAttribute, readonly string[]> = {
+  overview: [
+    "projectOverview",
+    "projectShortDescription",
+    "projectProblem",
+    "projectApproach",
+  ],
+  objective: [
+    "projectObjective",
+    "projectShortDescription",
+    "projectOverview",
+    "projectProblem",
+    "projectApproach",
+  ],
+  problem: [
+    "projectProblem",
+    "projectContext",
+    "projectOverview",
+    "projectShortDescription",
+  ],
+  approach: [
+    "projectApproach",
+    "projectArchitecture",
+    "projectArchitectureStep",
+    "projectShortDescription",
+  ],
+  architecture: [
+    "projectArchitecture",
+    "projectArchitectureStep",
+    "projectApproach",
+    "projectShortDescription",
+  ],
+  technologies: ["usesTechnology"],
+  results: ["projectResult"],
+  role: ["role", "projectOverview"],
+  metadata: ["year", "projectType", "role", "duration", "domain", "category"],
+};
+
+function attributeFactRank(attribute: ProjectAttribute, fact: KnowledgeFact) {
+  const rank = PROJECT_ATTRIBUTE_FACTS[attribute].indexOf(fact.predicate);
+
+  return rank === -1 ? Number.MAX_SAFE_INTEGER : rank;
+}
+
+function matchesProjectAttributeFact(
+  fact: KnowledgeFact,
+  attribute: ProjectAttribute,
+) {
+  return PROJECT_ATTRIBUTE_FACTS[attribute].includes(fact.predicate);
+}
+
+function candidatesForProjectAttributeLookup(
+  matchedEntities: readonly DetectedEntity[],
+  attribute: ProjectAttribute,
+) {
+  return resolvedProjectMatches(matchedEntities).map((match) => {
+    const candidate = createCandidate(
+      match.entity,
+      matchedEntities,
+      `project ${attribute} attribute lookup matched`,
+      match.score + 75,
+      (fact) => matchesProjectAttributeFact(fact, attribute),
+      () => false,
+    );
+
+    return {
+      ...candidate,
+      facts: [...candidate.facts].sort(
+        (left, right) =>
+          attributeFactRank(attribute, left) -
+          attributeFactRank(attribute, right),
+      ),
+    };
+  });
+}
+
+const ARCHITECTURE_EXPLANATION_TERMS = [
+  "embedding",
+  "embeddings",
+  "indexation",
+  "indexing",
+  "retrieval",
+  "llama",
+  "source",
+  "sources",
+  "pipeline",
+];
+
+function includesNormalizedTerm(value: string, term: string) {
+  return new RegExp(`\\b${term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(
+    value,
+  );
+}
+
+function factTechnologyName(fact: KnowledgeFact) {
+  if (typeof fact.value !== "string") {
+    return undefined;
+  }
+
+  return entityById(fact.value)?.canonicalName;
+}
+
+function isProjectTechnologyExplanationFact(
+  fact: KnowledgeFact,
+  technologyIds: ReadonlySet<string>,
+) {
+  if (fact.predicate === "usesTechnology" && typeof fact.value === "string") {
+    if (technologyIds.has(fact.value)) {
+      return true;
+    }
+
+    const technologyName = factTechnologyName(fact);
+
+    return Boolean(
+      technologyName &&
+        fact.status === "verified" &&
+        ARCHITECTURE_EXPLANATION_TERMS.some((term) =>
+          includesNormalizedTerm(normalizeText(technologyName), term),
+        ),
+    );
+  }
+
+  if (fact.predicate !== "demonstratesCapability" || fact.status !== "verified") {
+    return false;
+  }
+
+  const value = normalizeText(String(fact.value));
+
+  return (
+    [...technologyIds].some((technologyId) => {
+      const technologyName = entityById(technologyId)?.canonicalName;
+
+      return Boolean(
+        technologyName && value.includes(normalizeText(technologyName)),
+      );
+    }) ||
+    ARCHITECTURE_EXPLANATION_TERMS.some((term) =>
+      includesNormalizedTerm(value, term),
+    )
+  );
+}
+
+function candidatesForProjectTechnologyExplanation(
+  matchedEntities: readonly DetectedEntity[],
+) {
+  const technologyIds = new Set(
+    matchedEntities
+      .filter((match) => match.entity.type === "technology")
+      .map((match) => match.entity.id),
+  );
+
+  if (technologyIds.size === 0) {
+    return [];
+  }
+
+  return resolvedProjectMatches(matchedEntities).map((match) =>
+    createCandidate(
+      match.entity,
+      matchedEntities,
+      "project technology explanation matched",
+      match.score + 80,
+      (fact) => isProjectTechnologyExplanationFact(fact, technologyIds),
+      (relation) =>
+        relation.type === "project-technology" &&
+        technologyIds.has(relation.toEntityId),
+    ),
+  );
+}
+
+function candidatesForTechnologyExplanation(
+  matchedEntities: readonly DetectedEntity[],
+) {
+  const knowledgeBase = getKnowledgeBase();
+  const technologyMatches = matchedEntities.filter(
+    (match) => match.entity.type === "technology",
+  );
+
+  return technologyMatches.flatMap((technologyMatch) => {
+    const verifiedProjectItems = (
+      knowledgeBase.skillsIndex[technologyMatch.entity.id] ?? []
+    )
+      .filter((item) => item.entityType === "project" && item.status === "verified")
+      .filter(
+        (item, index, items) =>
+          items.findIndex((candidate) => candidate.entityId === item.entityId) ===
+          index,
+      );
+    const technologyIds = new Set([technologyMatch.entity.id]);
+
+    return verifiedProjectItems
+      .map((item) => entityById(item.entityId))
+      .filter((entity): entity is KnowledgeEntity => Boolean(entity))
+      .map((entity) =>
+        createCandidate(
+          entity,
+          matchedEntities,
+          `verified technology explanation evidence: ${technologyMatch.entity.canonicalName}`,
+          technologyMatch.score + 80,
+          (fact) => isProjectTechnologyExplanationFact(fact, technologyIds),
+          (relation) =>
+            relation.type === "project-technology" &&
+            relation.toEntityId === technologyMatch.entity.id,
+        ),
+      );
+  });
+}
+
 export function generateCandidates(
   intent: IntentDetection,
   matchedEntities: readonly DetectedEntity[],
@@ -376,6 +627,27 @@ export function generateCandidates(
   ]);
 
   let candidates: RetrievalCandidate[] = [];
+
+  if (intent.intent === "project_technology_lookup") {
+    candidates = [
+      ...candidates,
+      ...candidatesForProjectTechnologyLookup(matchedEntities),
+    ];
+  }
+
+  if (intent.intent === "project_technology_explanation") {
+    candidates = [
+      ...candidates,
+      ...candidatesForProjectTechnologyExplanation(matchedEntities),
+    ];
+  }
+
+  if (intent.intent === "technology_explanation") {
+    candidates = [
+      ...candidates,
+      ...candidatesForTechnologyExplanation(matchedEntities),
+    ];
+  }
 
   if (
     intent.intent === "technology_evidence" ||
@@ -417,7 +689,18 @@ export function generateCandidates(
   }
 
   if (intent.intent === "project_lookup") {
-    candidates = [...candidates, ...directProjectCandidates];
+    candidates = [
+      ...candidates,
+      ...(intent.requestedProjectAttribute
+        ? candidatesForProjectAttributeLookup(
+            matchedEntities,
+            intent.requestedProjectAttribute,
+          )
+        : candidatesForDirectEntities(
+            resolvedProjectMatches(matchedEntities),
+            ["project"],
+          )),
+    ];
   }
 
   if (intent.intent === "comparison") {

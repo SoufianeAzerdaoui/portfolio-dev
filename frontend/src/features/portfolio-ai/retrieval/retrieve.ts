@@ -44,6 +44,7 @@ export function retrievePortfolioKnowledge(
   if (normalized.errors.length > 0 || topK === undefined || !normalized.query) {
     return {
       intent: "unknown",
+      requestedProjectAttribute: undefined,
       normalizedQuery: "",
       originalQuery: rawQuery,
       matchedEntities: [],
@@ -62,6 +63,7 @@ export function retrievePortfolioKnowledge(
 
   return {
     intent: intent.intent,
+    requestedProjectAttribute: intent.requestedProjectAttribute,
     normalizedQuery: normalized.query.normalized,
     originalQuery: normalized.query.original,
     matchedEntities,

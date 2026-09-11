@@ -282,6 +282,27 @@ function freeLLMAPIEnabled() {
   return process.env.FREELLMAPI_ENABLED?.trim().toLowerCase() === "true";
 }
 
+function unrelatedRAGEvidenceIncluded(
+  retrieval: ReturnType<typeof preparePortfolioAIRequest>["retrieval"],
+) {
+  const explicitlyMatchedProjectIds = new Set(
+    retrieval.matchedEntities
+      .filter((match) => match.entity.type === "project")
+      .map((match) => match.entity.id),
+  );
+
+  if (explicitlyMatchedProjectIds.size === 0) {
+    return false;
+  }
+
+  return retrieval.results.some(
+    (result) =>
+      (result.entity.id === "medical-rag-platform" ||
+        result.entity.id === "syndismart-ai") &&
+      !explicitlyMatchedProjectIds.has(result.entity.id),
+  );
+}
+
 function explainFallback(
   providerDiagnostics: readonly ProviderDiagnostics[],
   secondaryConfigured: boolean,
@@ -406,7 +427,15 @@ async function main() {
   const publicError = finalError
     ? mapPortfolioAIErrorToHTTPResult(normalizeGenerationError(finalError), requestId)
     : undefined;
-  const lastStructured = [...providerDiagnostics]
+  const deterministicStructured =
+    finalResult && finalResult.metadata.providerCalled === false
+      ? inspectStructuredOutput(
+          finalResult.answer,
+          generationInput,
+          allowedEvidenceIds,
+        )
+      : undefined;
+  const lastStructured = deterministicStructured ?? [...providerDiagnostics]
     .reverse()
     .find((item) => item.structured)?.structured;
 
@@ -418,6 +447,8 @@ async function main() {
         locale: prepared.locale,
         retrieval: {
           intent: prepared.retrieval.intent,
+          requestedProjectAttribute:
+            prepared.retrieval.requestedProjectAttribute ?? null,
           normalizedTechnology:
             prepared.retrieval.matchedEntities.find(
               (match) => match.entity.type === "technology",
@@ -446,13 +477,9 @@ async function main() {
             PORTFOLIO_AI_SYSTEM_PROMPT.length + userPrompt.length,
           historyDuplicated: false,
           previousAssistantResponseDuplicated: false,
-          unrelatedRAGEvidenceIncluded:
-            prepared.retrieval.results.some((result) =>
-              result.entity.id.includes("medical-rag"),
-            ) &&
-            !prepared.retrieval.results.some((result) =>
-              result.entity.id.includes("kafka"),
-            ),
+          unrelatedRAGEvidenceIncluded: unrelatedRAGEvidenceIncluded(
+            prepared.retrieval,
+          ),
         },
         providers: providerDiagnostics,
         fallback: explainFallback(

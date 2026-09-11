@@ -2,10 +2,139 @@ import type {
   DetectedEntity,
   IntentDetection,
   NormalizedQuery,
+  ProjectAttribute,
 } from "@/features/portfolio-ai/retrieval/retrieval.types";
 
 function hasAny(query: NormalizedQuery, terms: readonly string[]) {
   return terms.some((term) => query.normalized.includes(term));
+}
+
+function hasTechnologyAttributeRequest(query: NormalizedQuery) {
+  return hasAny(query, [
+    "technologie",
+    "technologies",
+    "tech stack",
+    "stack",
+    "tools",
+    "tooling",
+    "outils",
+  ]);
+}
+
+function detectProjectAttribute(
+  query: NormalizedQuery,
+): ProjectAttribute | undefined {
+  if (
+    hasAny(query, [
+      "objectif",
+      "objectifs",
+      "but",
+      "a quoi sert le projet",
+      "que cherche a faire le projet",
+      "objective",
+      "goal",
+      "purpose",
+      "what does the project aim to do",
+    ])
+  ) {
+    return "objective";
+  }
+
+  if (
+    hasAny(query, [
+      "quel probleme",
+      "problematique",
+      "quel besoin",
+      "what problem",
+      "problem addressed",
+      "what issue",
+    ])
+  ) {
+    return "problem";
+  }
+
+  if (
+    hasAny(query, [
+      "architecture",
+      "pipeline",
+      "etapes",
+      "workflow",
+      "steps",
+    ])
+  ) {
+    return "architecture";
+  }
+
+  if (
+    hasAny(query, [
+      "comment fonctionne",
+      "fonctionnement",
+      "comment marche",
+      "comment a-t-il ete construit",
+      "quelle approche",
+      "how does it work",
+      "how does",
+      "how does the project work",
+      "how was it built",
+      "approach",
+    ])
+  ) {
+    return "approach";
+  }
+
+  return undefined;
+}
+
+function hasTechnologyExplanationRequest(query: NormalizedQuery) {
+  return hasAny(query, [
+    "why",
+    "pourquoi",
+    "role",
+    "rôle",
+    "purpose",
+    "objectif",
+    "fonction",
+    "utilise pour",
+    "utilise for",
+    "used for",
+    "what was",
+    "a quoi sert",
+    "sert a",
+    "choisi",
+    "choisie",
+    "chosen",
+    "selected",
+    "instead of",
+    "rather than",
+    "au lieu de",
+    "over",
+  ]);
+}
+
+function normalizeMatch(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+function hasSpecificProjectTechnologyPair(
+  matchedEntities: readonly DetectedEntity[],
+) {
+  const technologyTerms = new Set(
+    matchedEntities
+      .filter((match) => match.entity.type === "technology")
+      .flatMap((match) => [
+        match.matchedAlias,
+        match.entity.canonicalName,
+        ...match.entity.aliases,
+      ])
+      .map(normalizeMatch),
+  );
+
+  return matchedEntities
+    .filter((match) => match.entity.type === "project")
+    .some((match) => !technologyTerms.has(normalizeMatch(match.matchedAlias)));
 }
 
 export function detectIntent(
@@ -13,6 +142,7 @@ export function detectIntent(
   matchedEntities: readonly DetectedEntity[] = [],
 ): IntentDetection {
   const entityTypes = new Set(matchedEntities.map((match) => match.entity.type));
+  const requestedProjectAttribute = detectProjectAttribute(query);
 
   if (
     hasAny(query, ["compare", "comparer", "versus", " vs "]) &&
@@ -43,6 +173,44 @@ export function detectIntent(
       intent: "education_lookup",
       confidence: 0.9,
       reasons: ["education keywords matched"],
+    };
+  }
+
+  if (
+    entityTypes.has("technology") &&
+    hasSpecificProjectTechnologyPair(matchedEntities) &&
+    hasTechnologyExplanationRequest(query)
+  ) {
+    return {
+      intent: "project_technology_explanation",
+      confidence: 0.93,
+      reasons: ["project, technology, and explanation wording matched"],
+    };
+  }
+
+  if (entityTypes.has("technology") && hasTechnologyExplanationRequest(query)) {
+    return {
+      intent: "technology_explanation",
+      confidence: 0.91,
+      reasons: ["technology and explanation wording matched"],
+    };
+  }
+
+  if (entityTypes.has("project") && hasTechnologyAttributeRequest(query)) {
+    return {
+      intent: "project_technology_lookup",
+      confidence: 0.92,
+      reasons: ["project entity and technology attribute wording matched"],
+      requestedProjectAttribute: "technologies",
+    };
+  }
+
+  if (entityTypes.has("project") && requestedProjectAttribute) {
+    return {
+      intent: "project_lookup",
+      confidence: 0.91,
+      reasons: ["project entity and requested project attribute matched"],
+      requestedProjectAttribute,
     };
   }
 
