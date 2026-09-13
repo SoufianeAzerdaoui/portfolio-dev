@@ -24,6 +24,7 @@ import {
   PORTFOLIO_AI_MAX_HISTORY_MESSAGES,
   PORTFOLIO_AI_MAX_HISTORY_MESSAGE_LENGTH,
   PORTFOLIO_AI_MAX_MESSAGE_LENGTH,
+  preparePortfolioAIRequest,
   projectPublicSources,
 } from "@/features/portfolio-ai/api/portfolio-ai-api";
 import { buildConversationContext } from "@/features/portfolio-ai/api/conversation-context";
@@ -294,6 +295,71 @@ test("project objective lookup returns one project source without provider", asy
   }
 });
 
+test("technical skills API response uses profile source without provider", async () => {
+  const provider = new MockPortfolioAIProvider(() => {
+    throw new Error("Provider should not be called.");
+  });
+  const result = await handlePortfolioAIRequest(
+    { message: "Quelles sont ses compétences techniques ?", locale: "fr" },
+    { provider, requestId: "req_profile_skills" },
+  );
+
+  assert.equal(result.status, 200);
+  assert.equal(provider.callCount, 0);
+
+  if ("answer" in result.body) {
+    assert.equal(result.body.language, "fr");
+    assert.equal(result.body.uncertainty, "none");
+    assert.match(result.body.answer, /Cloud & DevOps/);
+    assert.deepEqual(
+      result.body.sources.map((source) => ({
+        entityId: source.entityId,
+        type: source.type,
+        label: source.label,
+      })),
+      [
+        {
+          entityId: "person:soufiane-azerdaoui",
+          type: "profile",
+          label: "Profil technique",
+        },
+      ],
+    );
+  }
+});
+
+test("language API response uses profile source without provider", async () => {
+  const provider = new MockPortfolioAIProvider(() => {
+    throw new Error("Provider should not be called.");
+  });
+  const result = await handlePortfolioAIRequest(
+    { message: "Quelles langues parle-t-il ?", locale: "fr" },
+    { provider, requestId: "req_profile_languages" },
+  );
+
+  assert.equal(result.status, 200);
+  assert.equal(provider.callCount, 0);
+
+  if ("answer" in result.body) {
+    assert.match(result.body.answer, /français : B2/);
+    assert.match(result.body.answer, /allemand : B1/);
+    assert.deepEqual(
+      result.body.sources.map((source) => ({
+        entityId: source.entityId,
+        type: source.type,
+        label: source.label,
+      })),
+      [
+        {
+          entityId: "person:soufiane-azerdaoui",
+          type: "profile",
+          label: "Langues",
+        },
+      ],
+    );
+  }
+});
+
 test("French project technology lookup remains deterministic", async () => {
   const provider = new MockPortfolioAIProvider(() => {
     throw new Error("Provider should not be called.");
@@ -363,6 +429,62 @@ test("project technology explanation reaches provider with scoped context", asyn
     assert.deepEqual(
       result.body.sources.map((source) => source.entityId),
       ["medical-rag-platform"],
+    );
+  }
+});
+
+test("recruiter synthesis request uses provider with balanced candidate-fit context", async () => {
+  const message =
+    "Pourquoi Soufiane serait-il un bon candidat pour un stage Data & AI ?";
+  const prepared = preparePortfolioAIRequest({ message, locale: "fr" });
+  const provider = new MockPortfolioAIProvider((input) => ({
+    answer:
+      "Soufiane présente un profil pertinent pour un stage Data & AI grâce à une formation SIAD en cours, des compétences Data et IA documentées, ainsi que des expériences et projets appliqués.",
+    usedEvidenceIds: input.allowedEvidenceIds.slice(0, 4),
+    uncertainty: "none",
+    language: "fr",
+  }));
+
+  assert.equal(prepared.retrieval.intent, "candidate_fit");
+  assert.equal(prepared.retrieval.candidateFitFocus, "data-ai");
+  assert.equal(prepared.requiresProviderGeneration, true);
+
+  const result = await handlePortfolioAIRequest(
+    { message, locale: "fr" },
+    { provider, requestId: "req_candidate_fit" },
+  );
+
+  assert.equal(result.status, 200);
+  assert.equal(provider.callCount, 1);
+  assert.equal(provider.inputs[0]?.groundedContext.intent, "candidate_fit");
+  assert.equal(provider.inputs[0]?.groundedContext.candidateFitFocus, "data-ai");
+  assert.deepEqual(
+    provider.inputs[0]?.groundedContext.entities.map((entity) => entity.id),
+    [
+      "person:soufiane-azerdaoui",
+      "medical-rag-platform",
+      "education-isima-siad-2026",
+      "chu-mohammed-vi-pfe-2026",
+      "pfe-business-intelligence-2024",
+      "personalized-recommendation-system",
+      "real-time-ecommerce-activity-tracking",
+    ],
+  );
+
+  if ("answer" in result.body) {
+    assert.equal(result.body.language, "fr");
+    assert.equal(result.body.uncertainty, "none");
+    assert.ok(result.body.sources.length > 0);
+    assert.equal(
+      result.body.sources.every((source) =>
+        [
+          "person:soufiane-azerdaoui",
+          "education-isima-siad-2026",
+          "chu-mohammed-vi-pfe-2026",
+          "medical-rag-platform",
+        ].includes(source.entityId),
+      ),
+      true,
     );
   }
 });
@@ -826,13 +948,35 @@ test("not-documented deterministic bypass returns 200 without provider call", as
   }
 });
 
-test("unsupported Kubernetes Google and AWS requests remain provider-free", async () => {
+test("Kubernetes expertise API answer is cautious and provider-free", async () => {
+  const provider = new MockPortfolioAIProvider(() => {
+    throw new Error("Provider should not be called.");
+  });
+  const result = await handlePortfolioAIRequest(
+    { message: "Est-il expert Kubernetes ?", locale: "fr" },
+    { provider, requestId: "req_kubernetes_expertise" },
+  );
+
+  assert.equal(result.status, 200);
+  assert.equal(provider.callCount, 0);
+
+  if ("answer" in result.body) {
+    assert.equal(result.body.uncertainty, "ambiguous");
+    assert.match(result.body.answer, /Kubernetes/);
+    assert.match(result.body.answer, /ne documente pas un niveau/);
+    assert.deepEqual(
+      result.body.sources.map((source) => source.type),
+      ["profile"],
+    );
+  }
+});
+
+test("unsupported Google and AWS requests remain provider-free", async () => {
   const provider = new MockPortfolioAIProvider(() => {
     throw new Error("Provider should not be called.");
   });
 
   for (const message of [
-    "Est-il expert Kubernetes ?",
     "Travaille-t-il chez Google ?",
     "A-t-il une certification AWS ?",
   ]) {
@@ -852,7 +996,7 @@ test("unsupported Kubernetes Google and AWS requests remain provider-free", asyn
   assert.equal(provider.callCount, 0);
 });
 
-test("explicit unsupported Kubernetes question does not inherit RAG history", async () => {
+test("explicit Kubernetes expertise question does not inherit RAG history", async () => {
   const history = [
     { role: "user" as const, content: "RAG" },
     { role: "assistant" as const, content: "Qdrant" },
@@ -884,14 +1028,23 @@ test("explicit unsupported Kubernetes question does not inherit RAG history", as
     conversationContext.retrievalQuery,
     "Est-il expert Kubernetes ?",
   );
-  assert.equal(retrieval.notDocumented, true);
-  assert.equal(retrieval.results.length, 0);
+  assert.equal(retrieval.intent, "skill_lookup");
+  assert.deepEqual(
+    retrieval.results.map((group) => group.entity.id),
+    ["person:soufiane-azerdaoui"],
+  );
   assert.equal(result.status, 200);
   assert.equal(provider.callCount, 0);
 
   if ("answer" in result.body) {
-    assert.equal(result.body.uncertainty, "not-documented");
-    assert.deepEqual(result.body.sources, []);
+    assert.equal(result.body.uncertainty, "ambiguous");
+    assert.match(result.body.answer, /Kubernetes/);
+    assert.deepEqual(
+      result.body.sources.map((source) => source.type),
+      ["profile"],
+    );
+    assert.equal(JSON.stringify(result.body).includes("Medical RAG"), false);
+    assert.equal(JSON.stringify(result.body).includes("Qdrant"), false);
   }
 });
 
@@ -930,6 +1083,93 @@ test("current academic program after RAG history keeps retrieval focused", async
   assert.equal(input.userPrompt.split(previousAnswer).length - 1, 1);
   assert.equal(JSON.stringify(input.groundedContext).includes("Medical RAG"), false);
   assert.equal(JSON.stringify(input.groundedContext).includes("Qdrant"), false);
+});
+
+test("profile skill follow-up category stays focused on the new category", async () => {
+  const history = [
+    {
+      role: "user" as const,
+      content: "Quelles sont ses compétences en Data Engineering ?",
+    },
+    {
+      role: "assistant" as const,
+      content:
+        "En Data Engineering, ses compétences documentées sont : ETL, Data Warehousing, Apache Spark, PySpark, Apache Kafka, Delta Lake, Hadoop, HDFS, MapReduce.",
+    },
+  ];
+  const conversationContext = buildConversationContext("Et en IA ?", "fr", history);
+  const retrieval = retrievePortfolioKnowledge(conversationContext.retrievalQuery, {
+    locale: "fr",
+    topK: 10,
+  });
+  const provider = new MockPortfolioAIProvider(() => {
+    throw new Error("Provider should not be called.");
+  });
+  const result = await handlePortfolioAIRequest(
+    {
+      message: "Et en IA ?",
+      locale: "fr",
+      history,
+    },
+    { provider, requestId: "req_followup_ai_skills" },
+  );
+
+  assert.equal(conversationContext.contextualized, false);
+  assert.equal(conversationContext.retrievalQuery, "Et en IA ?");
+  assert.equal(retrieval.intent, "skills_by_category");
+  assert.equal(retrieval.skillCategory, "ai-nlp-genai");
+  assert.equal(result.status, 200);
+  assert.equal(provider.callCount, 0);
+
+  if ("answer" in result.body) {
+    assert.match(result.body.answer, /Qdrant/);
+    assert.match(result.body.answer, /Hugging Face Transformers/);
+    assert.doesNotMatch(result.body.answer, /Apache Kafka/);
+  }
+});
+
+test("language follow-up stays focused on the requested language", async () => {
+  const history = [
+    { role: "user" as const, content: "Quelles langues parle-t-il ?" },
+    {
+      role: "assistant" as const,
+      content:
+        "Langues documentées : arabe : langue maternelle, français : B2, anglais : B1 et allemand : B1.",
+    },
+  ];
+  const conversationContext = buildConversationContext(
+    "Et en allemand ?",
+    "fr",
+    history,
+  );
+  const retrieval = retrievePortfolioKnowledge(conversationContext.retrievalQuery, {
+    locale: "fr",
+    topK: 10,
+  });
+  const provider = new MockPortfolioAIProvider(() => {
+    throw new Error("Provider should not be called.");
+  });
+  const result = await handlePortfolioAIRequest(
+    {
+      message: "Et en allemand ?",
+      locale: "fr",
+      history,
+    },
+    { provider, requestId: "req_followup_german" },
+  );
+
+  assert.equal(conversationContext.contextualized, false);
+  assert.equal(conversationContext.retrievalQuery, "Et en allemand ?");
+  assert.equal(retrieval.intent, "language_lookup");
+  assert.equal(retrieval.languageId, "language:german");
+  assert.equal(result.status, 200);
+  assert.equal(provider.callCount, 0);
+
+  if ("answer" in result.body) {
+    assert.match(result.body.answer, /allemand/);
+    assert.match(result.body.answer, /B1/);
+    assert.doesNotMatch(result.body.answer, /langue maternelle/i);
+  }
 });
 
 test("deterministic not-documented bypass remains provider-free with history", async () => {
@@ -1611,6 +1851,41 @@ test("deterministic not-documented response streams without provider call", asyn
       "done",
     ]);
     assert.equal(provider.callCount, 0);
+  }
+});
+
+test("profile language response streams without provider call", async () => {
+  const provider = new MockPortfolioAIProvider(() => {
+    throw new Error("Provider should not be called.");
+  });
+  const result = createPortfolioAIStreamResponse(
+    { message: "Parle-t-il allemand ?", locale: "fr" },
+    { provider, requestId: "req_stream_profile_language" },
+  );
+
+  assert.equal(provider.callCount, 0);
+  assert.equal(result.status, 200);
+
+  if ("response" in result) {
+    const events = await readSSEEvents(result.response);
+    const deltaText = events
+      .filter((event) => event.event === "delta")
+      .map((event) => event.data.text)
+      .join("");
+    const sources = events.find((event) => event.event === "sources")?.data
+      .sources as Array<{ type: string; label: string }> | undefined;
+
+    assert.deepEqual(events.map((event) => event.event), [
+      "meta",
+      "delta",
+      "sources",
+      "done",
+    ]);
+    assert.match(deltaText, /allemand/);
+    assert.match(deltaText, /B1/);
+    assert.equal(sources?.length, 1);
+    assert.equal(sources?.[0]?.type, "profile");
+    assert.equal(sources?.[0]?.label, "Langues");
   }
 });
 

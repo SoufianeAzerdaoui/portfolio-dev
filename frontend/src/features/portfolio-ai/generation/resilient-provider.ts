@@ -8,6 +8,7 @@ import {
   logPortfolioAIDebug,
 } from "@/features/portfolio-ai/generation/debug";
 import {
+  GenerationInvalidOutputError,
   GenerationProviderError,
   GenerationRateLimitError,
   GenerationTimeoutError,
@@ -71,6 +72,13 @@ export function isFallbackEligibleGenerationError(error: unknown) {
   );
 }
 
+export interface PortfolioAIProviderWithValidationFallback
+  extends PortfolioAIProvider {
+  generateFallbackAfterInvalidOutput(
+    input: GroundedGenerationInput,
+  ): Promise<ProviderGenerationResult>;
+}
+
 export class ResilientPortfolioAIProvider implements PortfolioAIProvider {
   private readonly primaryTimeoutMs: number;
 
@@ -81,6 +89,61 @@ export class ResilientPortfolioAIProvider implements PortfolioAIProvider {
   ) {
     this.primaryTimeoutMs =
       options.primaryTimeoutMs ?? PORTFOLIO_AI_PRIMARY_TIMEOUT_MS;
+  }
+
+  async generateFallbackAfterInvalidOutput(
+    input: GroundedGenerationInput,
+  ): Promise<ProviderGenerationResult> {
+    if (input.signal?.aborted) {
+      throw abortedError(input.signal);
+    }
+
+    const secondary = this.secondary;
+
+    if (!secondary) {
+      throw new GenerationInvalidOutputError(
+        "Primary provider returned invalid structured output.",
+      );
+    }
+
+    logPortfolioAIDebug("generation.primary", {
+      requestId: input.requestId,
+      intent: input.groundedContext.intent,
+      provider: "gemini",
+      elapsedMs: 0,
+      normalizedErrorClass: "GenerationInvalidOutputError",
+      fallbackEligibleError: true,
+      fallbackTriggered: "YES",
+    });
+
+    const fallbackStartedAt = Date.now();
+
+    try {
+      const result = await secondary.generate(input);
+
+      logPortfolioAIDebug("generation.fallback", {
+        requestId: input.requestId,
+        intent: input.groundedContext.intent,
+        provider: result.provider,
+        elapsedMs: elapsedSince(fallbackStartedAt),
+      });
+
+      return result;
+    } catch (error) {
+      if (isAbortError(error)) {
+        throw error;
+      }
+
+      logPortfolioAIDebug("generation.fallback", {
+        requestId: input.requestId,
+        intent: input.groundedContext.intent,
+        provider: "freellmapi",
+        elapsedMs: elapsedSince(fallbackStartedAt),
+        normalizedErrorClass: normalizedErrorClass(error),
+      });
+
+      throw markGenerationErrorAsNonRetryable(normalizeGenerationError(error));
+    }
   }
 
   async generate(

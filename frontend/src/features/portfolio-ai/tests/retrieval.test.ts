@@ -470,6 +470,218 @@ assertIncludesEntities(dataEngineering, [
   "real-time-ecommerce-activity-tracking",
 ]);
 
+const technicalSkillsOverview = retrievePortfolioKnowledge(
+  "Quelles sont ses compétences techniques ?",
+  { locale: "fr", topK: 10 },
+);
+assert.equal(technicalSkillsOverview.intent, "technical_skills_overview");
+assert.equal(technicalSkillsOverview.status, "verified");
+assertExactEntities(technicalSkillsOverview, ["person:soufiane-azerdaoui"]);
+assert.ok(
+  factPredicates(
+    technicalSkillsOverview,
+    "person:soufiane-azerdaoui",
+  ).includes("hasProfileSkill"),
+);
+assert.ok(
+  factEvidenceFields(
+    technicalSkillsOverview,
+    "person:soufiane-azerdaoui",
+  ).includes("cloud-devops"),
+);
+
+const dataEngineeringSkills = retrievePortfolioKnowledge(
+  "Quelles sont ses compétences en Data Engineering ?",
+  { locale: "fr", topK: 10 },
+);
+assert.equal(dataEngineeringSkills.intent, "skills_by_category");
+assert.equal(dataEngineeringSkills.skillCategory, "data-engineering");
+assertExactEntities(dataEngineeringSkills, ["person:soufiane-azerdaoui"]);
+assert.equal(
+  groupFor(dataEngineeringSkills, "person:soufiane-azerdaoui")?.facts.every(
+    (fact) =>
+      fact.predicate === "hasProfileSkill" &&
+      typeof fact.value === "object" &&
+      fact.value !== null &&
+      "category" in fact.value &&
+      fact.value.category === "data-engineering",
+  ),
+  true,
+);
+
+const dataFit = retrievePortfolioKnowledge(
+  "Quelles compétences peut-il apporter à une équipe Data ?",
+  { locale: "fr", topK: 10 },
+);
+assert.equal(dataFit.intent, "candidate_fit");
+assert.equal(dataFit.candidateFitFocus, "data-engineering");
+assert.equal(dataFit.skillCategory, "data-engineering");
+assertIncludesEntities(dataFit, [
+  "person:soufiane-azerdaoui",
+  "education-isima-siad-2026",
+  "pfe-business-intelligence-2024",
+  "personalized-recommendation-system",
+  "real-time-ecommerce-activity-tracking",
+]);
+
+const candidateFitDataAiFr = retrievePortfolioKnowledge(
+  "Pourquoi Soufiane serait-il un bon candidat pour un stage Data & AI ?",
+  { locale: "fr", topK: 10 },
+);
+assert.equal(candidateFitDataAiFr.intent, "candidate_fit");
+assert.equal(candidateFitDataAiFr.candidateFitFocus, "data-ai");
+assertIncludesEntities(candidateFitDataAiFr, [
+  "person:soufiane-azerdaoui",
+  "education-isima-siad-2026",
+  "chu-mohammed-vi-pfe-2026",
+  "pfe-business-intelligence-2024",
+  "medical-rag-platform",
+  "personalized-recommendation-system",
+  "real-time-ecommerce-activity-tracking",
+]);
+
+const candidateFitDataAiEn = retrievePortfolioKnowledge(
+  "Why is Soufiane a good candidate for a Data & AI internship?",
+  { locale: "en", topK: 10 },
+);
+assert.equal(candidateFitDataAiEn.intent, "candidate_fit");
+assert.equal(candidateFitDataAiEn.candidateFitFocus, "data-ai");
+assertIncludesEntities(candidateFitDataAiEn, [
+  "person:soufiane-azerdaoui",
+  "education-isima-siad-2026",
+  "chu-mohammed-vi-pfe-2026",
+  "pfe-business-intelligence-2024",
+  "medical-rag-platform",
+  "personalized-recommendation-system",
+  "real-time-ecommerce-activity-tracking",
+]);
+
+const candidateFitDataEngineer = retrievePortfolioKnowledge(
+  "Pourquoi son profil est-il pertinent pour un stage Data Engineer ?",
+  { locale: "fr", topK: 10 },
+);
+assert.equal(candidateFitDataEngineer.intent, "candidate_fit");
+assert.equal(candidateFitDataEngineer.candidateFitFocus, "data-engineering");
+assertIncludesEntities(candidateFitDataEngineer, [
+  "person:soufiane-azerdaoui",
+  "education-isima-siad-2026",
+  "pfe-business-intelligence-2024",
+  "personalized-recommendation-system",
+  "real-time-ecommerce-activity-tracking",
+]);
+
+const candidateFitAiEngineer = retrievePortfolioKnowledge(
+  "Pourquoi son profil est-il pertinent pour un stage AI Engineer ?",
+  { locale: "fr", topK: 10 },
+);
+assert.equal(candidateFitAiEngineer.intent, "candidate_fit");
+assert.equal(candidateFitAiEngineer.candidateFitFocus, "ai-engineering");
+assertIncludesEntities(candidateFitAiEngineer, [
+  "person:soufiane-azerdaoui",
+  "education-isima-siad-2026",
+  "chu-mohammed-vi-pfe-2026",
+  "medical-rag-platform",
+  "syndismart-ai",
+  "callcenter-frustration-ai",
+]);
+
+const candidateTechnicalStrengths = retrievePortfolioKnowledge(
+  "Quelles sont ses principales forces techniques ?",
+  { locale: "fr", topK: 10 },
+);
+assert.equal(candidateTechnicalStrengths.intent, "candidate_fit");
+assert.equal(candidateTechnicalStrengths.candidateFitFocus, "technical-strengths");
+assertIncludesEntities(candidateTechnicalStrengths, [
+  "person:soufiane-azerdaoui",
+  "education-isima-siad-2026",
+  "pfe-business-intelligence-2024",
+  "personalized-recommendation-system",
+  "real-time-ecommerce-activity-tracking",
+]);
+
+const candidateDataVsAi = retrievePortfolioKnowledge(
+  "Son profil est-il plutôt Data Engineer ou AI Engineer ?",
+  { locale: "fr", topK: 10 },
+);
+assert.equal(candidateDataVsAi.intent, "candidate_fit");
+assert.equal(candidateDataVsAi.candidateFitFocus, "comparison");
+assertIncludesEntities(candidateDataVsAi, [
+  "person:soufiane-azerdaoui",
+  "education-isima-siad-2026",
+  "chu-mohammed-vi-pfe-2026",
+  "pfe-business-intelligence-2024",
+  "medical-rag-platform",
+  "personalized-recommendation-system",
+  "real-time-ecommerce-activity-tracking",
+]);
+
+const nlpSkills = retrievePortfolioKnowledge(
+  "Quelles technologies maîtrise-t-il en NLP ?",
+  { locale: "fr", topK: 10 },
+);
+assert.equal(nlpSkills.intent, "skills_by_category");
+assert.equal(nlpSkills.skillCategory, "ai-nlp-genai");
+assertExactEntities(nlpSkills, ["person:soufiane-azerdaoui"]);
+
+const kubernetesSkill = retrievePortfolioKnowledge("Connaît-il Kubernetes ?", {
+  locale: "fr",
+  topK: 10,
+});
+assert.equal(kubernetesSkill.intent, "skill_lookup");
+assert.equal(kubernetesSkill.normalizedSkillId, "tech:kubernetes");
+assertExactEntities(kubernetesSkill, ["person:soufiane-azerdaoui"]);
+assert.equal(kubernetesSkill.status, "verified");
+assert.equal(kubernetesSkill.notDocumented, false);
+
+const kubernetesExpertise = retrievePortfolioKnowledge(
+  "Est-il expert Kubernetes ?",
+  { locale: "fr", topK: 10 },
+);
+assert.equal(kubernetesExpertise.intent, "skill_lookup");
+assert.equal(kubernetesExpertise.normalizedSkillId, "tech:kubernetes");
+assertExactEntities(kubernetesExpertise, ["person:soufiane-azerdaoui"]);
+
+const languageOverview = retrievePortfolioKnowledge(
+  "Quelles langues parle-t-il ?",
+  { locale: "fr", topK: 10 },
+);
+assert.equal(languageOverview.intent, "language_overview");
+assertExactEntities(languageOverview, ["person:soufiane-azerdaoui"]);
+assert.equal(
+  groupFor(languageOverview, "person:soufiane-azerdaoui")?.facts.filter(
+    (fact) => fact.predicate === "speaksLanguage",
+  ).length,
+  4,
+);
+
+const englishLevel = retrievePortfolioKnowledge(
+  "Quel est son niveau en anglais ?",
+  { locale: "fr", topK: 10 },
+);
+assert.equal(englishLevel.intent, "language_lookup");
+assert.equal(englishLevel.languageId, "language:english");
+assert.equal(englishLevel.languageQueryKind, "level");
+assertExactEntities(englishLevel, ["person:soufiane-azerdaoui"]);
+
+const nativeLanguage = retrievePortfolioKnowledge(
+  "Quelle est sa langue maternelle ?",
+  { locale: "fr", topK: 10 },
+);
+assert.equal(nativeLanguage.intent, "language_lookup");
+assert.equal(nativeLanguage.languageQueryKind, "native");
+assertExactEntities(nativeLanguage, ["person:soufiane-azerdaoui"]);
+assert.equal(
+  groupFor(nativeLanguage, "person:soufiane-azerdaoui")?.facts.some(
+    (fact) =>
+      fact.predicate === "speaksLanguage" &&
+      typeof fact.value === "object" &&
+      fact.value !== null &&
+      "languageId" in fact.value &&
+      fact.value.languageId === "language:arabic",
+  ),
+  true,
+);
+
 const dataAiProjects = retrievePortfolioKnowledge(
   "Quels sont ses projets Data/IA ?",
   { locale: "fr", topK: 10 },
@@ -586,7 +798,6 @@ assert.ok(generic.results.length <= 3);
 
 [
   "Kubernetes",
-  "Est-il expert Kubernetes ?",
   "Travaille-t-il chez Google ?",
   "A-t-il une certification AWS ?",
 ].forEach((query) => {

@@ -57,6 +57,7 @@ export {
   FreeLLMAPIPortfolioAIProvider,
 } from "@/features/portfolio-ai/generation/freellmapi-provider";
 export {
+  type PortfolioAIProviderWithValidationFallback,
   ResilientPortfolioAIProvider,
   createDefaultResilientPortfolioAIProvider,
   getDefaultPortfolioAIProvider,
@@ -67,6 +68,9 @@ export { validateGroundedAnswer } from "@/features/portfolio-ai/generation/valid
 export {
   buildProjectAttributeFastPathAnswer,
 } from "@/features/portfolio-ai/generation/project-attribute-fast-path";
+export {
+  buildProfileFastPathAnswer,
+} from "@/features/portfolio-ai/generation/profile-fast-path";
 export {
   buildProjectTechnologyFastPathAnswer,
   buildVerifiedTechnologyFastPathAnswer,

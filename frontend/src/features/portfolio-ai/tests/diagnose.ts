@@ -5,6 +5,7 @@ import {
   mapPortfolioAIErrorToHTTPResult,
   preparePortfolioAIRequest,
 } from "@/features/portfolio-ai/api/portfolio-ai-api";
+import { getEntityById } from "@/features/portfolio-ai/knowledge";
 import {
   FreeLLMAPIPortfolioAIProvider,
   GeminiPortfolioAIProvider,
@@ -67,12 +68,57 @@ type FreeLLMAPIHTTPDiagnostics = Pick<
   | "assistantContentJSONParse"
 >;
 
+export type DiagnosticProviderMode = "default" | "freellmapi";
+
+export function parseDiagnoseArgs(args: readonly string[]) {
+  let providerMode: DiagnosticProviderMode = "default";
+  const questionParts: string[] = [];
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+
+    if (arg === "--provider") {
+      const provider = args[index + 1];
+
+      if (provider !== "freellmapi") {
+        throw new Error("--provider currently supports only freellmapi.");
+      }
+
+      providerMode = provider;
+      index += 1;
+      continue;
+    }
+
+    if (arg?.startsWith("--provider=")) {
+      const provider = arg.slice("--provider=".length);
+
+      if (provider !== "freellmapi") {
+        throw new Error("--provider currently supports only freellmapi.");
+      }
+
+      providerMode = provider;
+      continue;
+    }
+
+    questionParts.push(arg ?? "");
+  }
+
+  return {
+    message: questionParts.join(" ").trim() || "A-t-il utilisé Kafka ?",
+    providerMode,
+  };
+}
+
 function elapsedSince(startedAt: number) {
   return Date.now() - startedAt;
 }
 
 function statusFromBoolean(value: boolean): PassFail {
   return value ? "PASS" : "FAIL";
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
 }
 
 function sanitizeRoutedVia(value: string | null) {
@@ -303,11 +349,51 @@ function unrelatedRAGEvidenceIncluded(
   );
 }
 
+function profileLanguageLevel(
+  retrieval: ReturnType<typeof preparePortfolioAIRequest>["retrieval"],
+) {
+  if (retrieval.languageQueryKind === "overview") {
+    return null;
+  }
+
+  const languageId = retrieval.languageId;
+  const languageFacts = retrieval.results.flatMap((result) =>
+    result.facts.filter((fact) => fact.predicate === "speaksLanguage"),
+  );
+  const selectedFact = languageId
+    ? languageFacts.find(
+        (fact) =>
+          isRecord(fact.value) && fact.value.languageId === languageId,
+      )
+    : languageFacts[0];
+
+  if (!selectedFact || !isRecord(selectedFact.value)) {
+    return null;
+  }
+
+  if (selectedFact.value.levelType === "native") {
+    return "native";
+  }
+
+  return typeof selectedFact.value.cefrLevel === "string"
+    ? selectedFact.value.cefrLevel
+    : null;
+}
+
 function explainFallback(
   providerDiagnostics: readonly ProviderDiagnostics[],
   secondaryConfigured: boolean,
   finalError: unknown,
+  providerMode: DiagnosticProviderMode,
 ) {
+  if (providerMode === "freellmapi") {
+    return {
+      triggered: "NO",
+      reason:
+        "Diagnostic provider override: FreeLLMAPI was called directly and Gemini was not called.",
+    };
+  }
+
   const gemini = providerDiagnostics.find(
     (item) => item.providerName === "gemini",
   );
@@ -357,8 +443,7 @@ function explainFallback(
 async function main() {
   loadEnvConfig(process.cwd());
 
-  const question = process.argv.slice(2).join(" ").trim();
-  const message = question || "A-t-il utilisé Kafka ?";
+  const { message, providerMode } = parseDiagnoseArgs(process.argv.slice(2));
   const requestId = createPortfolioAIRequestId();
   const totalStartedAt = Date.now();
   const history = readHistoryFromEnvironment();
@@ -408,9 +493,12 @@ async function main() {
     freeLLMAPIHTTPDiagnostics,
   );
   const fallbackEnabled = freeLLMAPIEnabled();
-  const provider = fallbackEnabled
-    ? new ResilientPortfolioAIProvider(geminiProvider, secondaryProvider)
-    : geminiProvider;
+  const provider =
+    providerMode === "freellmapi"
+      ? secondaryProvider
+      : fallbackEnabled
+        ? new ResilientPortfolioAIProvider(geminiProvider, secondaryProvider)
+        : geminiProvider;
   const generationStartedAt = Date.now();
   let finalResult:
     | Awaited<ReturnType<typeof generatePortfolioAnswer>>
@@ -449,10 +537,20 @@ async function main() {
           intent: prepared.retrieval.intent,
           requestedProjectAttribute:
             prepared.retrieval.requestedProjectAttribute ?? null,
+          skillCategory: prepared.retrieval.skillCategory ?? null,
+          candidateFitFocus: prepared.retrieval.candidateFitFocus ?? null,
           normalizedTechnology:
             prepared.retrieval.matchedEntities.find(
               (match) => match.entity.type === "technology",
             )?.entity.canonicalName ?? null,
+          normalizedSkill:
+            getEntityById(prepared.retrieval.normalizedSkillId ?? "")
+              ?.canonicalName ?? null,
+          language:
+            getEntityById(prepared.retrieval.languageId ?? "")?.canonicalName ??
+            null,
+          languageQueryKind: prepared.retrieval.languageQueryKind ?? null,
+          languageLevel: profileLanguageLevel(prepared.retrieval),
           retrievedEntityIds: prepared.retrieval.results.map(
             (result) => result.entity.id,
           ),
@@ -475,6 +573,14 @@ async function main() {
           groundedContextChars: JSON.stringify(groundedContext).length,
           finalGenerationInputChars:
             PORTFOLIO_AI_SYSTEM_PROMPT.length + userPrompt.length,
+          candidateFitEntityCount:
+            prepared.retrieval.intent === "candidate_fit"
+              ? groundedContext.entities.length
+              : null,
+          candidateFitEvidenceCount:
+            prepared.retrieval.intent === "candidate_fit"
+              ? groundedContext.evidence.length
+              : null,
           historyDuplicated: false,
           previousAssistantResponseDuplicated: false,
           unrelatedRAGEvidenceIncluded: unrelatedRAGEvidenceIncluded(
@@ -484,8 +590,9 @@ async function main() {
         providers: providerDiagnostics,
         fallback: explainFallback(
           providerDiagnostics,
-          fallbackEnabled,
+          providerMode === "freellmapi" || fallbackEnabled,
           finalError,
+          providerMode,
         ),
         structuredResult: lastStructured
           ? {
@@ -514,6 +621,8 @@ async function main() {
               language: finalResult.answer.language,
               retryCount: finalResult.metadata.retryCount,
               fastPathUsed: finalResult.metadata.fastPathUsed ?? false,
+              profileFastPathUsed:
+                finalResult.metadata.model.startsWith("deterministic-profile"),
               validationMs: finalResult.metadata.validationMs,
             }
           : {
@@ -553,16 +662,18 @@ async function main() {
   }
 }
 
-main().catch((error: unknown) => {
-  console.error(
-    JSON.stringify(
-      {
-        result: "FAILURE",
-        normalizedErrorClass: normalizedErrorClass(error),
-      },
-      null,
-      2,
-    ),
-  );
-  process.exitCode = 1;
-});
+if (require.main === module) {
+  main().catch((error: unknown) => {
+    console.error(
+      JSON.stringify(
+        {
+          result: "FAILURE",
+          normalizedErrorClass: normalizedErrorClass(error),
+        },
+        null,
+        2,
+      ),
+    );
+    process.exitCode = 1;
+  });
+}

@@ -6,10 +6,13 @@ import {
   type KnowledgeRelation,
   type KnowledgeVerificationStatus,
 } from "@/features/portfolio-ai/knowledge";
+import { PERSON_ID } from "@/features/portfolio-ai/knowledge/knowledge.sources";
 import type {
+  CandidateFitFocus,
   DetectedEntity,
   IntentDetection,
   ProjectAttribute,
+  ProfileSkillCategory,
   RetrievalCandidate,
 } from "@/features/portfolio-ai/retrieval/retrieval.types";
 
@@ -285,6 +288,536 @@ function candidatesForSkillsOverview() {
     .filter((candidate): candidate is RetrievalCandidate =>
       Boolean(candidate),
     );
+}
+
+const PROFILE_CATEGORY_RELATED_ENTITY_IDS: Record<
+  ProfileSkillCategory,
+  readonly string[]
+> = {
+  "data-engineering": [
+    "domain:data-engineering",
+    "skill:data-engineering",
+    "skill:big-data",
+  ],
+  "ai-nlp-genai": [
+    "domain:ai-ml",
+    "skill:machine-learning",
+    "skill:nlp",
+    "skill:generative-ai",
+    "skill:rag",
+  ],
+  "databases-bi": [
+    "domain:data-analytics",
+    "domain:business-intelligence",
+  ],
+  "programming-languages": ["domain:software-engineering"],
+  "cloud-devops": [],
+  "web-development": ["domain:software-engineering", "skill:web-development"],
+  "design-methods": [],
+};
+
+const FIT_PROFILE_SKILL_IDS: Record<CandidateFitFocus, readonly string[]> = {
+  "data-ai": [
+    "tech:python",
+    "tech:etl",
+    "tech:data-warehousing",
+    "tech:apache-spark",
+    "tech:pyspark",
+    "tech:apache-kafka",
+    "tech:delta-lake",
+    "tech:scikit-learn",
+    "tech:tensorflow",
+    "tech:pytorch",
+    "tech:rag-llm-systems",
+    "tech:faiss",
+    "tech:qdrant",
+    "tech:whisper",
+  ],
+  "data-engineering": [
+    "tech:python",
+    "tech:sql",
+    "tech:etl",
+    "tech:data-warehousing",
+    "tech:apache-spark",
+    "tech:pyspark",
+    "tech:apache-kafka",
+    "tech:delta-lake",
+    "tech:hadoop",
+    "tech:hdfs",
+    "tech:mapreduce",
+  ],
+  "ai-engineering": [
+    "tech:python",
+    "tech:scikit-learn",
+    "tech:xgboost",
+    "tech:tensorflow",
+    "tech:pytorch",
+    "tech:hugging-face-transformers",
+    "tech:rag-llm-systems",
+    "tech:faiss",
+    "tech:qdrant",
+    "tech:whisper",
+    "tech:ollama",
+  ],
+  "technical-strengths": [
+    "tech:python",
+    "tech:sql",
+    "tech:apache-spark",
+    "tech:pyspark",
+    "tech:apache-kafka",
+    "tech:delta-lake",
+    "tech:tensorflow",
+    "tech:pytorch",
+    "tech:rag-llm-systems",
+    "tech:qdrant",
+    "tech:fastapi",
+    "tech:docker",
+  ],
+  comparison: [
+    "tech:python",
+    "tech:sql",
+    "tech:apache-spark",
+    "tech:pyspark",
+    "tech:apache-kafka",
+    "tech:delta-lake",
+    "tech:scikit-learn",
+    "tech:tensorflow",
+    "tech:pytorch",
+    "tech:rag-llm-systems",
+    "tech:faiss",
+    "tech:qdrant",
+  ],
+};
+
+const FIT_PROJECT_IDS: Record<CandidateFitFocus, readonly string[]> = {
+  "data-ai": [
+    "personalized-recommendation-system",
+    "medical-rag-platform",
+    "real-time-ecommerce-activity-tracking",
+  ],
+  "data-engineering": [
+    "personalized-recommendation-system",
+    "real-time-ecommerce-activity-tracking",
+  ],
+  "ai-engineering": [
+    "medical-rag-platform",
+    "syndismart-ai",
+    "callcenter-frustration-ai",
+  ],
+  "technical-strengths": [
+    "personalized-recommendation-system",
+    "real-time-ecommerce-activity-tracking",
+  ],
+  comparison: [
+    "personalized-recommendation-system",
+    "real-time-ecommerce-activity-tracking",
+    "medical-rag-platform",
+    "syndismart-ai",
+  ],
+};
+
+const FIT_EXPERIENCE_IDS: Record<CandidateFitFocus, readonly string[]> = {
+  "data-ai": ["chu-mohammed-vi-pfe-2026", "pfe-business-intelligence-2024"],
+  "data-engineering": ["pfe-business-intelligence-2024"],
+  "ai-engineering": ["chu-mohammed-vi-pfe-2026"],
+  "technical-strengths": ["pfe-business-intelligence-2024"],
+  comparison: ["chu-mohammed-vi-pfe-2026", "pfe-business-intelligence-2024"],
+};
+
+const FIT_PROJECT_TECHNOLOGY_IDS: Record<CandidateFitFocus, readonly string[]> = {
+  "data-ai": [
+    "tech:python",
+    "tech:apache-spark",
+    "tech:pyspark",
+    "tech:apache-kafka",
+    "tech:delta-lake",
+    "tech:faiss",
+    "tech:qdrant",
+    "tech:whisper",
+    "tech:tensorflow",
+    "tech:pytorch",
+  ],
+  "data-engineering": [
+    "tech:python",
+    "tech:apache-spark",
+    "tech:pyspark",
+    "tech:apache-kafka",
+    "tech:delta-lake",
+    "tech:etl",
+    "tech:sql-server",
+    "tech:power-bi",
+  ],
+  "ai-engineering": [
+    "tech:python",
+    "tech:faiss",
+    "tech:qdrant",
+    "tech:whisper",
+    "tech:tensorflow",
+    "tech:pytorch",
+    "tech:hugging-face",
+    "tech:ollama",
+  ],
+  "technical-strengths": [
+    "tech:python",
+    "tech:apache-spark",
+    "tech:pyspark",
+    "tech:apache-kafka",
+    "tech:delta-lake",
+    "tech:faiss",
+    "tech:qdrant",
+    "tech:fastapi",
+  ],
+  comparison: [
+    "tech:python",
+    "tech:apache-spark",
+    "tech:pyspark",
+    "tech:apache-kafka",
+    "tech:delta-lake",
+    "tech:faiss",
+    "tech:qdrant",
+    "tech:tensorflow",
+    "tech:pytorch",
+  ],
+};
+
+function candidateFitFocus(intent: IntentDetection): CandidateFitFocus {
+  return intent.candidateFitFocus ?? "technical-strengths";
+}
+
+function candidatesForProfileCategoryEvidence(
+  category: ProfileSkillCategory,
+  matchedEntities: readonly DetectedEntity[],
+) {
+  const knowledgeBase = getKnowledgeBase();
+  const relatedEntityIds = new Set(PROFILE_CATEGORY_RELATED_ENTITY_IDS[category]);
+
+  if (relatedEntityIds.size === 0) {
+    return [];
+  }
+
+  return knowledgeBase.relations
+    .filter(
+      (relation) =>
+        relatedEntityIds.has(relation.toEntityId) &&
+        (relation.type === "project-domain" ||
+          relation.type === "project-category"),
+    )
+    .map((relation) => {
+      const entity = entityById(relation.fromEntityId);
+
+      if (!entity) {
+        return undefined;
+      }
+
+      return createCandidate(
+        entity,
+        matchedEntities,
+        `profile skill category supporting evidence: ${category}`,
+        45 + statusScore(relation.status),
+      );
+    })
+    .filter((candidate): candidate is RetrievalCandidate =>
+      Boolean(candidate),
+    );
+}
+
+function candidatesForProfileSkillSubset(
+  focus: CandidateFitFocus,
+  matchedEntities: readonly DetectedEntity[],
+) {
+  const person = personProfileEntity();
+
+  if (!person) {
+    return [];
+  }
+
+  const acceptedSkillIds = new Set(FIT_PROFILE_SKILL_IDS[focus]);
+
+  return [
+    createCandidate(
+      person,
+      matchedEntities,
+      `candidate fit profile skill evidence: ${focus}`,
+      140,
+      (fact) =>
+        fact.predicate === "hasProfileSkill" &&
+        isProfileSkillFactValue(fact.value) &&
+        acceptedSkillIds.has(fact.value.entityId),
+      () => false,
+    ),
+  ];
+}
+
+function candidatesForCurrentEducationSummary(
+  matchedEntities: readonly DetectedEntity[],
+) {
+  const education = entityById("education-isima-siad-2026");
+
+  if (!education) {
+    return [];
+  }
+
+  return [
+    createCandidate(
+      education,
+      matchedEntities,
+      "candidate fit current education evidence",
+      130,
+      (fact) =>
+        ["programme", "institution", "period", "educationStatus"].includes(
+          fact.predicate,
+        ),
+      () => false,
+    ),
+  ];
+}
+
+function candidatesForCandidateFitExperiences(
+  focus: CandidateFitFocus,
+  matchedEntities: readonly DetectedEntity[],
+) {
+  return FIT_EXPERIENCE_IDS[focus]
+    .map((experienceId, index) => {
+      const entity = entityById(experienceId);
+
+      if (!entity) {
+        return undefined;
+      }
+
+      return createCandidate(
+        entity,
+        matchedEntities,
+        `candidate fit professional evidence: ${focus}`,
+        120 - index * 5,
+        (fact) =>
+          ["period", "role", "organization", "domain", "usesTechnology"].includes(
+            fact.predicate,
+          ),
+        (relation) => relation.type === "experience-project",
+      );
+    })
+    .filter((candidate): candidate is RetrievalCandidate =>
+      Boolean(candidate),
+    );
+}
+
+function projectCapabilityIsRelevant(fact: KnowledgeFact, focus: CandidateFitFocus) {
+  if (fact.predicate !== "demonstratesCapability") {
+    return false;
+  }
+
+  const value = normalizeText(String(fact.value));
+
+  if (focus === "data-engineering") {
+    return ["embeddings", "indexation", "retrieval"].some((term) =>
+      value.includes(term),
+    );
+  }
+
+  return [
+    "extraction",
+    "embeddings",
+    "indexation",
+    "retrieval",
+    "contextualise",
+    "sources",
+  ].some((term) => value.includes(term));
+}
+
+function candidateFitProjectFact(
+  fact: KnowledgeFact,
+  focus: CandidateFitFocus,
+) {
+  if (fact.predicate === "projectShortDescription") {
+    return true;
+  }
+
+  if (
+    fact.predicate === "usesTechnology" &&
+    typeof fact.value === "string" &&
+    FIT_PROJECT_TECHNOLOGY_IDS[focus].includes(fact.value)
+  ) {
+    return true;
+  }
+
+  return projectCapabilityIsRelevant(fact, focus);
+}
+
+function candidatesForCandidateFitProjects(
+  focus: CandidateFitFocus,
+  matchedEntities: readonly DetectedEntity[],
+) {
+  return FIT_PROJECT_IDS[focus]
+    .map((projectId, index) => {
+      const entity = entityById(projectId);
+
+      if (!entity) {
+        return undefined;
+      }
+
+      return createCandidate(
+        entity,
+        matchedEntities,
+        `candidate fit project evidence: ${focus}`,
+        110 - index * 4,
+        (fact) => candidateFitProjectFact(fact, focus),
+        () => false,
+      );
+    })
+    .filter((candidate): candidate is RetrievalCandidate =>
+      Boolean(candidate),
+    );
+}
+
+function candidatesForCandidateFit(
+  intent: IntentDetection,
+  matchedEntities: readonly DetectedEntity[],
+) {
+  const focus = candidateFitFocus(intent);
+
+  return [
+    ...candidatesForProfileSkillSubset(focus, matchedEntities),
+    ...candidatesForCurrentEducationSummary(matchedEntities),
+    ...candidatesForCandidateFitExperiences(focus, matchedEntities),
+    ...candidatesForCandidateFitProjects(focus, matchedEntities),
+  ].filter((candidate) => candidate.facts.length > 0);
+}
+
+type ProfileSkillFactValue = {
+  entityId: string;
+  name: string;
+  category: ProfileSkillCategory;
+};
+
+type LanguageFactValue = {
+  languageId: string;
+  name: string;
+  levelType: string;
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function isProfileSkillFactValue(value: unknown): value is ProfileSkillFactValue {
+  return (
+    isRecord(value) &&
+    typeof value.entityId === "string" &&
+    typeof value.name === "string" &&
+    typeof value.category === "string"
+  );
+}
+
+function isLanguageFactValue(value: unknown): value is LanguageFactValue {
+  return (
+    isRecord(value) &&
+    typeof value.languageId === "string" &&
+    typeof value.name === "string" &&
+    typeof value.levelType === "string"
+  );
+}
+
+function personProfileEntity() {
+  return entityById(PERSON_ID);
+}
+
+function candidatesForProfileSkills(
+  matchedEntities: readonly DetectedEntity[],
+  category?: ProfileSkillCategory,
+) {
+  const person = personProfileEntity();
+
+  if (!person) {
+    return [];
+  }
+
+  return [
+    createCandidate(
+      person,
+      matchedEntities,
+      category
+        ? `profile technical skill category matched: ${category}`
+        : "profile technical skills overview matched",
+      95,
+      (fact) =>
+        fact.predicate === "hasProfileSkill" &&
+        (!category ||
+          (isProfileSkillFactValue(fact.value) &&
+            fact.value.category === category)),
+      () => false,
+    ),
+  ];
+}
+
+function candidatesForProfileSkillLookup(
+  intent: IntentDetection,
+  matchedEntities: readonly DetectedEntity[],
+) {
+  const person = personProfileEntity();
+  const skillId =
+    intent.normalizedSkillId ??
+    matchedEntities.find((match) => match.entity.type === "technology")?.entity.id;
+
+  if (!person || !skillId) {
+    return [];
+  }
+
+  const profileCandidate = createCandidate(
+    person,
+    matchedEntities,
+    "profile skill lookup matched",
+    100,
+    (fact) =>
+      fact.predicate === "hasProfileSkill" &&
+      isProfileSkillFactValue(fact.value) &&
+      fact.value.entityId === skillId,
+    () => false,
+  );
+  const technologyCandidates = candidatesForTechnology(
+    matchedEntities.filter(
+      (match) =>
+        match.entity.type === "technology" && match.entity.id === skillId,
+    ),
+    false,
+  );
+
+  if (profileCandidate.facts.length === 0) {
+    return technologyCandidates;
+  }
+
+  return [
+    profileCandidate,
+    ...technologyCandidates.filter((candidate) => candidate.status === "verified"),
+  ];
+}
+
+function candidatesForLanguages(
+  matchedEntities: readonly DetectedEntity[],
+  languageId?: string,
+  nativeOnly = false,
+) {
+  const person = personProfileEntity();
+
+  if (!person) {
+    return [];
+  }
+
+  return [
+    createCandidate(
+      person,
+      matchedEntities,
+      languageId
+        ? `profile language lookup matched: ${languageId}`
+        : "profile language overview matched",
+      100,
+      (fact) =>
+        fact.predicate === "speaksLanguage" &&
+        isLanguageFactValue(fact.value) &&
+        (!languageId || fact.value.languageId === languageId) &&
+        (!nativeOnly || fact.value.levelType === "native"),
+      () => false,
+    ),
+  ];
 }
 
 function candidatesRelatedToOrganizations(
@@ -649,6 +1182,46 @@ export function generateCandidates(
     ];
   }
 
+  if (intent.intent === "candidate_fit") {
+    candidates = [
+      ...candidates,
+      ...candidatesForCandidateFit(intent, matchedEntities),
+    ];
+  }
+
+  if (intent.intent === "technical_skills_overview") {
+    candidates = [...candidates, ...candidatesForProfileSkills(matchedEntities)];
+  }
+
+  if (intent.intent === "skills_by_category") {
+    candidates = [
+      ...candidates,
+      ...candidatesForProfileSkills(matchedEntities, intent.skillCategory),
+    ];
+  }
+
+  if (intent.intent === "skill_lookup") {
+    candidates = [
+      ...candidates,
+      ...candidatesForProfileSkillLookup(intent, matchedEntities),
+    ];
+  }
+
+  if (intent.intent === "language_overview") {
+    candidates = [...candidates, ...candidatesForLanguages(matchedEntities)];
+  }
+
+  if (intent.intent === "language_lookup") {
+    candidates = [
+      ...candidates,
+      ...candidatesForLanguages(
+        matchedEntities,
+        intent.languageId,
+        intent.languageQueryKind === "native",
+      ),
+    ];
+  }
+
   if (
     intent.intent === "technology_evidence" ||
     intent.intent === "projects_by_technology"
@@ -714,6 +1287,15 @@ export function generateCandidates(
   if (intent.intent === "skills_overview") {
     candidates = [
       ...candidates,
+      ...(intent.skillCategory
+        ? [
+            ...candidatesForProfileSkills(matchedEntities, intent.skillCategory),
+            ...candidatesForProfileCategoryEvidence(
+              intent.skillCategory,
+              matchedEntities,
+            ),
+          ]
+        : []),
       ...candidatesForDirectEntities(matchedEntities, ["technology", "skill"]),
       ...candidatesForSkillsOverview(),
     ];

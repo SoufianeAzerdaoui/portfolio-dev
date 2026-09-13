@@ -65,6 +65,18 @@ function answerGuidanceFor(input: GeneratePortfolioAnswerInput) {
     ].join(" ");
   }
 
+  if (input.retrieval.intent === "candidate_fit") {
+    return [
+      "The user is asking for recruiter-oriented synthesis, not a raw skills inventory.",
+      "Synthesize only the supplied evidence across profile skills, current education, professional experience, and representative projects.",
+      "Keep the answer concise, professional, evidence-based, and specific, in 2 to 4 short paragraphs.",
+      "Mention education, relevant Data/AI experience, skills, and projects when supplied.",
+      "For Data Engineer fit, emphasize documented Data Engineering evidence; for AI Engineer fit, emphasize documented AI/ML/NLP/GenAI evidence; for comparison, present a balanced evidence-based leaning without inventing ranking data.",
+      "Avoid exaggerated marketing language such as excellent, exceptional, expert, senior, or specialist unless the data explicitly supports it.",
+      "Do not list every technology; summarize the strongest documented patterns.",
+    ].join(" ");
+  }
+
   if (
     input.retrieval.intent !== "projects_by_domain" ||
     !normalizedQuestionIncludes(input.question, [

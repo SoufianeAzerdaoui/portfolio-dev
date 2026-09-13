@@ -48,6 +48,63 @@ describe("Portfolio AI knowledge base", () => {
     assert.deepEqual(result.evidence, []);
   });
 
+  it("stores Kubernetes as a verified profile skill without project usage evidence", () => {
+    const facts = getFactsForEntity("person:soufiane-azerdaoui");
+    const kubernetesSkill = facts.find(
+      (fact) =>
+        fact.predicate === "hasProfileSkill" &&
+        typeof fact.value === "object" &&
+        fact.value !== null &&
+        "entityId" in fact.value &&
+        fact.value.entityId === "tech:kubernetes",
+    );
+    const usageEvidence = getEvidenceForTechnology("Kubernetes");
+
+    assert.equal(kubernetesSkill?.status, "verified");
+    assert.equal(usageEvidence.status, "not-documented");
+    assert.deepEqual(usageEvidence.evidence, []);
+  });
+
+  it("stores recruiter-facing spoken language levels", () => {
+    const languageFacts = getFactsForEntity("person:soufiane-azerdaoui").filter(
+      (fact) => fact.predicate === "speaksLanguage",
+    );
+    const levels = new Map(
+      languageFacts
+        .filter(
+          (fact) =>
+            typeof fact.value === "object" &&
+            fact.value !== null &&
+            "languageId" in fact.value,
+        )
+        .map((fact) => [
+          (fact.value as { languageId: string }).languageId,
+          fact.value,
+        ]),
+    );
+
+    assert.equal(
+      (levels.get("language:arabic") as { levelType?: string } | undefined)
+        ?.levelType,
+      "native",
+    );
+    assert.equal(
+      (levels.get("language:french") as { cefrLevel?: string } | undefined)
+        ?.cefrLevel,
+      "B2",
+    );
+    assert.equal(
+      (levels.get("language:english") as { cefrLevel?: string } | undefined)
+        ?.cefrLevel,
+      "B1",
+    );
+    assert.equal(
+      (levels.get("language:german") as { cefrLevel?: string } | undefined)
+        ?.cefrLevel,
+      "B1",
+    );
+  });
+
   it("marks FAISS as verified for SyndiSmart", () => {
     const result = getEvidenceForTechnology("FAISS");
 

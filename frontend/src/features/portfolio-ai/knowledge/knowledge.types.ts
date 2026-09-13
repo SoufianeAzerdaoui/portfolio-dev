@@ -13,6 +13,7 @@ export type KnowledgeEntityType =
   | "experience"
   | "project"
   | "technology"
+  | "language"
   | "skill"
   | "domain"
   | "organization";

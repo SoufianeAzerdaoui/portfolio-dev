@@ -1,5 +1,10 @@
 import type { PortfolioRetrievalResult } from "@/features/portfolio-ai/retrieval";
-import type { ProjectAttribute } from "@/features/portfolio-ai/retrieval";
+import type {
+  CandidateFitFocus,
+  LanguageQueryKind,
+  ProfileSkillCategory,
+  ProjectAttribute,
+} from "@/features/portfolio-ai/retrieval";
 import type { LocaleCode } from "@/types/portfolio";
 
 export type AnswerUncertainty = "none" | "ambiguous" | "not-documented";
@@ -78,6 +83,11 @@ export type GroundedProjectAttributeFocus = {
 export type GroundedContext = {
   intent: string;
   requestedProjectAttribute?: ProjectAttribute;
+  skillCategory?: ProfileSkillCategory;
+  normalizedSkillId?: string;
+  languageId?: string;
+  languageQueryKind?: LanguageQueryKind;
+  candidateFitFocus?: CandidateFitFocus;
   status: string;
   notDocumented: boolean;
   focus?: GroundedTechnologyExplanationFocus;

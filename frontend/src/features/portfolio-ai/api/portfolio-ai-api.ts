@@ -16,6 +16,7 @@ import {
   generatePortfolioAnswer,
   logPortfolioAIDebug,
 } from "@/features/portfolio-ai/generation";
+import { PERSON_ID } from "@/features/portfolio-ai/knowledge/knowledge.sources";
 import {
   GenerationConfigurationError,
   GenerationGroundingError,
@@ -236,9 +237,70 @@ function collectGroupEvidenceIds(group: RetrievalResultGroup) {
   return new Set(evidence.map(createEvidenceId));
 }
 
+function findGroupEvidence(
+  group: RetrievalResultGroup,
+  evidenceId: string,
+) {
+  const evidence = [
+    ...group.evidence,
+    ...group.facts.flatMap((fact) => fact.evidence),
+    ...group.relations.flatMap((relation) => relation.evidence),
+  ];
+
+  return evidence.find((item) => createEvidenceId(item) === evidenceId);
+}
+
+function publicSourceForEvidenceId(
+  group: RetrievalResultGroup,
+  evidenceId: string,
+  locale: LocaleCode,
+): { key: string; source: PublicPortfolioAISource } {
+  const evidence = findGroupEvidence(group, evidenceId);
+
+  if (
+    group.entity.id === PERSON_ID &&
+    evidence?.sourceType === "portfolio" &&
+    (evidence.sourceId === "technical-skills" ||
+      evidence.sourceId === "languages")
+  ) {
+    const label =
+      evidence.sourceId === "languages"
+        ? locale === "en"
+          ? "Languages"
+          : "Langues"
+        : locale === "en"
+          ? "Technical profile"
+          : "Profil technique";
+    const key = `profile:${evidence.sourceId}`;
+
+    return {
+      key,
+      source: {
+        id: evidenceId,
+        entityId: group.entity.id,
+        type: "profile",
+        label,
+      },
+    };
+  }
+
+  return {
+    key: `${group.entity.type}:${group.entity.id}`,
+    source: {
+      id: evidenceId,
+      entityId: group.entity.id,
+      type: group.entity.type,
+      label:
+        group.entity.localeContent?.[locale]?.title ??
+        group.entity.canonicalName,
+    },
+  };
+}
+
 export function projectPublicSources(
   retrieval: PortfolioRetrievalResult,
   usedEvidenceIds: readonly string[],
+  locale: LocaleCode = "fr",
 ): PublicPortfolioAISource[] {
   const sources: PublicPortfolioAISource[] = [];
   const emittedPublicEntityKeys = new Set<string>();
@@ -252,20 +314,17 @@ export function projectPublicSources(
       continue;
     }
 
-    const publicEntityKey = `${matchingGroup.entity.type}:${matchingGroup.entity.id}`;
+    const { key: publicEntityKey, source } = publicSourceForEvidenceId(
+      matchingGroup,
+      evidenceId,
+      locale,
+    );
 
     if (emittedPublicEntityKeys.has(publicEntityKey)) {
       continue;
     }
 
-    sources.push({
-      id: evidenceId,
-      entityId: matchingGroup.entity.id,
-      type: matchingGroup.entity.type,
-      label:
-        matchingGroup.entity.localeContent?.fr?.title ??
-        matchingGroup.entity.canonicalName,
-    });
+    sources.push(source);
     emittedPublicEntityKeys.add(publicEntityKey);
   }
 
@@ -487,6 +546,7 @@ export async function generatePublicPortfolioAIResponse(
     sources: projectPublicSources(
       prepared.retrieval,
       result.answer.usedEvidenceIds,
+      result.answer.language,
     ),
   };
 }

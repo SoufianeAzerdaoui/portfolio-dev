@@ -14,6 +14,12 @@ export const MAX_RETRIEVAL_TOP_K = 20;
 export type RetrievalIntent =
   | "technology_evidence"
   | "technology_explanation"
+  | "candidate_fit"
+  | "technical_skills_overview"
+  | "skills_by_category"
+  | "skill_lookup"
+  | "language_overview"
+  | "language_lookup"
   | "projects_by_technology"
   | "projects_by_domain"
   | "project_technology_lookup"
@@ -39,6 +45,24 @@ export type ProjectAttribute =
   | "role"
   | "metadata";
 
+export type ProfileSkillCategory =
+  | "data-engineering"
+  | "ai-nlp-genai"
+  | "databases-bi"
+  | "programming-languages"
+  | "cloud-devops"
+  | "web-development"
+  | "design-methods";
+
+export type LanguageQueryKind = "overview" | "level" | "speaks" | "native";
+
+export type CandidateFitFocus =
+  | "data-ai"
+  | "data-engineering"
+  | "ai-engineering"
+  | "technical-strengths"
+  | "comparison";
+
 export type RetrievalOptions = {
   locale?: RetrievalLocale;
   topK?: number;
@@ -57,6 +81,11 @@ export type IntentDetection = {
   confidence: number;
   reasons: string[];
   requestedProjectAttribute?: ProjectAttribute;
+  skillCategory?: ProfileSkillCategory;
+  normalizedSkillId?: string;
+  languageId?: string;
+  languageQueryKind?: LanguageQueryKind;
+  candidateFitFocus?: CandidateFitFocus;
 };
 
 export type EntityMatchType =
@@ -107,6 +136,11 @@ export type RetrievalResultGroup = {
 export type PortfolioRetrievalResult = {
   intent: RetrievalIntent;
   requestedProjectAttribute?: ProjectAttribute;
+  skillCategory?: ProfileSkillCategory;
+  normalizedSkillId?: string;
+  languageId?: string;
+  languageQueryKind?: LanguageQueryKind;
+  candidateFitFocus?: CandidateFitFocus;
   normalizedQuery: string;
   originalQuery: string;
   matchedEntities: DetectedEntity[];

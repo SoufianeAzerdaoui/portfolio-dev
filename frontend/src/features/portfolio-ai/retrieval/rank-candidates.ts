@@ -3,6 +3,8 @@ import type {
   RetrievalResultGroup,
 } from "@/features/portfolio-ai/retrieval/retrieval.types";
 
+const PROFILE_FACT_PREDICATES = new Set(["hasProfileSkill", "speaksLanguage"]);
+
 function uniqueByStableKey<T>(
   items: readonly T[],
   key: (item: T) => string,
@@ -11,6 +13,13 @@ function uniqueByStableKey<T>(
 }
 
 function limitFacts(candidate: RetrievalCandidate) {
+  if (
+    candidate.facts.length > 0 &&
+    candidate.facts.every((fact) => PROFILE_FACT_PREDICATES.has(fact.predicate))
+  ) {
+    return candidate.facts;
+  }
+
   if (
     candidate.facts.length > 0 &&
     candidate.facts.every((fact) => fact.predicate === "usesTechnology")

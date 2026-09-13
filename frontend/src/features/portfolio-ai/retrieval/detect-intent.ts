@@ -1,6 +1,8 @@
 import type {
+  CandidateFitFocus,
   DetectedEntity,
   IntentDetection,
+  ProfileSkillCategory,
   NormalizedQuery,
   ProjectAttribute,
 } from "@/features/portfolio-ai/retrieval/retrieval.types";
@@ -118,6 +120,335 @@ function normalizeMatch(value: string) {
     .toLowerCase();
 }
 
+function queryText(query: NormalizedQuery) {
+  return `${query.normalized} ${normalizeMatch(query.original)}`;
+}
+
+function detectProfileSkillCategory(
+  query: NormalizedQuery,
+  matchedEntities: readonly DetectedEntity[],
+): ProfileSkillCategory | undefined {
+  const text = queryText(query);
+  const matchedEntityIds = new Set(matchedEntities.map((match) => match.entity.id));
+
+  if (
+    matchedEntityIds.has("domain:data-engineering") ||
+    matchedEntityIds.has("skill:data-engineering") ||
+    matchedEntityIds.has("skill:big-data") ||
+    hasAny(query, [
+      "data engineering",
+      "ingenierie data",
+      "ingenierie des donnees",
+      "stack data",
+      "data stack",
+      "data engineer",
+      "equipe data",
+      "data team",
+    ])
+  ) {
+    return "data-engineering";
+  }
+
+  if (
+    matchedEntityIds.has("domain:ai-ml") ||
+    matchedEntityIds.has("skill:nlp") ||
+    matchedEntityIds.has("skill:rag") ||
+    text.includes("genai") ||
+    text.includes("gen ai") ||
+    text.includes("nlp") ||
+    text.includes("llm") ||
+    text.includes("intelligence artificielle") ||
+    text.includes(" ai ") ||
+    text.includes(" ia ")
+  ) {
+    return "ai-nlp-genai";
+  }
+
+  if (
+    text.includes("base de donnees") ||
+    text.includes("bases de donnees") ||
+    text.includes("database") ||
+    text.includes("databases") ||
+    text.includes("business intelligence") ||
+    text.includes(" bi ") ||
+    text.includes("power bi") ||
+    text.includes("dax")
+  ) {
+    return "databases-bi";
+  }
+
+  if (
+    text.includes("langage") ||
+    text.includes("langages") ||
+    text.includes("programming language") ||
+    text.includes("programming languages")
+  ) {
+    return "programming-languages";
+  }
+
+  if (
+    text.includes("cloud") ||
+    text.includes("devops") ||
+    text.includes("docker") ||
+    text.includes("kubernetes") ||
+    text.includes("digitalocean") ||
+    text.includes("github actions") ||
+    text.includes("bitbucket")
+  ) {
+    return "cloud-devops";
+  }
+
+  if (
+    matchedEntityIds.has("domain:software-engineering") ||
+    matchedEntityIds.has("skill:web-development") ||
+    text.includes("web") ||
+    text.includes("frontend") ||
+    text.includes("backend") ||
+    text.includes("fastapi") ||
+    text.includes("spring boot") ||
+    text.includes("angular") ||
+    text.includes("react") ||
+    text.includes("next js")
+  ) {
+    return "web-development";
+  }
+
+  if (
+    text.includes("uml") ||
+    text.includes("merise") ||
+    text.includes("modelisation") ||
+    text.includes("data modeling") ||
+    text.includes("jira") ||
+    text.includes("agile") ||
+    text.includes("scrum") ||
+    text.includes("methode") ||
+    text.includes("method")
+  ) {
+    return "design-methods";
+  }
+
+  return undefined;
+}
+
+function hasTechnicalSkillsOverviewRequest(query: NormalizedQuery) {
+  const text = queryText(query);
+
+  return [
+    "competences techniques",
+    "profil technique",
+    "stack technique",
+    "technical skills",
+    "technical stack",
+    "technical profile",
+    "technologies travaille",
+    "technologies maitrise",
+    "technologies maîtrise",
+    "what technologies does he know",
+    "technologies is he familiar with",
+    "outils maitrise",
+    "outils maîtrise",
+    "quels outils",
+    "tools does he know",
+  ].some((term) => text.includes(term));
+}
+
+function hasSkillCategoryRequest(query: NormalizedQuery) {
+  const text = queryText(query);
+
+  return [
+    "competences en",
+    "et en",
+    "et pour",
+    "and in",
+    "and for",
+    "stack",
+    "technologies en",
+    "technologies maitrise",
+    "technologies maîtrise",
+    "quels outils",
+    "outils maitrise",
+    "outils maîtrise",
+    "what technologies",
+    "technologies does he know",
+    "technologies is he familiar with",
+    "what ai technologies",
+    "skills in",
+  ].some((term) => text.includes(term));
+}
+
+function hasRecruiterFitRequest(query: NormalizedQuery) {
+  const text = queryText(query);
+
+  return [
+    "apporter",
+    "equipe",
+    "équipe",
+    "candidat",
+    "candidate",
+    "bon profil",
+    "bon candidat",
+    "good candidate",
+    "profil pertinent",
+    "profile relevant",
+    "relevant profile",
+    "pertinent pour",
+    "good fit",
+    "fit for",
+    "why is he a good fit",
+    "forces",
+    "strength",
+    "strengths",
+    "strongest",
+    "role",
+    "poste",
+    "stage",
+    "internship",
+    "hire",
+    "recruter",
+    "recruit",
+    "plutot",
+    "plutôt",
+    "lean more",
+    "more toward",
+  ].some((term) => text.includes(term));
+}
+
+function detectCandidateFitFocus(query: NormalizedQuery): CandidateFitFocus | undefined {
+  const text = queryText(query);
+  const hasData =
+    text.includes("data and ai") ||
+    text.includes("data ai") ||
+    text.includes("data & ai") ||
+    text.includes("data and ia") ||
+    text.includes("data ia") ||
+    text.includes("data & ia") ||
+    text.includes("data engineer") ||
+    text.includes("data engineering") ||
+    text.includes("equipe data") ||
+    text.includes("data team");
+  const hasAi =
+    text.includes("ai engineer") ||
+    text.includes("ia engineer") ||
+    text.includes("ai engineering") ||
+    text.includes("ia engineering") ||
+    text.includes("intelligence artificielle") ||
+    text.includes(" ia ") ||
+    text.includes(" ai ") ||
+    text.includes("nlp") ||
+    text.includes("genai") ||
+    text.includes("llm") ||
+    text.includes("rag");
+
+  if (
+    text.includes("plutot") ||
+    text.includes("plutôt") ||
+    text.includes("lean more") ||
+    text.includes("more toward") ||
+    text.includes("rather data") ||
+    text.includes("data engineer ou ai engineer") ||
+    text.includes("data engineering or ai engineering")
+  ) {
+    return "comparison";
+  }
+
+  if (
+    (hasData && hasAi) ||
+    text.includes("data and ai") ||
+    text.includes("data & ai") ||
+    text.includes("data and ia") ||
+    text.includes("data & ia")
+  ) {
+    return "data-ai";
+  }
+
+  if (hasAi) {
+    return "ai-engineering";
+  }
+
+  if (hasData) {
+    return "data-engineering";
+  }
+
+  if (
+    text.includes("forces techniques") ||
+    text.includes("strengths") ||
+    text.includes("strongest technical")
+  ) {
+    return "technical-strengths";
+  }
+
+  return undefined;
+}
+
+function hasSkillLookupRequest(query: NormalizedQuery) {
+  const text = queryText(query);
+
+  return [
+    "connait",
+    "connaît",
+    "competences en",
+    "competence en",
+    "maitrise",
+    "maîtrise",
+    "expert",
+    "does he know",
+    "is he familiar with",
+    "skills in",
+  ].some((term) => text.includes(term));
+}
+
+function detectLanguageQueryKind(
+  query: NormalizedQuery,
+  matchedEntities: readonly DetectedEntity[],
+) {
+  const text = queryText(query);
+
+  if (
+    text.includes("langue maternelle") ||
+    text.includes("native language") ||
+    text.includes("mother tongue")
+  ) {
+    return "native" as const;
+  }
+
+  if (matchedEntities.some((match) => match.entity.type === "language")) {
+    if (
+      text.includes("parle") ||
+      text.includes("speak") ||
+      text.includes("speaks")
+    ) {
+      return "speaks" as const;
+    }
+
+    return "level" as const;
+  }
+
+  if (
+    (text.includes("langues") || text.includes("languages")) &&
+    (text.includes("parle") ||
+      text.includes("speak") ||
+      text.includes("niveau") ||
+      text.includes("level"))
+  ) {
+    return "overview" as const;
+  }
+
+  return undefined;
+}
+
+function matchedSkillEntityId(matchedEntities: readonly DetectedEntity[]) {
+  return (
+    matchedEntities.find((match) => match.entity.type === "technology")?.entity
+      .id ??
+    matchedEntities.find((match) => match.entity.type === "skill")?.entity.id
+  );
+}
+
+function matchedLanguageEntityId(matchedEntities: readonly DetectedEntity[]) {
+  return matchedEntities.find((match) => match.entity.type === "language")?.entity
+    .id;
+}
+
 function hasSpecificProjectTechnologyPair(
   matchedEntities: readonly DetectedEntity[],
 ) {
@@ -143,6 +474,28 @@ export function detectIntent(
 ): IntentDetection {
   const entityTypes = new Set(matchedEntities.map((match) => match.entity.type));
   const requestedProjectAttribute = detectProjectAttribute(query);
+  const skillCategory = detectProfileSkillCategory(query, matchedEntities);
+  const languageQueryKind = detectLanguageQueryKind(query, matchedEntities);
+  const candidateFitFocus = detectCandidateFitFocus(query);
+
+  if (languageQueryKind === "overview") {
+    return {
+      intent: "language_overview",
+      confidence: 0.95,
+      reasons: ["language overview wording matched"],
+      languageQueryKind,
+    };
+  }
+
+  if (languageQueryKind) {
+    return {
+      intent: "language_lookup",
+      confidence: 0.95,
+      reasons: ["language lookup wording matched"],
+      languageId: matchedLanguageEntityId(matchedEntities),
+      languageQueryKind,
+    };
+  }
 
   if (
     hasAny(query, ["compare", "comparer", "versus", " vs "]) &&
@@ -196,6 +549,15 @@ export function detectIntent(
     };
   }
 
+  if (entityTypes.has("project") && requestedProjectAttribute) {
+    return {
+      intent: "project_lookup",
+      confidence: 0.91,
+      reasons: ["project entity and requested project attribute matched"],
+      requestedProjectAttribute,
+    };
+  }
+
   if (entityTypes.has("project") && hasTechnologyAttributeRequest(query)) {
     return {
       intent: "project_technology_lookup",
@@ -205,12 +567,53 @@ export function detectIntent(
     };
   }
 
-  if (entityTypes.has("project") && requestedProjectAttribute) {
+  if (
+    hasAny(query, ["projet", "projets", "project", "projects"]) &&
+    (entityTypes.has("domain") || entityTypes.has("skill"))
+  ) {
     return {
-      intent: "project_lookup",
-      confidence: 0.91,
-      reasons: ["project entity and requested project attribute matched"],
-      requestedProjectAttribute,
+      intent: "projects_by_domain",
+      confidence: 0.86,
+      reasons: ["project and domain/category terms matched"],
+    };
+  }
+
+  if (
+    hasAny(query, ["atline", "chu", "alternance", "travaille"]) ||
+    entityTypes.has("experience") ||
+    entityTypes.has("organization")
+  ) {
+    return {
+      intent: "experience_lookup",
+      confidence: 0.86,
+      reasons: ["experience or organization terms matched"],
+    };
+  }
+
+  if ((candidateFitFocus || skillCategory) && hasRecruiterFitRequest(query)) {
+    return {
+      intent: "candidate_fit",
+      confidence: 0.9,
+      reasons: ["recruiter synthesis wording matched"],
+      skillCategory,
+      candidateFitFocus: candidateFitFocus ?? "technical-strengths",
+    };
+  }
+
+  if (skillCategory && hasSkillCategoryRequest(query)) {
+    return {
+      intent: "skills_by_category",
+      confidence: 0.9,
+      reasons: ["profile skill category wording matched"],
+      skillCategory,
+    };
+  }
+
+  if (hasTechnicalSkillsOverviewRequest(query)) {
+    return {
+      intent: "technical_skills_overview",
+      confidence: 0.92,
+      reasons: ["technical skills overview wording matched"],
     };
   }
 
@@ -231,25 +634,16 @@ export function detectIntent(
   }
 
   if (
-    hasAny(query, ["projet", "projets", "project", "projects"]) &&
-    (entityTypes.has("domain") || entityTypes.has("skill"))
+    entityTypes.has("technology") &&
+    hasSkillLookupRequest(query) &&
+    !hasAny(query, ["a-t-il utilise", "has he utilise"])
   ) {
     return {
-      intent: "projects_by_domain",
-      confidence: 0.86,
-      reasons: ["project and domain/category terms matched"],
-    };
-  }
-
-  if (
-    hasAny(query, ["atline", "chu", "stage", "alternance", "travaille"]) ||
-    entityTypes.has("experience") ||
-    entityTypes.has("organization")
-  ) {
-    return {
-      intent: "experience_lookup",
-      confidence: 0.86,
-      reasons: ["experience or organization terms matched"],
+      intent: "skill_lookup",
+      confidence: 0.91,
+      reasons: ["profile skill lookup wording matched"],
+      normalizedSkillId: matchedSkillEntityId(matchedEntities),
+      skillCategory,
     };
   }
 

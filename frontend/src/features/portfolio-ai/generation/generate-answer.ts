@@ -22,7 +22,10 @@ import {
   buildGenerationUserPrompt,
   PORTFOLIO_AI_SYSTEM_PROMPT,
 } from "@/features/portfolio-ai/generation/generation.prompt";
-import { getDefaultPortfolioAIProvider } from "@/features/portfolio-ai/generation/resilient-provider";
+import {
+  getDefaultPortfolioAIProvider,
+  type PortfolioAIProviderWithValidationFallback,
+} from "@/features/portfolio-ai/generation/resilient-provider";
 import {
   detectPortfolioAIResponseLanguage,
   isPortfolioAIGreeting,
@@ -30,6 +33,9 @@ import {
 import {
   buildProjectAttributeFastPathAnswer,
 } from "@/features/portfolio-ai/generation/project-attribute-fast-path";
+import {
+  buildProfileFastPathAnswer,
+} from "@/features/portfolio-ai/generation/profile-fast-path";
 import {
   buildProjectTechnologyFastPathAnswer,
   buildVerifiedTechnologyFastPathAnswer,
@@ -100,6 +106,12 @@ function countEvidenceByStatus(
   }, 0);
 }
 
+function hasValidationFallback(
+  provider: PortfolioAIProvider,
+): provider is PortfolioAIProviderWithValidationFallback {
+  return "generateFallbackAfterInvalidOutput" in provider;
+}
+
 async function generateValidatedWithRetry(
   provider: PortfolioAIProvider,
   groundedInput: Parameters<PortfolioAIProvider["generate"]>[0],
@@ -160,8 +172,44 @@ async function generateValidatedWithRetry(
         throw error;
       }
 
+      const normalizedError = normalizeGenerationError(error);
+
+      if (
+        input.retrieval.intent === "candidate_fit" &&
+        normalizedError instanceof GenerationInvalidOutputError
+      ) {
+        if (!hasValidationFallback(provider)) {
+          throw normalizedError;
+        }
+
+        const providerResult =
+          await provider.generateFallbackAfterInvalidOutput(groundedInput);
+        const validationStartedAt = Date.now();
+        const answer = validateGroundedAnswer(
+          providerResult.output,
+          input,
+          allowedEvidenceIds,
+        );
+        const validationMs = Date.now() - validationStartedAt;
+
+        logPortfolioAIDebug("generation.validation", {
+          requestId: groundedInput.requestId,
+          intent: input.retrieval.intent,
+          provider: providerResult.provider,
+          elapsedMs: validationMs,
+          validation: "PASS",
+        });
+
+        return {
+          providerResult,
+          answer,
+          retryCount: attempt,
+          validationMs,
+        };
+      }
+
       if (!isRetryableGenerationError(error) || attempt >= maxRetries) {
-        throw normalizeGenerationError(error);
+        throw normalizedError;
       }
     }
 
@@ -196,11 +244,13 @@ export async function generatePortfolioAnswer(
     buildProjectTechnologyFastPathAnswer(input);
   const projectAttributeFastPathAnswer =
     buildProjectAttributeFastPathAnswer(input);
+  const profileFastPathAnswer = buildProfileFastPathAnswer(input);
   const verifiedTechnologyFastPathAnswer =
     buildVerifiedTechnologyFastPathAnswer(input);
   const fastPathAnswer =
     projectTechnologyFastPathAnswer ??
     projectAttributeFastPathAnswer ??
+    profileFastPathAnswer ??
     verifiedTechnologyFastPathAnswer;
 
   if (fastPathAnswer) {
@@ -222,7 +272,11 @@ export async function generatePortfolioAnswer(
           ? "deterministic-project-technology"
           : projectAttributeFastPathAnswer
             ? "deterministic-project-attribute"
-            : "deterministic-verified-technology",
+            : profileFastPathAnswer
+              ? input.retrieval.intent.startsWith("language")
+                ? "deterministic-profile-language"
+                : "deterministic-profile-skills"
+              : "deterministic-verified-technology",
         latencyMs: 0,
         retrievedEntityCount,
         verifiedEvidenceCount,
