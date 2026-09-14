@@ -14,7 +14,7 @@ import {
   DEFAULT_FREELLMAPI_MODEL,
   DEFAULT_PORTFOLIO_AI_MODEL,
   getAllowedEvidenceIds,
-  PORTFOLIO_AI_PROVIDER_TIMEOUT_MS,
+  PORTFOLIO_AI_FALLBACK_TIMEOUT_MS,
   type GroundedGenerationInput,
   type PortfolioAIProvider,
   type ProviderGenerationResult,
@@ -83,7 +83,7 @@ function freeLLMAPIConfig() {
     apiKey: "test-free-key",
     baseUrl: DEFAULT_FREELLMAPI_BASE_URL,
     model: DEFAULT_FREELLMAPI_MODEL,
-    timeoutMs: PORTFOLIO_AI_PROVIDER_TIMEOUT_MS,
+    timeoutMs: PORTFOLIO_AI_FALLBACK_TIMEOUT_MS,
   };
 }
 

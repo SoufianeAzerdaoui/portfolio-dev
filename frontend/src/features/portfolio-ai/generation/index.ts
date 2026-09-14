@@ -1,6 +1,7 @@
 import "server-only";
 
 export {
+  portfolioAnswerJSONSchema,
   portfolioAnswerResponseSchema,
   parsePortfolioAnswer,
 } from "@/features/portfolio-ai/generation/answer.schema";
@@ -21,6 +22,7 @@ export {
   DEFAULT_GENERATION_MAX_RETRIES,
   DEFAULT_PORTFOLIO_AI_MODEL,
   MAX_GENERATED_ANSWER_LENGTH,
+  PORTFOLIO_AI_FALLBACK_TIMEOUT_MS,
   PORTFOLIO_AI_PRIMARY_TIMEOUT_MS,
   PORTFOLIO_AI_PROVIDER_TIMEOUT_MS,
   assertFreeLLMAPIConfig,

@@ -1,6 +1,9 @@
 import "server-only";
 
-import { parsePortfolioAnswer } from "@/features/portfolio-ai/generation/answer.schema";
+import {
+  parsePortfolioAnswer,
+  portfolioAnswerJSONSchema,
+} from "@/features/portfolio-ai/generation/answer.schema";
 import {
   assertFreeLLMAPIConfig,
   getFreeLLMAPIGenerationConfig,
@@ -178,6 +181,14 @@ export class FreeLLMAPIPortfolioAIProvider implements PortfolioAIProvider {
                 content: input.userPrompt,
               },
             ],
+            response_format: {
+              type: "json_schema",
+              json_schema: {
+                name: "portfolio_ai_response",
+                strict: true,
+                schema: portfolioAnswerJSONSchema,
+              },
+            },
             stream: false,
           }),
           signal: abortController.signal,

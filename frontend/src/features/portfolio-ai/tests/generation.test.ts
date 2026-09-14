@@ -24,6 +24,7 @@ import {
   generatePortfolioAnswer,
   isFallbackEligibleGenerationError,
   normalizeGenerationError,
+  PORTFOLIO_AI_FALLBACK_TIMEOUT_MS,
   PORTFOLIO_AI_PRIMARY_TIMEOUT_MS,
   PORTFOLIO_AI_PROVIDER_TIMEOUT_MS,
   PORTFOLIO_AI_SYSTEM_PROMPT,
@@ -135,7 +136,7 @@ function freeLLMAPIConfig() {
     apiKey: "test-free-key",
     baseUrl: DEFAULT_FREELLMAPI_BASE_URL,
     model: DEFAULT_FREELLMAPI_MODEL,
-    timeoutMs: PORTFOLIO_AI_PROVIDER_TIMEOUT_MS,
+    timeoutMs: PORTFOLIO_AI_FALLBACK_TIMEOUT_MS,
   };
 }
 
@@ -1245,7 +1246,27 @@ test("FreeLLMAPI fallback config is optional unless enabled", () => {
   assert.equal(enabledConfig.enabled, true);
   assert.equal(enabledConfig.baseUrl, DEFAULT_FREELLMAPI_BASE_URL);
   assert.equal(enabledConfig.model, DEFAULT_FREELLMAPI_MODEL);
-  assert.equal(enabledConfig.timeoutMs, PORTFOLIO_AI_PROVIDER_TIMEOUT_MS);
+  assert.equal(enabledConfig.timeoutMs, PORTFOLIO_AI_FALLBACK_TIMEOUT_MS);
+});
+
+test("FreeLLMAPI fallback timeout defaults to 10 seconds and supports server override", () => {
+  const defaultConfig = getFreeLLMAPIGenerationConfig({
+    GEMINI_API_KEY: "test-api-key",
+    FREELLMAPI_ENABLED: "true",
+    FREELLMAPI_API_KEY: "test-free-key",
+  });
+  const overriddenConfig = getFreeLLMAPIGenerationConfig({
+    GEMINI_API_KEY: "test-api-key",
+    FREELLMAPI_ENABLED: "true",
+    FREELLMAPI_API_KEY: "test-free-key",
+    PORTFOLIO_AI_FALLBACK_TIMEOUT_MS: "2500",
+  });
+
+  assert.equal(DEFAULT_FREELLMAPI_MODEL, "auto:fast");
+  assert.equal(PORTFOLIO_AI_PROVIDER_TIMEOUT_MS, 25_000);
+  assert.equal(PORTFOLIO_AI_FALLBACK_TIMEOUT_MS, 10_000);
+  assert.equal(defaultConfig.timeoutMs, 10_000);
+  assert.equal(overriddenConfig.timeoutMs, 2_500);
 });
 
 test("enabled FreeLLMAPI fallback requires server-only key and valid model", () => {
@@ -1264,6 +1285,16 @@ test("enabled FreeLLMAPI fallback requires server-only key and valid model", () 
         FREELLMAPI_ENABLED: "true",
         FREELLMAPI_API_KEY: "test-free-key",
         FREELLMAPI_MODEL: "   ",
+      }),
+    GenerationConfigurationError,
+  );
+  assert.throws(
+    () =>
+      getFreeLLMAPIGenerationConfig({
+        GEMINI_API_KEY: "test-api-key",
+        FREELLMAPI_ENABLED: "true",
+        FREELLMAPI_API_KEY: "test-free-key",
+        PORTFOLIO_AI_FALLBACK_TIMEOUT_MS: "0",
       }),
     GenerationConfigurationError,
   );
@@ -1302,6 +1333,32 @@ test("FreeLLMAPI provider accepts strict structured JSON content", async () => {
     model: string;
     stream: boolean;
     messages: Array<{ role: string; content: string }>;
+    response_format: {
+      type: string;
+      json_schema: {
+        name: string;
+        strict: boolean;
+        schema: {
+          type: string;
+          additionalProperties: boolean;
+          required: string[];
+          properties: {
+            usedEvidenceIds: {
+              type: string;
+              items: {
+                type: string;
+              };
+            };
+            language: {
+              enum: string[];
+            };
+            uncertainty: {
+              enum: string[];
+            };
+          };
+        };
+      };
+    };
   };
 
   assert.equal(fetchCount, 1);
@@ -1317,6 +1374,36 @@ test("FreeLLMAPI provider accepts strict structured JSON content", async () => {
   );
   assert.equal(body.model, DEFAULT_FREELLMAPI_MODEL);
   assert.equal(body.stream, false);
+  assert.equal(body.response_format.type, "json_schema");
+  assert.equal(body.response_format.json_schema.name, "portfolio_ai_response");
+  assert.equal(body.response_format.json_schema.strict, true);
+  assert.equal(body.response_format.json_schema.schema.type, "object");
+  assert.equal(
+    body.response_format.json_schema.schema.additionalProperties,
+    false,
+  );
+  assert.deepEqual(body.response_format.json_schema.schema.required, [
+    "answer",
+    "usedEvidenceIds",
+    "uncertainty",
+    "language",
+  ]);
+  assert.equal(
+    body.response_format.json_schema.schema.properties.usedEvidenceIds.type,
+    "array",
+  );
+  assert.equal(
+    body.response_format.json_schema.schema.properties.usedEvidenceIds.items.type,
+    "string",
+  );
+  assert.deepEqual(
+    body.response_format.json_schema.schema.properties.language.enum,
+    ["fr", "en"],
+  );
+  assert.deepEqual(
+    body.response_format.json_schema.schema.properties.uncertainty.enum,
+    ["none", "ambiguous", "not-documented"],
+  );
   assert.deepEqual(
     body.messages.map((message) => message.role),
     ["system", "user"],
@@ -1457,6 +1544,14 @@ test("FreeLLMAPI HTTP errors normalize to existing generation errors", async () 
         async () => new Response("{}", { status: 403 }),
       ).generate(input),
     GenerationConfigurationError,
+  );
+  await assert.rejects(
+    () =>
+      new FreeLLMAPIPortfolioAIProvider(
+        freeLLMAPIConfig(),
+        async () => new Response("{}", { status: 400 }),
+      ).generate(input),
+    GenerationProviderError,
   );
   await assert.rejects(
     () =>
@@ -2089,6 +2184,40 @@ test("Gemini rate limit starts FreeLLMAPI fallback immediately", async () => {
   assert.equal(gemini.callCount, 1);
   assert.equal(freeLLMAPI.callCount, 1);
   assert.ok(fallbackStartedAt - startedAt < 100);
+});
+
+test("FreeLLMAPI fallback timeout aborts once with no additional provider retry", async () => {
+  const question = GENERATED_TEST_QUESTION;
+  const retrieval = retrievePortfolioKnowledge(question, {
+    locale: "fr",
+  });
+  const gemini = new MockPortfolioAIProvider(() => {
+    throw new GenerationProviderError("primary failed");
+  });
+  let fallbackFetchCount = 0;
+  const freeLLMAPI = new FreeLLMAPIPortfolioAIProvider(
+    {
+      ...freeLLMAPIConfig(),
+      timeoutMs: 1,
+    },
+    async (_url, init) =>
+      new Promise<Response>((_resolve, reject) => {
+        fallbackFetchCount += 1;
+        init?.signal?.addEventListener(
+          "abort",
+          () => reject(createAbortError("fallback timeout")),
+          { once: true },
+        );
+      }),
+  );
+  const provider = new ResilientPortfolioAIProvider(gemini, freeLLMAPI);
+
+  await assert.rejects(
+    () => generatePortfolioAnswer({ question, locale: "fr", retrieval }, { provider }),
+    GenerationTimeoutError,
+  );
+  assert.equal(gemini.callCount, 1);
+  assert.equal(fallbackFetchCount, 1);
 });
 
 test("client cancellation before primary timeout does not start FreeLLMAPI", async () => {

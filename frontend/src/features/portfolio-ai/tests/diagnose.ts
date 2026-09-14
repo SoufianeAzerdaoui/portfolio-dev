@@ -475,6 +475,7 @@ async function main() {
     assistantContentExists: "NOT_RUN",
     assistantContentJSONParse: "NOT_RUN",
   };
+  const freeLLMAPIConfig = getFreeLLMAPIGenerationConfig();
   const geminiProvider = new DiagnosticProvider(
     "gemini",
     () => new GeminiPortfolioAIProvider(getPortfolioAIGenerationConfig()),
@@ -485,7 +486,7 @@ async function main() {
     "freellmapi",
     () =>
       new FreeLLMAPIPortfolioAIProvider(
-        getFreeLLMAPIGenerationConfig(),
+        freeLLMAPIConfig,
         createFreeLLMAPIDiagnosticFetch(freeLLMAPIHTTPDiagnostics),
       ),
     generationInput,
@@ -647,6 +648,7 @@ async function main() {
             providerDiagnostics.find(
               (item) => item.providerName === "freellmapi",
             )?.elapsedMs ?? null,
+          fallbackTimeoutMs: freeLLMAPIConfig.timeoutMs,
           generationElapsedMs,
           totalElapsedMs: elapsedSince(totalStartedAt),
           fastPathUsed: finalResult?.metadata.fastPathUsed ?? false,

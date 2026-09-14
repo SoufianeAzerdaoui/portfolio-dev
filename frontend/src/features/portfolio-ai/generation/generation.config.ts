@@ -4,9 +4,10 @@ import { GenerationConfigurationError } from "@/features/portfolio-ai/generation
 
 export const DEFAULT_PORTFOLIO_AI_MODEL = "gemini-3.6-flash";
 export const DEFAULT_FREELLMAPI_BASE_URL = "http://127.0.0.1:3001/v1";
-export const DEFAULT_FREELLMAPI_MODEL = "auto:reliable";
+export const DEFAULT_FREELLMAPI_MODEL = "auto:fast";
 export const PORTFOLIO_AI_PRIMARY_TIMEOUT_MS = 6_000;
 export const PORTFOLIO_AI_PROVIDER_TIMEOUT_MS = 25_000;
+export const PORTFOLIO_AI_FALLBACK_TIMEOUT_MS = 10_000;
 export const DEFAULT_GENERATION_MAX_OUTPUT_TOKENS = 512;
 export const DEFAULT_GENERATION_MAX_RETRIES = 1;
 export const MAX_GENERATED_ANSWER_LENGTH = 1_800;
@@ -39,6 +40,7 @@ export type PortfolioAIGenerationEnvironmentValidation = {
   freeLLMAPICredentialDetected: boolean;
   freeLLMAPIPublicCredentialDetected: boolean;
   freeLLMAPIModel: string;
+  freeLLMAPITimeoutMs: number;
 };
 
 function hasValue(value: string | undefined) {
@@ -73,6 +75,18 @@ function resolveFreeLLMAPIModel(
   return env.FREELLMAPI_MODEL.trim();
 }
 
+function resolveFallbackTimeoutMs(
+  env: Partial<Record<string, string | undefined>>,
+) {
+  if (env.PORTFOLIO_AI_FALLBACK_TIMEOUT_MS === undefined) {
+    return PORTFOLIO_AI_FALLBACK_TIMEOUT_MS;
+  }
+
+  const value = Number(env.PORTFOLIO_AI_FALLBACK_TIMEOUT_MS);
+
+  return Number.isInteger(value) && value > 0 ? value : undefined;
+}
+
 function isValidHTTPUrl(value: string) {
   try {
     const url = new URL(value);
@@ -91,6 +105,7 @@ export function validatePortfolioAIGenerationEnvironment(
   const freeLLMAPIEnabled = isEnabled(env.FREELLMAPI_ENABLED);
   const freeLLMAPIBaseUrl = resolveFreeLLMAPIBaseUrl(env);
   const freeLLMAPIModel = resolveFreeLLMAPIModel(env);
+  const fallbackTimeoutMs = resolveFallbackTimeoutMs(env);
   const publicCredentialDetected =
     hasValue(env.NEXT_PUBLIC_GEMINI_API_KEY) ||
     hasValue(env.NEXT_PUBLIC_GOOGLE_API_KEY);
@@ -122,6 +137,12 @@ export function validatePortfolioAIGenerationEnvironment(
     if (!isValidHTTPUrl(freeLLMAPIBaseUrl)) {
       errors.push("FREELLMAPI_BASE_URL must be a valid HTTP(S) URL.");
     }
+
+    if (fallbackTimeoutMs === undefined) {
+      errors.push(
+        "PORTFOLIO_AI_FALLBACK_TIMEOUT_MS must be a positive integer.",
+      );
+    }
   }
 
   return {
@@ -135,6 +156,7 @@ export function validatePortfolioAIGenerationEnvironment(
     freeLLMAPICredentialDetected: hasValue(env.FREELLMAPI_API_KEY),
     freeLLMAPIPublicCredentialDetected,
     freeLLMAPIModel: freeLLMAPIModel || DEFAULT_FREELLMAPI_MODEL,
+    freeLLMAPITimeoutMs: fallbackTimeoutMs ?? PORTFOLIO_AI_FALLBACK_TIMEOUT_MS,
   };
 }
 
@@ -178,6 +200,12 @@ export function assertFreeLLMAPIConfig(config: FreeLLMAPIGenerationConfig) {
   if (!isValidHTTPUrl(config.baseUrl)) {
     throw new GenerationConfigurationError("FREELLMAPI_BASE_URL is invalid.");
   }
+
+  if (!Number.isInteger(config.timeoutMs) || config.timeoutMs <= 0) {
+    throw new GenerationConfigurationError(
+      "PORTFOLIO_AI_FALLBACK_TIMEOUT_MS is invalid.",
+    );
+  }
 }
 
 export function getPortfolioAIGenerationConfig(
@@ -205,6 +233,6 @@ export function getFreeLLMAPIGenerationConfig(
     apiKey: env.FREELLMAPI_API_KEY,
     baseUrl: resolveFreeLLMAPIBaseUrl(env).replace(/\/+$/g, ""),
     model: resolveFreeLLMAPIModel(env),
-    timeoutMs: PORTFOLIO_AI_PROVIDER_TIMEOUT_MS,
+    timeoutMs: resolveFallbackTimeoutMs(env) ?? PORTFOLIO_AI_FALLBACK_TIMEOUT_MS,
   };
 }
