@@ -40,6 +40,7 @@ export type PortfolioAIGenerationEnvironmentValidation = {
   freeLLMAPICredentialDetected: boolean;
   freeLLMAPIPublicCredentialDetected: boolean;
   freeLLMAPIModel: string;
+  providerTimeoutMs: number;
   freeLLMAPITimeoutMs: number;
 };
 
@@ -87,6 +88,18 @@ function resolveFallbackTimeoutMs(
   return Number.isInteger(value) && value > 0 ? value : undefined;
 }
 
+function resolveProviderTimeoutMs(
+  env: Partial<Record<string, string | undefined>>,
+) {
+  if (env.PORTFOLIO_AI_PROVIDER_TIMEOUT_MS === undefined) {
+    return PORTFOLIO_AI_PROVIDER_TIMEOUT_MS;
+  }
+
+  const value = Number(env.PORTFOLIO_AI_PROVIDER_TIMEOUT_MS);
+
+  return Number.isInteger(value) && value > 0 ? value : undefined;
+}
+
 function isValidHTTPUrl(value: string) {
   try {
     const url = new URL(value);
@@ -105,6 +118,7 @@ export function validatePortfolioAIGenerationEnvironment(
   const freeLLMAPIEnabled = isEnabled(env.FREELLMAPI_ENABLED);
   const freeLLMAPIBaseUrl = resolveFreeLLMAPIBaseUrl(env);
   const freeLLMAPIModel = resolveFreeLLMAPIModel(env);
+  const providerTimeoutMs = resolveProviderTimeoutMs(env);
   const fallbackTimeoutMs = resolveFallbackTimeoutMs(env);
   const publicCredentialDetected =
     hasValue(env.NEXT_PUBLIC_GEMINI_API_KEY) ||
@@ -123,6 +137,10 @@ export function validatePortfolioAIGenerationEnvironment(
 
   if (!model) {
     errors.push("PORTFOLIO_AI_MODEL cannot be empty.");
+  }
+
+  if (providerTimeoutMs === undefined) {
+    errors.push("PORTFOLIO_AI_PROVIDER_TIMEOUT_MS must be a positive integer.");
   }
 
   if (freeLLMAPIEnabled) {
@@ -156,6 +174,7 @@ export function validatePortfolioAIGenerationEnvironment(
     freeLLMAPICredentialDetected: hasValue(env.FREELLMAPI_API_KEY),
     freeLLMAPIPublicCredentialDetected,
     freeLLMAPIModel: freeLLMAPIModel || DEFAULT_FREELLMAPI_MODEL,
+    providerTimeoutMs: providerTimeoutMs ?? PORTFOLIO_AI_PROVIDER_TIMEOUT_MS,
     freeLLMAPITimeoutMs: fallbackTimeoutMs ?? PORTFOLIO_AI_FALLBACK_TIMEOUT_MS,
   };
 }
@@ -181,6 +200,12 @@ export function assertPortfolioAIGeminiConfig(
 
   if (!config.model.trim()) {
     throw new GenerationConfigurationError("PORTFOLIO_AI_MODEL is required.");
+  }
+
+  if (!Number.isInteger(config.timeoutMs) || config.timeoutMs <= 0) {
+    throw new GenerationConfigurationError(
+      "PORTFOLIO_AI_PROVIDER_TIMEOUT_MS is invalid.",
+    );
   }
 }
 
@@ -217,7 +242,7 @@ export function getPortfolioAIGenerationConfig(
     provider: "gemini",
     apiKey: env.GEMINI_API_KEY,
     model: resolveModel(env),
-    timeoutMs: PORTFOLIO_AI_PROVIDER_TIMEOUT_MS,
+    timeoutMs: resolveProviderTimeoutMs(env) ?? PORTFOLIO_AI_PROVIDER_TIMEOUT_MS,
     maxOutputTokens: DEFAULT_GENERATION_MAX_OUTPUT_TOKENS,
     maxRetries: DEFAULT_GENERATION_MAX_RETRIES,
   };

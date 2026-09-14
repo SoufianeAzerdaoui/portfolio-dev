@@ -371,9 +371,23 @@ test("composer uses approved prompt prefix and directional send glyph", () => {
 
   assert.match(markup, /›/);
   assert.match(markup, /→/);
-  assert.match(markup, /Ask a question about the portfolio/);
+  assert.match(markup, /Ask a question\.\.\./);
   assert.doesNotMatch(markup, /paper/i);
   assert.doesNotMatch(markup, /plane/i);
+});
+
+test("composer Enter submits while Shift Enter remains multiline", () => {
+  const source = fs.readFileSync(
+    "src/features/portfolio-ai/components/portfolio-ai-composer.tsx",
+    "utf8",
+  );
+  const keyHandler =
+    source.match(/const handleKeyDown[\s\S]*?^\s*};/m)?.[0] ?? "";
+
+  assert.match(keyHandler, /event\.key === "Enter"/);
+  assert.match(keyHandler, /!event\.shiftKey/);
+  assert.match(keyHandler, /event\.preventDefault\(\);/);
+  assert.match(keyHandler, /onSubmit\(\);/);
 });
 
 test("stream client POSTs to the streaming endpoint and handles events", async () => {
@@ -492,8 +506,11 @@ test("source rendering exposes labels and types, not evidence ids", () => {
   assert.match(markup, /Projet/);
   assert.match(markup, /Medical RAG Platform/);
   assert.match(markup, /VOIR LE PROJET/);
+  assert.match(markup, /↗/);
   assert.match(markup, /href="\/projects#medical-rag-platform"/);
   assert.doesNotMatch(markup, /project:medical-rag-platform:fact:stack:1/);
+  assert.doesNotMatch(markup, /<svg/);
+  assert.doesNotMatch(markup, />svg</);
   assert.equal(
     getPortfolioAIProjectSourceHref(projectSource),
     "/projects#medical-rag-platform",
@@ -518,7 +535,21 @@ test("project source CTA is localized and remains visible on mobile layout", () 
   assert.match(markup, /VIEW PROJECT/);
   assert.match(markup, /grid-cols-1/);
   assert.match(markup, /sm:grid-cols-\[minmax\(0,1fr\)_auto\]/);
+  assert.match(markup, /break-words/);
   assert.match(markup, /inline-flex[^"]*justify-self-start[^"]*"[^>]*><span[^>]*>VIEW PROJECT/);
+});
+
+test("Portfolio AI decorative suggestion arrow is hidden from assistive tech", () => {
+  const markup = renderToStaticMarkup(
+    createElement(PortfolioAIEmptyState, {
+      content: portfolioContentByLocale.fr.aiConsole,
+      disabled: false,
+      onSuggestion: () => {},
+    }),
+  );
+
+  assert.match(markup, /aria-hidden="true"/);
+  assert.match(markup, /focusable="false"/);
 });
 
 test("non-project source remains non-clickable", () => {
@@ -761,6 +792,17 @@ test("aborted stream does not dispatch a stale client error", async () => {
   assert.equal(onErrorCalled, false);
 });
 
+test("Portfolio AI hook guards async callbacks after unmount", () => {
+  const source = fs.readFileSync(
+    "src/features/portfolio-ai/hooks/use-portfolio-ai.ts",
+    "utf8",
+  );
+
+  assert.match(source, /const mountedRef = useRef\(true\);/);
+  assert.match(source, /mountedRef\.current = false;/);
+  assert.match(source, /if \(!mountedRef\.current\) \{\s*return;\s*\}/);
+});
+
 test("history is bounded to recent successful user and assistant messages only", () => {
   const messages: PortfolioAIConversationMessage[] = Array.from(
     { length: 8 },
@@ -837,8 +879,39 @@ test("open console renders as modal and reduced motion omits panel animation", (
   assert.match(markup, /role="dialog"/);
   assert.match(markup, /aria-modal="true"/);
   assert.match(markup, /--portfolio-ai-composer-clearance/);
-  assert.match(markup, /Ask a question about the portfolio/);
+  assert.match(markup, /aria-live="polite"/);
+  assert.match(markup, /aria-atomic="true"/);
+  assert.match(markup, /Ask a question\.\.\./);
   assert.doesNotMatch(markup, /portfolio-ai-console-in/);
+});
+
+test("minimized console mode does not keep modal focus semantics", () => {
+  const source = fs.readFileSync(
+    "src/features/portfolio-ai/components/portfolio-ai-console.tsx",
+    "utf8",
+  );
+
+  assert.match(
+    source,
+    /role=\{modeState\.mode === "minimized" \? "region" : "dialog"\}/,
+  );
+  assert.match(
+    source,
+    /aria-modal=\{modeState\.mode === "minimized" \? undefined : true\}/,
+  );
+  assert.match(source, /if \(modeState\.mode === "minimized"\) \{\s*return;/);
+});
+
+test("Portfolio AI submit marks the request active synchronously", () => {
+  const source = fs.readFileSync(
+    "src/features/portfolio-ai/hooks/use-portfolio-ai.ts",
+    "utf8",
+  );
+  const submitHandler =
+    source.match(/async \(rawQuestion: string[\s\S]*?try \{/)?.[0] ?? "";
+
+  assert.match(submitHandler, /isPortfolioAIRequestActive\(statusRef\.current\)/);
+  assert.match(submitHandler, /statusRef\.current = "submitting";/);
 });
 
 test("closed console renders nothing", () => {

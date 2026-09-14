@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowUpRight } from "lucide-react";
 
 import type { PublicPortfolioAISource } from "@/features/portfolio-ai/client/portfolio-ai-client";
 import { getPortfolioAISourceTypeLabel } from "@/features/portfolio-ai/client/display";
@@ -43,7 +42,7 @@ export function PortfolioAISources({ content, sources }: PortfolioAISourcesProps
                 <span className="block font-mono text-[0.58rem] font-semibold uppercase tracking-[0.16em] text-[var(--home-muted)]">
                   {sourceType}
                 </span>
-                <span className="block truncate text-[0.84rem] font-medium text-[#B9B6C6] transition-colors duration-150 group-hover/source:text-[var(--home-text)] group-focus-visible/source:text-[var(--home-text)] motion-reduce:transition-none">
+                <span className="block break-words text-[0.84rem] font-medium leading-5 text-[#B9B6C6] transition-colors duration-150 group-hover/source:text-[var(--home-text)] group-focus-visible/source:text-[var(--home-text)] motion-reduce:transition-none">
                   {source.label}
                 </span>
               </span>
@@ -54,10 +53,12 @@ export function PortfolioAISources({ content, sources }: PortfolioAISourcesProps
               <span className="border-b border-[rgba(139,128,217,0.22)] pb-0.5 transition-colors duration-150 group-hover/source:border-[rgba(139,128,217,0.62)] group-focus-visible/source:border-[rgba(139,128,217,0.62)] motion-reduce:transition-none">
                 {content.sourceProjectAction}
               </span>
-              <ArrowUpRight
+              <span
                 aria-hidden="true"
-                className="h-3.5 w-3.5 transition-transform duration-150 group-hover/source:translate-x-1 group-focus-visible/source:translate-x-1 motion-reduce:transform-none motion-reduce:transition-none"
-              />
+                className="transition-transform duration-150 group-hover/source:translate-x-1 group-focus-visible/source:translate-x-1 motion-reduce:transform-none motion-reduce:transition-none"
+              >
+                ↗
+              </span>
             </span>
           );
 
@@ -66,6 +67,7 @@ export function PortfolioAISources({ content, sources }: PortfolioAISourcesProps
               {isPortfolioAIProjectSource(source) ? (
                 <Link
                   href={getPortfolioAIProjectSourceHref(source)}
+                  aria-label={`${sourceType}: ${source.label}. ${content.sourceProjectAction}`}
                   className="group/source relative grid min-h-14 grid-cols-1 items-center gap-2 py-3 pl-3 pr-2 transition-[background-color] duration-150 hover:bg-[rgba(97,85,185,0.045)] focus-visible:bg-[rgba(97,85,185,0.06)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--home-accent-2)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#17161C] motion-reduce:transition-none sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-3"
                 >
                   {sourceContent}

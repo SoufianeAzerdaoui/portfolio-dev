@@ -33,6 +33,7 @@ export type JourneyExperience = {
     label: string;
   };
   technologies?: string[];
+  displayTechnologies?: string[];
   isCurrent?: boolean;
 };
 
@@ -53,14 +54,22 @@ export const journeyExperiencesByLocale = {
   fr: [
   {
     id: "atline-alternance-2025",
-    period: "OCT. 2025 — JUILL. 2026",
+    period: "OCT. 2025 — JUIL. 2026",
     startDateTime: "2025-10",
     endDateTime: "2026-07",
     experienceType: "apprenticeship",
     role: "Développeur Full Stack",
     organization: "ATLINE SERVICES",
     description:
-      "Participation au développement de la plateforme ms.fr 3.0.",
+      "Développement et maintenance de la plateforme ms.fr 3.0, avec évolution des fonctionnalités et participation au cycle de développement en environnement Agile.",
+    technologies: [
+      "Angular",
+      "PHP",
+      "MySQL",
+      "Git/Bitbucket",
+      "Jira",
+      "Scrum",
+    ],
     projectLink: {
       href: "https://v3.marches-securises.fr/",
       label: "Voir ms.fr 3.0",
@@ -75,21 +84,22 @@ export const journeyExperiencesByLocale = {
     experienceType: "final-year-internship",
     role: "Stage PFE — Data & IA",
     organization: "CHU Mohammed VI",
-    context: "PFE — Master 2 IS2IA · ESISA",
+    context: "PFE — MASTER IS2IA · ESISA",
     description:
-      "Conception d’une plateforme RAG pour l’exploitation de rapports médicaux : segmentation, indexation vectorielle, recherche sémantique et génération de réponses contextualisées.",
+      "Conception d’une plateforme RAG multimodale pour l’exploitation de rapports médicaux : extraction, structuration, indexation vectorielle, recherche sémantique et génération de réponses contextualisées.",
     technologies: [],
+    displayTechnologies: ["Python", "FastAPI", "Qdrant", "Llama", "Next.js"],
   },
   {
     id: "atline-stage-2025",
-    period: "JUIN — SEPT. 2025",
+    period: "JUIN 2025 — SEPT. 2025",
     startDateTime: "2025-06",
     endDateTime: "2025-09",
     experienceType: "internship",
     role: "Développeur Full Stack",
     organization: "ATLINE SERVICES",
     description:
-      "Développement Full Stack sur la plateforme ms.fr 3.0.",
+      "Développement de fonctionnalités Full Stack pour la plateforme ms.fr 3.0 dans un environnement Agile/Scrum.",
     projectLink: {
       href: "https://v3.marches-securises.fr/",
       label: "Voir ms.fr 3.0",
@@ -105,13 +115,13 @@ export const journeyExperiencesByLocale = {
   },
   {
     id: "pfe-business-intelligence-2024",
-    period: "AVRIL — JUIN 2024",
+    period: "AVR. 2024 — JUIN 2024",
     startDateTime: "2024-04",
     endDateTime: "2024-06",
-    role: "Stage de fin d’études",
-    organization: "Business Intelligence",
+    role: "Stage de fin d’études — Business Intelligence",
+    organization: "SEND SPACE",
     description:
-      "Mise en place d’une solution décisionnelle pour le suivi et l’évaluation des processus de vente de smartphones.",
+      "Conception d’une solution décisionnelle pour le suivi et l’analyse des ventes de smartphones, de l’ETL jusqu’aux tableaux de bord Power BI.",
     technologies: [
       "SQL Server",
       "Python",
@@ -124,27 +134,35 @@ export const journeyExperiencesByLocale = {
   },
   {
     id: "epg-stage-2023",
-    period: "MARS — AVRIL 2023",
+    period: "MARS 2023 — AVR. 2023",
     startDateTime: "2023-03",
     endDateTime: "2023-04",
     role: "Développement Full Stack",
     organization: "EPG",
     description:
-      "Développement de la page d’inscription de l’école EPG en Full Stack.",
+      "Développement d’une page d’inscription Full Stack pour l’école EPG.",
     technologies: ["React", "PHP", "MySQL", "UML"],
   },
   ],
   en: [
     {
       id: "atline-alternance-2025",
-      period: "OCT. 2025 - JUL. 2026",
+      period: "OCT. 2025 — JUL. 2026",
       startDateTime: "2025-10",
       endDateTime: "2026-07",
       experienceType: "apprenticeship",
       role: "Full Stack Developer",
       organization: "ATLINE SERVICES",
       description:
-        "Contributing to the development of the ms.fr 3.0 platform.",
+        "Development and maintenance of the ms.fr 3.0 platform, including feature evolution and participation in an Agile development workflow.",
+      technologies: [
+        "Angular",
+        "PHP",
+        "MySQL",
+        "Git/Bitbucket",
+        "Jira",
+        "Scrum",
+      ],
       projectLink: {
         href: "https://v3.marches-securises.fr/",
         label: "View ms.fr 3.0",
@@ -159,21 +177,22 @@ export const journeyExperiencesByLocale = {
       experienceType: "final-year-internship",
       role: "Final-Year Internship — Data & AI",
       organization: "CHU Mohammed VI",
-      context: "Final-Year Project — Master 2 IS2IA · ESISA",
+      context: "Final-Year Project — Master IS2IA · ESISA",
       description:
-        "Design and development of a RAG platform for medical report processing, including segmentation, vector indexing, semantic search and contextualized answer generation.",
+        "Design of a multimodal RAG platform for medical reports, covering extraction, structuring, vector indexing, semantic retrieval and contextual answer generation.",
       technologies: [],
+      displayTechnologies: ["Python", "FastAPI", "Qdrant", "Llama", "Next.js"],
     },
     {
       id: "atline-stage-2025",
-      period: "JUN. - SEPT. 2025",
+      period: "JUN. 2025 — SEPT. 2025",
       startDateTime: "2025-06",
       endDateTime: "2025-09",
       experienceType: "internship",
       role: "Full Stack Developer",
       organization: "ATLINE SERVICES",
       description:
-        "Full Stack development on the ms.fr 3.0 platform.",
+        "Development of Full Stack features for the ms.fr 3.0 platform in an Agile/Scrum environment.",
       projectLink: {
         href: "https://v3.marches-securises.fr/",
         label: "View ms.fr 3.0",
@@ -189,13 +208,13 @@ export const journeyExperiencesByLocale = {
     },
     {
       id: "pfe-business-intelligence-2024",
-      period: "APR. - JUN. 2024",
+      period: "APR. 2024 — JUN. 2024",
       startDateTime: "2024-04",
       endDateTime: "2024-06",
-      role: "Final-year internship",
-      organization: "Business Intelligence",
+      role: "Final-Year Internship — Business Intelligence",
+      organization: "SEND SPACE",
       description:
-        "Built a decision-support solution to monitor and evaluate smartphone sales processes.",
+        "Design of a Business Intelligence solution for smartphone sales monitoring and analysis, from ETL processing to Power BI dashboards.",
       technologies: [
         "SQL Server",
         "Python",
@@ -208,13 +227,13 @@ export const journeyExperiencesByLocale = {
     },
     {
       id: "epg-stage-2023",
-      period: "MAR. - APR. 2023",
+      period: "MAR. 2023 — APR. 2023",
       startDateTime: "2023-03",
       endDateTime: "2023-04",
       role: "Full Stack Development",
       organization: "EPG",
       description:
-        "Developed the EPG school registration page as a Full Stack project.",
+        "Development of a Full Stack registration page for EPG.",
       technologies: ["React", "PHP", "MySQL", "UML"],
     },
   ],

@@ -173,10 +173,15 @@ test("provider timeout config is centralized at 25 seconds", () => {
   const config = getPortfolioAIGenerationConfig({
     GEMINI_API_KEY: "test-api-key",
   });
+  const overriddenConfig = getPortfolioAIGenerationConfig({
+    GEMINI_API_KEY: "test-api-key",
+    PORTFOLIO_AI_PROVIDER_TIMEOUT_MS: "15000",
+  });
 
   assert.equal(PORTFOLIO_AI_PRIMARY_TIMEOUT_MS, 6_000);
   assert.equal(PORTFOLIO_AI_PROVIDER_TIMEOUT_MS, 25_000);
   assert.equal(config.timeoutMs, PORTFOLIO_AI_PROVIDER_TIMEOUT_MS);
+  assert.equal(overriddenConfig.timeoutMs, 15_000);
 });
 
 test("Qdrant verified technology lookup uses deterministic fast path", async () => {
@@ -1309,6 +1314,43 @@ test("generation config rejects empty model values", () => {
       }),
     GenerationConfigurationError,
   );
+  assert.throws(
+    () =>
+      getPortfolioAIGenerationConfig({
+        GEMINI_API_KEY: "test-api-key",
+        PORTFOLIO_AI_PROVIDER_TIMEOUT_MS: "-1",
+      }),
+    GenerationConfigurationError,
+  );
+});
+
+test("environment examples contain only AI placeholders and production timeout defaults", () => {
+  for (const filename of [".env.example", ".env.local.example"]) {
+    const content = fs.readFileSync(filename, "utf8");
+
+    assert.match(content, /^GEMINI_API_KEY=$/m);
+    assert.match(content, /^PORTFOLIO_AI_MODEL=gemini-3\.6-flash$/m);
+    assert.match(content, /^PORTFOLIO_AI_PROVIDER_TIMEOUT_MS=25000$/m);
+    assert.match(content, /^FREELLMAPI_ENABLED=false$/m);
+    assert.match(content, /^FREELLMAPI_API_KEY=$/m);
+    assert.match(content, /^FREELLMAPI_MODEL=auto:fast$/m);
+    assert.match(content, /^PORTFOLIO_AI_FALLBACK_TIMEOUT_MS=10000$/m);
+    assert.doesNotMatch(content, /AQ\./);
+    assert.doesNotMatch(content, /Bearer\s+\S+/i);
+  }
+});
+
+test("developer diagnostics are guarded from production execution", () => {
+  for (const filename of [
+    "src/features/portfolio-ai/tests/diagnose.ts",
+    "src/features/portfolio-ai/tests/freellmapi-smoke.ts",
+    "src/features/portfolio-ai/tests/gemini-smoke.ts",
+  ]) {
+    const content = fs.readFileSync(filename, "utf8");
+
+    assert.match(content, /NODE_ENV === "production"/);
+    assert.match(content, /disabled in production/);
+  }
 });
 
 test("FreeLLMAPI provider accepts strict structured JSON content", async () => {

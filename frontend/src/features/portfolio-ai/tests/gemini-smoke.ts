@@ -19,6 +19,10 @@ function sanitizeError(error: unknown) {
 }
 
 async function main() {
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("Portfolio AI Gemini smoke is disabled in production.");
+  }
+
   const envLoadResult = loadEnvConfig(process.cwd());
   const { DEFAULT_PORTFOLIO_AI_MODEL } = await import(
     "@/features/portfolio-ai/generation"

@@ -1,5 +1,7 @@
 "use client";
 
+import type { RefObject } from "react";
+
 import type { PortfolioAIConsoleContent } from "@/types/portfolio";
 
 export type PortfolioAIConsoleMode = "normal" | "expanded" | "minimized";
@@ -11,6 +13,7 @@ type PortfolioAIHeaderProps = {
   onClose: () => void;
   onToggleMinimized: () => void;
   onToggleExpanded: () => void;
+  minimizeControlRef?: RefObject<HTMLButtonElement | null>;
 };
 
 export function PortfolioAIHeader({
@@ -20,6 +23,7 @@ export function PortfolioAIHeader({
   onClose,
   onToggleMinimized,
   onToggleExpanded,
+  minimizeControlRef,
 }: PortfolioAIHeaderProps) {
   const minimized = mode === "minimized";
   const expanded = mode === "expanded";
@@ -64,6 +68,7 @@ export function PortfolioAIHeader({
             </span>
           </button>
           <button
+            ref={minimizeControlRef}
             type="button"
             aria-label={minimized ? content.restore : content.minimize}
             aria-pressed={minimized}

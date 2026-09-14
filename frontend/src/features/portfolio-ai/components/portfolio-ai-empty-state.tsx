@@ -48,6 +48,7 @@ export function PortfolioAIEmptyState({
             </span>
             <ArrowUpRight
               aria-hidden="true"
+              focusable="false"
               className="h-[1.05rem] w-[1.05rem] justify-self-end text-[#A7A5AF] transition duration-150 group-hover:translate-x-1 group-hover:text-[#8B80D9] motion-reduce:transform-none motion-reduce:transition-none"
             />
           </button>
