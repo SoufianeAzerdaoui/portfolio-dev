@@ -1,4 +1,10 @@
 import type { PortfolioRetrievalResult } from "@/features/portfolio-ai/retrieval";
+import type {
+  CandidateFitFocus,
+  LanguageQueryKind,
+  ProfileSkillCategory,
+  ProjectAttribute,
+} from "@/features/portfolio-ai/retrieval";
 import type { LocaleCode } from "@/types/portfolio";
 
 export type AnswerUncertainty = "none" | "ambiguous" | "not-documented";
@@ -49,10 +55,43 @@ export type GroundedEntity = {
   whyMatched: string[];
 };
 
+export type GroundedTechnologyExplanationFocus = {
+  type: "project_technology_explanation" | "technology_explanation";
+  project?: {
+    id: string;
+    name: string;
+  };
+  technology?: {
+    id: string;
+    name: string;
+  };
+  explanationKind: "role" | "purpose" | "selection_rationale";
+  documentedRoleFactIds: string[];
+  selectionRationaleStatus: "documented" | "not-documented";
+};
+
+export type GroundedProjectAttributeFocus = {
+  type: "project_attribute";
+  attribute: ProjectAttribute;
+  project?: {
+    id: string;
+    name: string;
+  };
+  factIds: string[];
+};
+
 export type GroundedContext = {
   intent: string;
+  requestedProjectAttribute?: ProjectAttribute;
+  skillCategory?: ProfileSkillCategory;
+  normalizedSkillId?: string;
+  languageId?: string;
+  languageQueryKind?: LanguageQueryKind;
+  candidateFitFocus?: CandidateFitFocus;
   status: string;
   notDocumented: boolean;
+  focus?: GroundedTechnologyExplanationFocus;
+  projectAttributeFocus?: GroundedProjectAttributeFocus;
   entities: GroundedEntity[];
   evidence: GroundedEvidence[];
   policy: {
@@ -64,6 +103,7 @@ export type GroundedContext = {
 };
 
 export type GroundedGenerationInput = {
+  requestId?: string;
   question: string;
   locale: LocaleCode;
   model: string;
@@ -71,6 +111,7 @@ export type GroundedGenerationInput = {
   allowedEvidenceIds: string[];
   systemPrompt: string;
   userPrompt: string;
+  signal?: AbortSignal;
 };
 
 export type ProviderUsageMetadata = {
@@ -95,6 +136,8 @@ export interface PortfolioAIProvider {
 export type GeneratePortfolioAnswerOptions = {
   provider?: PortfolioAIProvider;
   model?: string;
+  signal?: AbortSignal;
+  requestId?: string;
 };
 
 export type PortfolioAnswerResult = {
@@ -109,6 +152,8 @@ export type PortfolioAnswerResult = {
     usedEvidenceCount: number;
     providerCalled: boolean;
     retryCount: number;
+    fastPathUsed?: boolean;
+    validationMs?: number;
     usage?: ProviderUsageMetadata;
   };
 };

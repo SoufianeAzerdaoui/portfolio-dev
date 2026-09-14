@@ -19,6 +19,10 @@ export type ConversationContext = {
 };
 
 const FOLLOW_UP_PATTERNS = [
+  /^et en\b/i,
+  /^et pour\b/i,
+  /^and in\b/i,
+  /^and for\b/i,
   /\bet lequel\b/i,
   /\bet celle-là\b/i,
   /\bet celui-là\b/i,
@@ -35,13 +39,64 @@ const FOLLOW_UP_PATTERNS = [
 ];
 
 const CONTEXT_STOP_ENTITY_TYPES = new Set(["person"]);
+const DIRECT_FOLLOW_UP_TOPIC_TERMS = [
+  "ai",
+  "ia",
+  "nlp",
+  "genai",
+  "llm",
+  "data",
+  "data engineering",
+  "cloud",
+  "devops",
+  "web",
+  "backend",
+  "frontend",
+  "database",
+  "databases",
+  "base de donnees",
+  "bases de donnees",
+  "bi",
+  "langage",
+  "langages",
+  "programming",
+  "arabe",
+  "arabic",
+  "francais",
+  "french",
+  "anglais",
+  "english",
+  "allemand",
+  "german",
+];
 
 function unique(values: readonly string[]) {
   return [...new Set(values.map((value) => value.trim()).filter(Boolean))];
 }
 
+function normalizeMessage(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
+function hasDirectFollowUpTopic(message: string) {
+  const normalizedMessage = ` ${normalizeMessage(message)} `;
+
+  return DIRECT_FOLLOW_UP_TOPIC_TERMS.some((term) =>
+    normalizedMessage.includes(` ${term} `),
+  );
+}
+
 function isReferentialFollowUp(message: string) {
-  return FOLLOW_UP_PATTERNS.some((pattern) => pattern.test(message));
+  return (
+    FOLLOW_UP_PATTERNS.some((pattern) => pattern.test(message)) &&
+    !hasDirectFollowUpTopic(message)
+  );
 }
 
 function entityTermsFromRetrieval(retrieval: PortfolioRetrievalResult) {

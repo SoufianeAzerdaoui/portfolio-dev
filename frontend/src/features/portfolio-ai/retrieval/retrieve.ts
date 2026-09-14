@@ -58,10 +58,18 @@ export function retrievePortfolioKnowledge(
   const matchedEntities = detectEntities(normalized.query);
   const intent = detectIntent(normalized.query, matchedEntities);
   const candidates = generateCandidates(intent, matchedEntities);
-  const results = rankCandidates(candidates, topK);
+  const effectiveTopK =
+    intent.intent === "candidate_fit" ? Math.max(topK, 8) : topK;
+  const results = rankCandidates(candidates, effectiveTopK);
 
   return {
     intent: intent.intent,
+    requestedProjectAttribute: intent.requestedProjectAttribute,
+    skillCategory: intent.skillCategory,
+    normalizedSkillId: intent.normalizedSkillId,
+    languageId: intent.languageId,
+    languageQueryKind: intent.languageQueryKind,
+    candidateFitFocus: intent.candidateFitFocus,
     normalizedQuery: normalized.query.normalized,
     originalQuery: normalized.query.original,
     matchedEntities,

@@ -1,9 +1,14 @@
 import "server-only";
 
 export {
+  portfolioAnswerJSONSchema,
   portfolioAnswerResponseSchema,
   parsePortfolioAnswer,
 } from "@/features/portfolio-ai/generation/answer.schema";
+export {
+  isPortfolioAIDebugEnabled,
+  logPortfolioAIDebug,
+} from "@/features/portfolio-ai/generation/debug";
 export {
   buildGroundedContext,
   createEvidenceId,
@@ -11,13 +16,19 @@ export {
   measureGroundedContextSize,
 } from "@/features/portfolio-ai/generation/build-grounded-context";
 export {
+  DEFAULT_FREELLMAPI_BASE_URL,
+  DEFAULT_FREELLMAPI_MODEL,
   DEFAULT_GENERATION_MAX_OUTPUT_TOKENS,
   DEFAULT_GENERATION_MAX_RETRIES,
   DEFAULT_PORTFOLIO_AI_MODEL,
   MAX_GENERATED_ANSWER_LENGTH,
+  PORTFOLIO_AI_FALLBACK_TIMEOUT_MS,
+  PORTFOLIO_AI_PRIMARY_TIMEOUT_MS,
   PORTFOLIO_AI_PROVIDER_TIMEOUT_MS,
+  assertFreeLLMAPIConfig,
   assertPortfolioAIGeminiConfig,
   assertPortfolioAIGenerationEnvironment,
+  getFreeLLMAPIGenerationConfig,
   getPortfolioAIGenerationConfig,
   validatePortfolioAIGenerationEnvironment,
 } from "@/features/portfolio-ai/generation/generation.config";
@@ -28,6 +39,7 @@ export {
   GenerationProviderError,
   GenerationRateLimitError,
   GenerationTimeoutError,
+  markGenerationErrorAsNonRetryable,
   normalizeGenerationError,
 } from "@/features/portfolio-ai/generation/generation.errors";
 export {
@@ -41,10 +53,30 @@ export {
 } from "@/features/portfolio-ai/generation/response-language";
 export {
   GeminiPortfolioAIProvider,
-  getDefaultPortfolioAIProvider,
+  getDefaultGeminiPortfolioAIProvider,
 } from "@/features/portfolio-ai/generation/gemini-provider";
+export {
+  FreeLLMAPIPortfolioAIProvider,
+} from "@/features/portfolio-ai/generation/freellmapi-provider";
+export {
+  type PortfolioAIProviderWithValidationFallback,
+  ResilientPortfolioAIProvider,
+  createDefaultResilientPortfolioAIProvider,
+  getDefaultPortfolioAIProvider,
+  isFallbackEligibleGenerationError,
+} from "@/features/portfolio-ai/generation/resilient-provider";
 export { generatePortfolioAnswer } from "@/features/portfolio-ai/generation/generate-answer";
 export { validateGroundedAnswer } from "@/features/portfolio-ai/generation/validate-grounding";
+export {
+  buildProjectAttributeFastPathAnswer,
+} from "@/features/portfolio-ai/generation/project-attribute-fast-path";
+export {
+  buildProfileFastPathAnswer,
+} from "@/features/portfolio-ai/generation/profile-fast-path";
+export {
+  buildProjectTechnologyFastPathAnswer,
+  buildVerifiedTechnologyFastPathAnswer,
+} from "@/features/portfolio-ai/generation/verified-technology-fast-path";
 export type {
   AnswerUncertainty,
   ConversationContextMessage,

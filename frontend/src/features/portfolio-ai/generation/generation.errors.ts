@@ -40,6 +40,21 @@ export class GenerationGroundingError extends Error {
   }
 }
 
+function hasRetryableOverride(error: Error) {
+  return "retryable" in error && (error as { retryable?: unknown }).retryable === false;
+}
+
+export function markGenerationErrorAsNonRetryable<TError extends Error>(
+  error: TError,
+): TError {
+  Object.defineProperty(error, "retryable", {
+    value: false,
+    configurable: true,
+  });
+
+  return error;
+}
+
 function hasStatusCode(error: unknown, statusCode: number) {
   if (typeof error !== "object" || error === null) {
     return false;
@@ -114,6 +129,10 @@ export function normalizeGenerationError(error: unknown): Error {
 
 export function isRetryableGenerationError(error: unknown) {
   const normalized = normalizeGenerationError(error);
+
+  if (hasRetryableOverride(normalized)) {
+    return false;
+  }
 
   return (
     normalized instanceof GenerationProviderError ||

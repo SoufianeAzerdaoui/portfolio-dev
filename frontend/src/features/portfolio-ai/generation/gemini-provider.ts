@@ -9,6 +9,7 @@ import {
 } from "@/features/portfolio-ai/generation/generation.config";
 import {
   GenerationProviderError,
+  GenerationTimeoutError,
   normalizeGenerationError,
 } from "@/features/portfolio-ai/generation/generation.errors";
 import type {
@@ -38,6 +39,26 @@ function normalizeUsage(
   };
 }
 
+function isAbortError(error: unknown) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "name" in error &&
+    (error as { name?: unknown }).name === "AbortError"
+  );
+}
+
+function abortedError(signal: AbortSignal) {
+  if (signal.reason instanceof Error) {
+    return signal.reason;
+  }
+
+  const error = new Error("Portfolio AI generation was aborted.");
+  error.name = "AbortError";
+
+  return error;
+}
+
 export class GeminiPortfolioAIProvider implements PortfolioAIProvider {
   private readonly config: PortfolioAIGenerationConfig;
   private client?: GoogleGenAI;
@@ -62,12 +83,20 @@ export class GeminiPortfolioAIProvider implements PortfolioAIProvider {
   async generate(
     input: GroundedGenerationInput,
   ): Promise<ProviderGenerationResult> {
+    if (input.signal?.aborted) {
+      throw abortedError(input.signal);
+    }
+
     const startedAt = Date.now();
     const abortController = new AbortController();
-    const timeout = setTimeout(
-      () => abortController.abort(),
-      this.config.timeoutMs,
-    );
+    let timedOut = false;
+    const timeout = setTimeout(() => {
+      timedOut = true;
+      abortController.abort();
+    }, this.config.timeoutMs);
+    const cancelForClientAbort = () => abortController.abort(input.signal?.reason);
+
+    input.signal?.addEventListener("abort", cancelForClientAbort, { once: true });
 
     try {
       const response = await this.getClient().models.generateContent({
@@ -102,17 +131,26 @@ export class GeminiPortfolioAIProvider implements PortfolioAIProvider {
         usage: normalizeUsage(response.usageMetadata),
       };
     } catch (error) {
+      if (timedOut) {
+        throw new GenerationTimeoutError();
+      }
+
+      if (input.signal?.aborted && isAbortError(error)) {
+        throw abortedError(input.signal);
+      }
+
       throw normalizeGenerationError(error);
     } finally {
+      input.signal?.removeEventListener("abort", cancelForClientAbort);
       clearTimeout(timeout);
     }
   }
 }
 
-let defaultProvider: GeminiPortfolioAIProvider | undefined;
+let defaultGeminiProvider: GeminiPortfolioAIProvider | undefined;
 
-export function getDefaultPortfolioAIProvider() {
-  defaultProvider ??= new GeminiPortfolioAIProvider();
+export function getDefaultGeminiPortfolioAIProvider() {
+  defaultGeminiProvider ??= new GeminiPortfolioAIProvider();
 
-  return defaultProvider;
+  return defaultGeminiProvider;
 }

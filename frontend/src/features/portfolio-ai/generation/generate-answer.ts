@@ -9,6 +9,10 @@ import {
   getPortfolioAIGenerationConfig,
 } from "@/features/portfolio-ai/generation/generation.config";
 import {
+  logPortfolioAIDebug,
+} from "@/features/portfolio-ai/generation/debug";
+import {
+  GenerationGroundingError,
   GenerationInvalidOutputError,
   GenerationProviderError,
   isRetryableGenerationError,
@@ -18,11 +22,24 @@ import {
   buildGenerationUserPrompt,
   PORTFOLIO_AI_SYSTEM_PROMPT,
 } from "@/features/portfolio-ai/generation/generation.prompt";
-import { getDefaultPortfolioAIProvider } from "@/features/portfolio-ai/generation/gemini-provider";
+import {
+  getDefaultPortfolioAIProvider,
+  type PortfolioAIProviderWithValidationFallback,
+} from "@/features/portfolio-ai/generation/resilient-provider";
 import {
   detectPortfolioAIResponseLanguage,
   isPortfolioAIGreeting,
 } from "@/features/portfolio-ai/generation/response-language";
+import {
+  buildProjectAttributeFastPathAnswer,
+} from "@/features/portfolio-ai/generation/project-attribute-fast-path";
+import {
+  buildProfileFastPathAnswer,
+} from "@/features/portfolio-ai/generation/profile-fast-path";
+import {
+  buildProjectTechnologyFastPathAnswer,
+  buildVerifiedTechnologyFastPathAnswer,
+} from "@/features/portfolio-ai/generation/verified-technology-fast-path";
 import type {
   GeneratePortfolioAnswerInput,
   GeneratePortfolioAnswerOptions,
@@ -32,6 +49,15 @@ import type {
   ProviderGenerationResult,
 } from "@/features/portfolio-ai/generation/generation.types";
 import { validateGroundedAnswer } from "@/features/portfolio-ai/generation/validate-grounding";
+
+function isAbortError(error: unknown) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "name" in error &&
+    (error as { name?: unknown }).name === "AbortError"
+  );
+}
 
 function localNotDocumentedAnswer(input: GeneratePortfolioAnswerInput) {
   const language = detectPortfolioAIResponseLanguage(
@@ -80,6 +106,12 @@ function countEvidenceByStatus(
   }, 0);
 }
 
+function hasValidationFallback(
+  provider: PortfolioAIProvider,
+): provider is PortfolioAIProviderWithValidationFallback {
+  return "generateFallbackAfterInvalidOutput" in provider;
+}
+
 async function generateValidatedWithRetry(
   provider: PortfolioAIProvider,
   groundedInput: Parameters<PortfolioAIProvider["generate"]>[0],
@@ -90,6 +122,7 @@ async function generateValidatedWithRetry(
   providerResult: ProviderGenerationResult;
   answer: PortfolioAnswer;
   retryCount: number;
+  validationMs: number;
 }> {
   let attempt = 0;
   let lastError: unknown;
@@ -97,18 +130,86 @@ async function generateValidatedWithRetry(
   while (attempt <= maxRetries) {
     try {
       const providerResult = await provider.generate(groundedInput);
+      const validationStartedAt = Date.now();
       const answer = validateGroundedAnswer(
         providerResult.output,
         input,
         allowedEvidenceIds,
       );
+      const validationMs = Date.now() - validationStartedAt;
 
-      return { providerResult, answer, retryCount: attempt };
+      logPortfolioAIDebug("generation.validation", {
+        requestId: groundedInput.requestId,
+        intent: input.retrieval.intent,
+        provider: providerResult.provider,
+        elapsedMs: validationMs,
+        validation: "PASS",
+      });
+
+      return {
+        providerResult,
+        answer,
+        retryCount: attempt,
+        validationMs,
+      };
     } catch (error) {
       lastError = error;
 
+      if (
+        error instanceof GenerationInvalidOutputError ||
+        error instanceof GenerationGroundingError
+      ) {
+        logPortfolioAIDebug("generation.validation", {
+          requestId: groundedInput.requestId,
+          intent: input.retrieval.intent,
+          elapsedMs: 0,
+          validation: "FAIL",
+          normalizedErrorClass: normalizeGenerationError(error).name,
+        });
+      }
+
+      if (isAbortError(error)) {
+        throw error;
+      }
+
+      const normalizedError = normalizeGenerationError(error);
+
+      if (
+        input.retrieval.intent === "candidate_fit" &&
+        normalizedError instanceof GenerationInvalidOutputError
+      ) {
+        if (!hasValidationFallback(provider)) {
+          throw normalizedError;
+        }
+
+        const providerResult =
+          await provider.generateFallbackAfterInvalidOutput(groundedInput);
+        const validationStartedAt = Date.now();
+        const answer = validateGroundedAnswer(
+          providerResult.output,
+          input,
+          allowedEvidenceIds,
+        );
+        const validationMs = Date.now() - validationStartedAt;
+
+        logPortfolioAIDebug("generation.validation", {
+          requestId: groundedInput.requestId,
+          intent: input.retrieval.intent,
+          provider: providerResult.provider,
+          elapsedMs: validationMs,
+          validation: "PASS",
+        });
+
+        return {
+          providerResult,
+          answer,
+          retryCount: attempt,
+          validationMs,
+        };
+      }
+
       if (!isRetryableGenerationError(error) || attempt >= maxRetries) {
-        throw normalizeGenerationError(error);
+        throw normalizedError;
       }
     }
 
@@ -139,6 +240,55 @@ export async function generatePortfolioAnswer(
   const retrievedEntityCount = input.retrieval.results.length;
   const verifiedEvidenceCount = countEvidenceByStatus(input, "verified");
   const ambiguousEvidenceCount = countEvidenceByStatus(input, "ambiguous");
+  const projectTechnologyFastPathAnswer =
+    buildProjectTechnologyFastPathAnswer(input);
+  const projectAttributeFastPathAnswer =
+    buildProjectAttributeFastPathAnswer(input);
+  const profileFastPathAnswer = buildProfileFastPathAnswer(input);
+  const verifiedTechnologyFastPathAnswer =
+    buildVerifiedTechnologyFastPathAnswer(input);
+  const fastPathAnswer =
+    projectTechnologyFastPathAnswer ??
+    projectAttributeFastPathAnswer ??
+    profileFastPathAnswer ??
+    verifiedTechnologyFastPathAnswer;
+
+  if (fastPathAnswer) {
+    logPortfolioAIDebug("generation.fast_path", {
+      requestId: options.requestId,
+      intent: input.retrieval.intent,
+      fastPathUsed: "YES",
+      retrievedEntityIds: input.retrieval.results.map(
+        (result) => result.entity.id,
+      ),
+      evidenceIds: fastPathAnswer.usedEvidenceIds,
+    });
+
+    return {
+      answer: fastPathAnswer,
+      metadata: {
+        provider: "local",
+        model: projectTechnologyFastPathAnswer
+          ? "deterministic-project-technology"
+          : projectAttributeFastPathAnswer
+            ? "deterministic-project-attribute"
+            : profileFastPathAnswer
+              ? input.retrieval.intent.startsWith("language")
+                ? "deterministic-profile-language"
+                : "deterministic-profile-skills"
+              : "deterministic-verified-technology",
+        latencyMs: 0,
+        retrievedEntityCount,
+        verifiedEvidenceCount,
+        ambiguousEvidenceCount,
+        usedEvidenceCount: fastPathAnswer.usedEvidenceIds.length,
+        providerCalled: false,
+        retryCount: 0,
+        fastPathUsed: true,
+        validationMs: 0,
+      },
+    };
+  }
 
   if (isPortfolioAIGreeting(input.question)) {
     return {
@@ -153,6 +303,8 @@ export async function generatePortfolioAnswer(
         usedEvidenceCount: 0,
         providerCalled: false,
         retryCount: 0,
+        fastPathUsed: false,
+        validationMs: 0,
       },
     };
   }
@@ -170,27 +322,39 @@ export async function generatePortfolioAnswer(
         usedEvidenceCount: 0,
         providerCalled: false,
         retryCount: 0,
+        fastPathUsed: false,
+        validationMs: 0,
       },
     };
   }
 
   const provider = options.provider ?? getDefaultPortfolioAIProvider();
+  logPortfolioAIDebug("generation.fast_path", {
+    requestId: options.requestId,
+    intent: input.retrieval.intent,
+    fastPathUsed: "NO",
+    retrievedEntityIds: input.retrieval.results.map((result) => result.entity.id),
+    evidenceIds: allowedEvidenceIds,
+  });
   const userPrompt = buildGenerationUserPrompt(input, groundedContext);
-  const { providerResult, answer, retryCount } = await generateValidatedWithRetry(
-    provider,
-    {
-      question: input.question,
-      locale: input.locale,
-      model,
-      groundedContext,
+  const { providerResult, answer, retryCount, validationMs } =
+    await generateValidatedWithRetry(
+      provider,
+      {
+        requestId: options.requestId,
+        question: input.question,
+        locale: input.locale,
+        model,
+        groundedContext,
+        allowedEvidenceIds,
+        systemPrompt: PORTFOLIO_AI_SYSTEM_PROMPT,
+        userPrompt,
+        signal: options.signal,
+      },
+      input,
       allowedEvidenceIds,
-      systemPrompt: PORTFOLIO_AI_SYSTEM_PROMPT,
-      userPrompt,
-    },
-    input,
-    allowedEvidenceIds,
-    config.maxRetries,
-  );
+      config.maxRetries,
+    );
 
   return {
     answer,
@@ -204,6 +368,8 @@ export async function generatePortfolioAnswer(
       usedEvidenceCount: answer.usedEvidenceIds.length,
       providerCalled: true,
       retryCount,
+      fastPathUsed: false,
+      validationMs,
       usage: providerResult.usage,
     },
   };

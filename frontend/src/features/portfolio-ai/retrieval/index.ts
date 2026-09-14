@@ -11,11 +11,15 @@ export { normalizeQuery } from "@/features/portfolio-ai/retrieval/normalize-quer
 export { rankCandidates } from "@/features/portfolio-ai/retrieval/rank-candidates";
 export { retrievePortfolioKnowledge } from "@/features/portfolio-ai/retrieval/retrieve";
 export type {
+  CandidateFitFocus,
   DetectedEntity,
   EntityMatchType,
   IntentDetection,
+  LanguageQueryKind,
   NormalizedQuery,
   PortfolioRetrievalResult,
+  ProfileSkillCategory,
+  ProjectAttribute,
   RetrievalCandidate,
   RetrievalIntent,
   RetrievalLocale,

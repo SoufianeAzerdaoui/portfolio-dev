@@ -17,10 +17,25 @@ const UNCERTAINTY_VALUES = new Set<AnswerUncertainty>([
   "not-documented",
 ]);
 
+const PORTFOLIO_ANSWER_REQUIRED_FIELDS = [
+  "answer",
+  "usedEvidenceIds",
+  "uncertainty",
+  "language",
+] as const;
+
+const PORTFOLIO_ANSWER_UNCERTAINTY_VALUES = [
+  "none",
+  "ambiguous",
+  "not-documented",
+] as const;
+
+const PORTFOLIO_ANSWER_LANGUAGE_VALUES = ["fr", "en"] as const;
+
 export const portfolioAnswerResponseSchema: Schema = {
   type: Type.OBJECT,
-  required: ["answer", "usedEvidenceIds", "uncertainty", "language"],
-  propertyOrdering: ["answer", "usedEvidenceIds", "uncertainty", "language"],
+  required: [...PORTFOLIO_ANSWER_REQUIRED_FIELDS],
+  propertyOrdering: [...PORTFOLIO_ANSWER_REQUIRED_FIELDS],
   properties: {
     answer: {
       type: Type.STRING,
@@ -38,15 +53,44 @@ export const portfolioAnswerResponseSchema: Schema = {
     uncertainty: {
       type: Type.STRING,
       format: "enum",
-      enum: ["none", "ambiguous", "not-documented"],
+      enum: [...PORTFOLIO_ANSWER_UNCERTAINTY_VALUES],
     },
     language: {
       type: Type.STRING,
       format: "enum",
-      enum: ["fr", "en"],
+      enum: [...PORTFOLIO_ANSWER_LANGUAGE_VALUES],
     },
   },
 };
+
+export const portfolioAnswerJSONSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: [...PORTFOLIO_ANSWER_REQUIRED_FIELDS],
+  properties: {
+    answer: {
+      type: "string",
+      minLength: 1,
+      maxLength: MAX_GENERATED_ANSWER_LENGTH,
+      description: "Concise grounded answer to the user's question.",
+    },
+    usedEvidenceIds: {
+      type: "array",
+      items: {
+        type: "string",
+      },
+      description: "Only evidence IDs from the supplied PORTFOLIO DATA.",
+    },
+    uncertainty: {
+      type: "string",
+      enum: [...PORTFOLIO_ANSWER_UNCERTAINTY_VALUES],
+    },
+    language: {
+      type: "string",
+      enum: [...PORTFOLIO_ANSWER_LANGUAGE_VALUES],
+    },
+  },
+} as const;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;

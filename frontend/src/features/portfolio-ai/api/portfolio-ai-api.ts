@@ -14,7 +14,9 @@ import {
   createEvidenceId,
   detectPortfolioAIResponseLanguage,
   generatePortfolioAnswer,
+  logPortfolioAIDebug,
 } from "@/features/portfolio-ai/generation";
+import { PERSON_ID } from "@/features/portfolio-ai/knowledge/knowledge.sources";
 import {
   GenerationConfigurationError,
   GenerationGroundingError,
@@ -96,6 +98,7 @@ export type PortfolioAIServiceOptions = {
   requestId?: string;
   clientKey?: string;
   rateLimiter?: PortfolioAIRateLimiter | false;
+  signal?: AbortSignal;
 };
 
 class PortfolioAIRequestValidationError extends Error {
@@ -234,9 +237,70 @@ function collectGroupEvidenceIds(group: RetrievalResultGroup) {
   return new Set(evidence.map(createEvidenceId));
 }
 
+function findGroupEvidence(
+  group: RetrievalResultGroup,
+  evidenceId: string,
+) {
+  const evidence = [
+    ...group.evidence,
+    ...group.facts.flatMap((fact) => fact.evidence),
+    ...group.relations.flatMap((relation) => relation.evidence),
+  ];
+
+  return evidence.find((item) => createEvidenceId(item) === evidenceId);
+}
+
+function publicSourceForEvidenceId(
+  group: RetrievalResultGroup,
+  evidenceId: string,
+  locale: LocaleCode,
+): { key: string; source: PublicPortfolioAISource } {
+  const evidence = findGroupEvidence(group, evidenceId);
+
+  if (
+    group.entity.id === PERSON_ID &&
+    evidence?.sourceType === "portfolio" &&
+    (evidence.sourceId === "technical-skills" ||
+      evidence.sourceId === "languages")
+  ) {
+    const label =
+      evidence.sourceId === "languages"
+        ? locale === "en"
+          ? "Languages"
+          : "Langues"
+        : locale === "en"
+          ? "Technical profile"
+          : "Profil technique";
+    const key = `profile:${evidence.sourceId}`;
+
+    return {
+      key,
+      source: {
+        id: evidenceId,
+        entityId: group.entity.id,
+        type: "profile",
+        label,
+      },
+    };
+  }
+
+  return {
+    key: `${group.entity.type}:${group.entity.id}`,
+    source: {
+      id: evidenceId,
+      entityId: group.entity.id,
+      type: group.entity.type,
+      label:
+        group.entity.localeContent?.[locale]?.title ??
+        group.entity.canonicalName,
+    },
+  };
+}
+
 export function projectPublicSources(
   retrieval: PortfolioRetrievalResult,
   usedEvidenceIds: readonly string[],
+  locale: LocaleCode = "fr",
 ): PublicPortfolioAISource[] {
   const sources: PublicPortfolioAISource[] = [];
   const emittedPublicEntityKeys = new Set<string>();
@@ -250,20 +314,17 @@ export function projectPublicSources(
       continue;
     }
 
-    const publicEntityKey = `${matchingGroup.entity.type}:${matchingGroup.entity.id}`;
+    const { key: publicEntityKey, source } = publicSourceForEvidenceId(
+      matchingGroup,
+      evidenceId,
+      locale,
+    );
 
     if (emittedPublicEntityKeys.has(publicEntityKey)) {
       continue;
     }
 
-    sources.push({
-      id: evidenceId,
-      entityId: matchingGroup.entity.id,
-      type: matchingGroup.entity.type,
-      label:
-        matchingGroup.entity.localeContent?.fr?.title ??
-        matchingGroup.entity.canonicalName,
-    });
+    sources.push(source);
     emittedPublicEntityKeys.add(publicEntityKey);
   }
 
@@ -458,6 +519,12 @@ export async function generatePublicPortfolioAIResponse(
     generationOptions.provider = options.provider;
   }
 
+  if (options.signal) {
+    generationOptions.signal = options.signal;
+  }
+
+  generationOptions.requestId = requestId;
+
   const result = await generatePortfolioAnswer(
     {
       question: prepared.payload.message,
@@ -479,6 +546,7 @@ export async function generatePublicPortfolioAIResponse(
     sources: projectPublicSources(
       prepared.retrieval,
       result.answer.usedEvidenceIds,
+      result.answer.language,
     ),
   };
 }
@@ -488,9 +556,25 @@ export async function handlePortfolioAIRequest(
   options: PortfolioAIServiceOptions = {},
 ): Promise<PortfolioAIHTTPResult> {
   const requestId = options.requestId ?? createPortfolioAIRequestId();
+  const requestStartedAt = Date.now();
+  let debugStatus: number | undefined;
+  let debugErrorClass: string | undefined;
 
   try {
+    const retrievalStartedAt = Date.now();
     const prepared = preparePortfolioAIRequest(rawPayload);
+    logPortfolioAIDebug("api.retrieval", {
+      requestId,
+      intent: prepared.retrieval.intent,
+      requestedProjectAttribute: prepared.retrieval.requestedProjectAttribute,
+      elapsedMs: Date.now() - retrievalStartedAt,
+      retrievedEntityIds: prepared.retrieval.results.map(
+        (result) => result.entity.id,
+      ),
+      evidenceIds: prepared.retrieval.results.flatMap((result) =>
+        [...collectGroupEvidenceIds(result)],
+      ),
+    });
     const release = acquirePortfolioAIGenerationAccessForTransport(
       prepared,
       options,
@@ -507,11 +591,25 @@ export async function handlePortfolioAIRequest(
       release();
     }
 
+    debugStatus = 200;
+
     return {
       status: 200,
       body,
     };
   } catch (error) {
-    return mapPortfolioAIErrorToHTTPResult(error, requestId);
+    const result = mapPortfolioAIErrorToHTTPResult(error, requestId);
+
+    debugStatus = result.status;
+    debugErrorClass = error instanceof Error ? error.name : "UnknownError";
+
+    return result;
+  } finally {
+    logPortfolioAIDebug("api.request", {
+      requestId,
+      elapsedMs: Date.now() - requestStartedAt,
+      status: debugStatus,
+      normalizedErrorClass: debugErrorClass,
+    });
   }
 }

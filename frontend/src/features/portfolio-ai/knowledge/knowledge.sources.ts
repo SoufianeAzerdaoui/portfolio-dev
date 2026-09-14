@@ -32,6 +32,8 @@ export function buildKnownSourceRefs(): KnowledgeSourceRef[] {
   const refs: KnowledgeSourceRef[] = [
     sourceRef("portfolio", "identity"),
     sourceRef("portfolio", "about"),
+    sourceRef("portfolio", "technical-skills"),
+    sourceRef("portfolio", "languages"),
   ];
 
   knowledgeSourceData.educationContentByLocale.fr.items.forEach((_, index) => {
