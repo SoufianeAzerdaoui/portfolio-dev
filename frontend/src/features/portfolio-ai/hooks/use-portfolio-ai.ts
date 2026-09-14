@@ -39,6 +39,7 @@ export function usePortfolioAI({ locale }: UsePortfolioAIOptions) {
   const statusRef = useRef(status);
   const abortControllerRef = useRef<AbortController | null>(null);
   const lastSubmittedQuestionRef = useRef<string | null>(null);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
     messagesRef.current = messages;
@@ -53,7 +54,14 @@ export function usePortfolioAI({ locale }: UsePortfolioAIOptions) {
     abortControllerRef.current = null;
   }, []);
 
-  useEffect(() => abort, [abort]);
+  useEffect(() => {
+    mountedRef.current = true;
+
+    return () => {
+      mountedRef.current = false;
+      abort();
+    };
+  }, [abort]);
 
   const submit = useCallback(
     async (rawQuestion: string, options: SubmitOptions = {}) => {
@@ -72,6 +80,7 @@ export function usePortfolioAI({ locale }: UsePortfolioAIOptions) {
 
       abortControllerRef.current = controller;
       lastSubmittedQuestionRef.current = options.displayValue ?? question;
+      statusRef.current = "submitting";
       setStatus("submitting");
       setLastError(null);
       setCurrentRequestId(null);
@@ -102,6 +111,11 @@ export function usePortfolioAI({ locale }: UsePortfolioAIOptions) {
           {
             signal: controller.signal,
             onMeta: (meta) => {
+              if (!mountedRef.current) {
+                return;
+              }
+
+              statusRef.current = "streaming";
               setCurrentRequestId(meta.requestId);
               setStatus("streaming");
               setMessages((current) =>
@@ -113,6 +127,11 @@ export function usePortfolioAI({ locale }: UsePortfolioAIOptions) {
               );
             },
             onDelta: ({ text }) => {
+              if (!mountedRef.current) {
+                return;
+              }
+
+              statusRef.current = "streaming";
               setStatus("streaming");
               setMessages((current) =>
                 appendPortfolioAIAssistantDelta(
@@ -123,6 +142,10 @@ export function usePortfolioAI({ locale }: UsePortfolioAIOptions) {
               );
             },
             onSources: ({ sources }: { sources: PublicPortfolioAISource[] }) => {
+              if (!mountedRef.current) {
+                return;
+              }
+
               setMessages((current) =>
                 updatePortfolioAIAssistantMessage(current, assistantMessageId, {
                   sources,
@@ -130,6 +153,11 @@ export function usePortfolioAI({ locale }: UsePortfolioAIOptions) {
               );
             },
             onDone: ({ uncertainty }) => {
+              if (!mountedRef.current) {
+                return;
+              }
+
+              statusRef.current = "success";
               setStatus("success");
               setMessages((current) =>
                 updatePortfolioAIAssistantMessage(current, assistantMessageId, {
@@ -145,6 +173,10 @@ export function usePortfolioAI({ locale }: UsePortfolioAIOptions) {
           return;
         }
 
+        if (!mountedRef.current) {
+          return;
+        }
+
         const normalized = normalizePortfolioAIClientError(error);
         const errorPayload: PortfolioAIClientErrorPayload = {
           code: normalized.code,
@@ -156,6 +188,7 @@ export function usePortfolioAI({ locale }: UsePortfolioAIOptions) {
         };
 
         setLastError(errorPayload);
+        statusRef.current = "error";
         setStatus("error");
         setMessages((current) =>
           updatePortfolioAIAssistantMessage(current, assistantMessageId, {
@@ -183,6 +216,7 @@ export function usePortfolioAI({ locale }: UsePortfolioAIOptions) {
 
   const reset = useCallback(() => {
     abort();
+    statusRef.current = "idle";
     setMessages([]);
     setStatus("idle");
     setCurrentRequestId(null);

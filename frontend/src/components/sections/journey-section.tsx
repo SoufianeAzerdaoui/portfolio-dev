@@ -1,5 +1,3 @@
-import { ArrowUpRight } from "lucide-react";
-
 import {
   type JourneyExperience,
   type JourneySectionLabels,
@@ -44,6 +42,8 @@ export function JourneySection({
             const experienceType = experience.experienceType
               ? typeLabels[experience.experienceType]
               : undefined;
+            const technologies =
+              experience.displayTechnologies ?? experience.technologies;
 
             return (
               <li
@@ -104,15 +104,15 @@ export function JourneySection({
                   </p>
                 ) : null}
 
-                {experience.technologies?.length ? (
+                {technologies?.length ? (
                   <ul
                     className="mt-4 flex flex-wrap gap-2"
                     aria-label={labels.technologies}
                   >
-                    {experience.technologies.map((technology) => (
+                    {technologies.map((technology) => (
                       <li
                         key={technology}
-                        className="journey-experience-tech rounded-full border border-[rgb(var(--accent-rgb)/0.08)] bg-[rgb(var(--accent-rgb)/0.045)] px-[9px] py-1 text-[0.75rem] font-[450] leading-5 tracking-[0.015em] text-[var(--accent-muted)] transition-[background-color,border-color,color] duration-200 ease-out motion-reduce:transition-none"
+                        className="journey-experience-tech rounded-[6px] border border-[rgb(var(--accent-rgb)/0.075)] bg-[rgb(var(--accent-rgb)/0.032)] px-2 py-0.5 text-[0.72rem] font-[450] leading-5 tracking-[0.01em] text-[var(--accent-muted)] transition-[background-color,border-color,color] duration-200 ease-out motion-reduce:transition-none"
                       >
                         {technology}
                       </li>
@@ -124,16 +124,17 @@ export function JourneySection({
                   <a
                     href={experience.projectLink.href}
                     target="_blank"
-                    rel="noreferrer"
+                    rel="noopener noreferrer"
                     aria-label={`${experience.projectLink.label} - ${labels.externalProjectSuffix}`}
                     className="journey-experience-link group/link mt-5 inline-flex items-center gap-2 border-b border-[rgb(var(--accent-rgb)/0.2)] pb-1 text-[0.78rem] font-medium tracking-[0.04em] text-[var(--accent-strong)] transition-[border-color,color] duration-200 ease-out hover:border-[rgb(var(--accent-rgb)/0.7)] hover:text-[var(--foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--focus-ring-offset)] motion-reduce:transition-none"
                   >
                     <span>{experience.projectLink.label}</span>
-                    <ArrowUpRight
+                    <span
                       aria-hidden="true"
-                      className="h-3.5 w-3.5 transition-transform duration-200 ease-out group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 motion-reduce:transform-none motion-reduce:transition-none"
-                      strokeWidth={1.8}
-                    />
+                      className="transition-transform duration-200 ease-out group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 motion-reduce:transform-none motion-reduce:transition-none"
+                    >
+                      ↗
+                    </span>
                   </a>
                 ) : null}
                 </article>

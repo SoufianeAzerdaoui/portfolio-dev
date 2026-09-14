@@ -441,6 +441,10 @@ function explainFallback(
 }
 
 async function main() {
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("Portfolio AI diagnostics are disabled in production.");
+  }
+
   loadEnvConfig(process.cwd());
 
   const { message, providerMode } = parseDiagnoseArgs(process.argv.slice(2));

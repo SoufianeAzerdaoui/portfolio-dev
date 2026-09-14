@@ -28,6 +28,10 @@ function sanitizeError(error: unknown) {
 }
 
 async function main() {
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("Portfolio AI FreeLLMAPI smoke is disabled in production.");
+  }
+
   const envLoadResult = loadEnvConfig(process.cwd());
   const {
     FreeLLMAPIPortfolioAIProvider,

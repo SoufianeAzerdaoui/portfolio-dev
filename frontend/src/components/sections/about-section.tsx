@@ -72,7 +72,7 @@ export function AboutSection({ content }: AboutSectionProps) {
             {content.highlights.map((highlight) => (
               <li
                 key={highlight}
-                className="inline-flex min-h-8 items-center gap-2 rounded-full border border-[var(--border-muted)] bg-[var(--surface-elevated)] px-3.5 text-[0.72rem] font-medium tracking-[0.12em] text-[var(--foreground-muted)]"
+                className="inline-flex min-h-8 items-center gap-2 rounded-[6px] border border-[var(--border-muted)] bg-[var(--surface-elevated)] px-3 text-[0.72rem] font-medium tracking-[0.1em] text-[var(--foreground-muted)]"
               >
                 <span
                   aria-hidden="true"
@@ -88,13 +88,18 @@ export function AboutSection({ content }: AboutSectionProps) {
             className="group mt-11 inline-flex min-h-[46px] items-center justify-center gap-2 rounded-[6px] border border-[var(--button-secondary-border)] bg-[var(--button-secondary-bg)] px-6 py-2.5 text-[0.83rem] font-medium text-[var(--foreground)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition duration-200 hover:-translate-y-px hover:border-[var(--accent-muted)] hover:bg-[var(--button-secondary-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--focus-ring-offset)] active:translate-y-0 motion-reduce:transition-none"
           >
             <span>{content.cta.label}</span>
-            <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-[3px] motion-reduce:transition-none" />
+            <ArrowRight
+              aria-hidden="true"
+              focusable="false"
+              className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-[3px] motion-reduce:transition-none"
+            />
           </Link>
         </div>
 
         <figure className="relative mx-auto w-full max-w-[23rem] lg:mx-0 lg:ml-auto lg:mt-24">
           <svg
             aria-hidden="true"
+            focusable="false"
             viewBox="0 0 440 520"
             fill="none"
             className="pointer-events-none absolute -right-8 -top-10 hidden h-[32rem] w-[26rem] opacity-[0.08] lg:block"
@@ -114,7 +119,7 @@ export function AboutSection({ content }: AboutSectionProps) {
           <div className="group relative overflow-hidden rounded-[18px] border border-[var(--border-subtle)] bg-[var(--surface-elevated)] p-3 shadow-[var(--shadow-portrait)] transition duration-200 hover:-translate-y-px hover:border-[var(--border-strong)] motion-reduce:transition-none">
             <div className="mb-3 px-1">
               <p className="text-[0.6rem] font-medium uppercase tracking-[0.3em] text-[var(--foreground-muted)] opacity-75">
-                AI / Data Profile
+                {content.profileLabel}
               </p>
             </div>
 
@@ -124,7 +129,6 @@ export function AboutSection({ content }: AboutSectionProps) {
                 alt={content.image.alt}
                 fill
                 sizes="(min-width: 1280px) 420px, (min-width: 1024px) 380px, min(88vw, 368px)"
-                quality={100}
                 className="object-cover object-center"
                 priority={false}
               />
@@ -136,7 +140,7 @@ export function AboutSection({ content }: AboutSectionProps) {
                   {content.signature}
                 </p>
                 <p className="mt-1 text-xs font-medium tracking-[0.12em] text-[var(--foreground-muted)]">
-                  M2 SIAD · ISIMA
+                  {content.profileMeta}
                 </p>
               </div>
             </div>

@@ -107,8 +107,11 @@ export function PortfolioAIConsole({
   const [rendered, setRendered] = useState(open);
   const [closing, setClosing] = useState(false);
   const titleId = useId();
+  const statusId = useId();
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
+  const minimizeControlRef = useRef<HTMLButtonElement | null>(null);
+  const wasMinimizedRef = useRef(false);
 
   const close = useCallback(() => {
     setModeState(INITIAL_CONSOLE_MODE_STATE);
@@ -214,6 +217,10 @@ export function PortfolioAIConsole({
       return;
     }
 
+    if (modeState.mode === "minimized") {
+      return;
+    }
+
     const previousOverflow = document.body.style.overflow;
 
     document.body.style.overflow = "hidden";
@@ -261,11 +268,41 @@ export function PortfolioAIConsole({
       document.body.style.overflow = previousOverflow;
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [close, open, rendered]);
+  }, [close, modeState.mode, open, rendered]);
+
+  useEffect(() => {
+    if (!rendered || !open) {
+      return;
+    }
+
+    if (modeState.mode === "minimized") {
+      wasMinimizedRef.current = true;
+      window.requestAnimationFrame(() => {
+        minimizeControlRef.current?.focus();
+      });
+      return;
+    }
+
+    if (wasMinimizedRef.current) {
+      wasMinimizedRef.current = false;
+      window.requestAnimationFrame(() => {
+        inputRef.current?.focus();
+      });
+    }
+  }, [modeState.mode, open, rendered]);
 
   if (!rendered) {
     return null;
   }
+
+  const liveStatus =
+    status === "submitting" || status === "streaming"
+      ? content.processing
+      : status === "success"
+        ? content.answerAvailable
+        : status === "error"
+          ? content.errorMessages.AI_RESPONSE_INVALID
+          : "";
 
   return (
     <div
@@ -286,9 +323,10 @@ export function PortfolioAIConsole({
       <div
         id="portfolio-ai-console"
         ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
+        role={modeState.mode === "minimized" ? "region" : "dialog"}
+        aria-modal={modeState.mode === "minimized" ? undefined : true}
         aria-labelledby={titleId}
+        aria-describedby={liveStatus ? statusId : undefined}
         aria-busy={isActive}
         className={[
           "pointer-events-auto relative flex flex-col overflow-hidden border border-[var(--home-line)] bg-[#17161C] [--portfolio-ai-composer-clearance:calc(6.75rem+env(safe-area-inset-bottom))] shadow-[0_24px_80px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.035)] transition-[width,height] duration-200 motion-reduce:transition-none",
@@ -311,6 +349,14 @@ export function PortfolioAIConsole({
         <h2 id={titleId} className="sr-only">
           {content.ariaLabel}
         </h2>
+        <p
+          id={statusId}
+          aria-live="polite"
+          aria-atomic="true"
+          className="sr-only"
+        >
+          {liveStatus}
+        </p>
         <PortfolioAIHeader
           content={content}
           mode={modeState.mode}
@@ -318,6 +364,7 @@ export function PortfolioAIConsole({
           onClose={close}
           onToggleMinimized={toggleMinimized}
           onToggleExpanded={toggleExpanded}
+          minimizeControlRef={minimizeControlRef}
         />
         {modeState.mode === "minimized" ? (
           isActive ? (

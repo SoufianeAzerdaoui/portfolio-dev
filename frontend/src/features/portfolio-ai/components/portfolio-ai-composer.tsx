@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import type { KeyboardEvent, RefObject } from "react";
 
 import { PORTFOLIO_AI_CLIENT_MAX_MESSAGE_LENGTH } from "@/features/portfolio-ai/client/portfolio-ai-client";
@@ -25,6 +26,18 @@ export function PortfolioAIComposer({
   const trimmedValue = value.trim();
   const remainingCharacters = PORTFOLIO_AI_CLIENT_MAX_MESSAGE_LENGTH - value.length;
   const showCounter = remainingCharacters <= 180;
+  const resizeTextarea = (textarea: HTMLTextAreaElement | null) => {
+    if (!textarea) {
+      return;
+    }
+
+    textarea.style.height = "auto";
+    textarea.style.height = `${textarea.scrollHeight}px`;
+  };
+
+  useEffect(() => {
+    resizeTextarea(inputRef.current);
+  }, [inputRef, value]);
 
   const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === "Enter" && !event.shiftKey) {
@@ -57,7 +70,10 @@ export function PortfolioAIComposer({
             rows={1}
             disabled={disabled}
             placeholder={content.inputPlaceholder}
-            onChange={(event) => onChange(event.target.value)}
+            onChange={(event) => {
+              onChange(event.target.value);
+              resizeTextarea(event.currentTarget);
+            }}
             onKeyDown={handleKeyDown}
             className="min-h-[3.25rem] max-h-[8.5rem] w-full min-w-0 resize-none rounded-[8px] border border-[rgba(180,177,194,0.1)] bg-[rgba(32,33,38,0.42)] py-3 pl-8 pr-4 text-[0.92rem] leading-6 text-[var(--home-text)] outline-none transition-[background-color,border-color] duration-150 placeholder:text-[var(--home-muted)] focus:border-[rgba(139,128,217,0.42)] focus:bg-[rgba(32,33,38,0.58)] disabled:cursor-not-allowed disabled:opacity-65 motion-reduce:transition-none"
           />

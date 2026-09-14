@@ -74,6 +74,7 @@ export type PortfolioAIConsoleContent = {
   restore: string;
   minimizedReady: string;
   minimizedActive: string;
+  answerAvailable: string;
   sourceProjectAction: string;
   retry: string;
   processing: string;
@@ -110,6 +111,8 @@ export type AboutSectionContent = {
     src: string;
     alt: string;
   };
+  profileLabel: string;
+  profileMeta: string;
   signature: string;
   cta: CtaLink;
 };
