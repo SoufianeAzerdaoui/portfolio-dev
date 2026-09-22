@@ -78,9 +78,9 @@ test("Journey renders CHU, SEND SPACE, both ATLINE entries, and EPG", () => {
 
   assert.match(markup, /ATLINE SERVICES/);
   assert.equal((markup.match(/ATLINE SERVICES/g) ?? []).length, 2);
-  assert.match(markup, /Stage PFE — Data &amp; IA/);
+  assert.match(markup, /Data &amp; IA Engineer/);
   assert.match(markup, /CHU Mohammed VI/);
-  assert.match(markup, /Stage de fin d’études — Business Intelligence/);
+  assert.match(markup, /Développeur de Business Intelligence/);
   assert.match(markup, /SEND SPACE/);
   assert.match(markup, /Développement Full Stack/);
   assert.match(markup, /EPG/);

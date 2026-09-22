@@ -17,6 +17,8 @@ import type { LocaleCode } from "@/types/portfolio";
 
 type RetrievalFact =
   GeneratePortfolioAnswerInput["retrieval"]["results"][number]["facts"][number];
+type RetrievalResult =
+  GeneratePortfolioAnswerInput["retrieval"]["results"][number];
 
 type ProfileSkillFactValue = {
   entityId: string;
@@ -33,15 +35,29 @@ type LanguageFactValue = {
   display: Record<LocaleCode, string>;
 };
 
-const PROFILE_SKILL_CATEGORY_ORDER: ProfileSkillCategory[] = [
-  "data-engineering",
-  "ai-nlp-genai",
-  "databases-bi",
-  "programming-languages",
-  "cloud-devops",
-  "web-development",
-  "design-methods",
-];
+type AvailabilityFactValue = {
+  internship: {
+    status: "documented";
+    availableFrom: Record<LocaleCode, string>;
+    targetAreas: readonly string[];
+  };
+  apprenticeship: {
+    status: "not-documented";
+  };
+  fullTime: {
+    status: "not-documented";
+  };
+};
+
+type CareerTargetFactValue = {
+  opportunityType: "internship";
+  targetRoles: readonly string[];
+};
+
+type CertificationFactPair = {
+  titleFact: RetrievalFact;
+  issuerFact: RetrievalFact;
+};
 
 const DEFAULT_CATEGORY_LABELS: Record<
   ProfileSkillCategory,
@@ -51,29 +67,37 @@ const DEFAULT_CATEGORY_LABELS: Record<
     fr: "Data Engineering",
     en: "Data Engineering",
   },
-  "ai-nlp-genai": {
-    fr: "IA / NLP / GenAI",
-    en: "AI / NLP / GenAI",
+  "ml-deep-learning": {
+    fr: "ML & Deep Learning",
+    en: "ML & Deep Learning",
   },
-  "databases-bi": {
-    fr: "Bases de données & BI",
-    en: "Databases & BI",
+  "nlp-llm-rag": {
+    fr: "NLP, LLM & RAG",
+    en: "NLP, LLM & RAG",
+  },
+  "data-analysis-bi": {
+    fr: "Data Analysis & BI",
+    en: "Data Analysis & BI",
+  },
+  databases: {
+    fr: "Bases de données",
+    en: "Databases",
   },
   "programming-languages": {
     fr: "Langages",
-    en: "Programming languages",
+    en: "Programming Languages",
   },
   "cloud-devops": {
     fr: "Cloud & DevOps",
     en: "Cloud & DevOps",
   },
-  "web-development": {
-    fr: "Développement web",
-    en: "Web development",
+  "web-api": {
+    fr: "Web & API",
+    en: "Web & API",
   },
-  "design-methods": {
-    fr: "Conception & méthodes",
-    en: "Design & methods",
+  "design-agile": {
+    fr: "Conception & Agile",
+    en: "Design & Agile",
   },
 };
 
@@ -151,6 +175,35 @@ function isLanguageFactValue(value: unknown): value is LanguageFactValue {
   );
 }
 
+function isAvailabilityFactValue(
+  value: unknown,
+): value is AvailabilityFactValue {
+  return (
+    isRecord(value) &&
+    isRecord(value.internship) &&
+    value.internship.status === "documented" &&
+    isRecord(value.internship.availableFrom) &&
+    typeof value.internship.availableFrom.fr === "string" &&
+    typeof value.internship.availableFrom.en === "string" &&
+    Array.isArray(value.internship.targetAreas) &&
+    isRecord(value.apprenticeship) &&
+    value.apprenticeship.status === "not-documented" &&
+    isRecord(value.fullTime) &&
+    value.fullTime.status === "not-documented"
+  );
+}
+
+function isCareerTargetFactValue(
+  value: unknown,
+): value is CareerTargetFactValue {
+  return (
+    isRecord(value) &&
+    value.opportunityType === "internship" &&
+    Array.isArray(value.targetRoles) &&
+    value.targetRoles.every((item) => typeof item === "string")
+  );
+}
+
 function profileFacts(input: GeneratePortfolioAnswerInput) {
   return (
     input.retrieval.results.find((result) => result.entity.id === PERSON_ID)
@@ -186,6 +239,58 @@ function languageFacts(input: GeneratePortfolioAnswerInput) {
     }));
 }
 
+function availabilityFact(input: GeneratePortfolioAnswerInput) {
+  return profileFacts(input)
+    .filter(
+      (fact) =>
+        fact.predicate === "hasAvailability" &&
+        fact.status === "verified" &&
+        isAvailabilityFactValue(fact.value),
+    )
+    .map((fact) => ({
+      fact,
+      value: fact.value as AvailabilityFactValue,
+    }))[0];
+}
+
+function careerTargetFact(input: GeneratePortfolioAnswerInput) {
+  return profileFacts(input)
+    .filter(
+      (fact) =>
+        fact.predicate === "hasCareerTarget" &&
+        fact.status === "verified" &&
+        isCareerTargetFactValue(fact.value),
+    )
+    .map((fact) => ({
+      fact,
+      value: fact.value as CareerTargetFactValue,
+    }))[0];
+}
+
+function certificationFacts(input: GeneratePortfolioAnswerInput) {
+  return input.retrieval.results
+    .filter((result) => result.entity.type === "certification")
+    .map((result) => {
+      const titleFact = result.facts.find(
+        (fact) =>
+          fact.predicate === "certificationTitle" &&
+          fact.status === "verified" &&
+          typeof fact.value === "string",
+      );
+      const issuerFact = result.facts.find(
+        (fact) =>
+          fact.predicate === "certificationIssuer" &&
+          fact.status === "verified" &&
+          typeof fact.value === "string",
+      );
+
+      return titleFact && issuerFact
+        ? { titleFact, issuerFact }
+        : undefined;
+    })
+    .filter((item): item is CertificationFactPair => Boolean(item));
+}
+
 function uniqueStrings(items: readonly string[]) {
   return [...new Set(items)];
 }
@@ -197,6 +302,51 @@ function primaryEvidenceIds(facts: readonly RetrievalFact[]) {
         .filter((evidence) => evidence.strength === "primary")
         .map(createEvidenceId),
     ),
+  );
+}
+
+function resultByEntityId(input: GeneratePortfolioAnswerInput, entityId: string) {
+  return input.retrieval.results.find((result) => result.entity.id === entityId);
+}
+
+function factEvidenceForPredicates(
+  result: RetrievalResult | undefined,
+  predicates: readonly string[],
+) {
+  if (!result) {
+    return [];
+  }
+
+  return primaryEvidenceIds(
+    result.facts.filter((fact) => predicates.includes(fact.predicate)),
+  );
+}
+
+function representativeExperienceEvidenceIds(input: GeneratePortfolioAnswerInput) {
+  return [
+    "atline-alternance-2025",
+    "pfe-business-intelligence-2024",
+    "chu-mohammed-vi-pfe-2026",
+  ].flatMap((entityId) =>
+    factEvidenceForPredicates(resultByEntityId(input, entityId), [
+      "role",
+      "domain",
+      "organization",
+      "usesTechnology",
+    ]).slice(0, 1),
+  );
+}
+
+function currentEducationEvidenceIds(input: GeneratePortfolioAnswerInput) {
+  return factEvidenceForPredicates(
+    resultByEntityId(input, "education-isima-siad-2026"),
+    ["programme", "institution", "educationStatus", "period"],
+  ).slice(0, 2);
+}
+
+function profileRoleEvidenceIds(input: GeneratePortfolioAnswerInput) {
+  return primaryEvidenceIds(
+    profileFacts(input).filter((fact) => fact.predicate === "hasRole"),
   );
 }
 
@@ -217,6 +367,14 @@ function joinEnglishList(items: readonly string[]) {
   }
 
   return `${items.slice(0, -1).join(", ")}, and ${items.at(-1)}`;
+}
+
+function joinFrenchList(items: readonly string[]) {
+  if (items.length <= 1) {
+    return items[0] ?? "";
+  }
+
+  return `${items.slice(0, -1).join(", ")} et ${items.at(-1)}`;
 }
 
 function normalizeText(value: string) {
@@ -240,6 +398,19 @@ function asksForExpertise(input: GeneratePortfolioAnswerInput) {
   ].some((term) => normalizedQuestion.includes(term));
 }
 
+function asksForTechnologyUsage(input: GeneratePortfolioAnswerInput) {
+  const normalizedQuestion = normalizeText(input.question);
+
+  return [
+    "utilise",
+    "utilisé",
+    "travaille avec",
+    "worked with",
+    "has he used",
+    "uses",
+  ].some((term) => normalizedQuestion.includes(normalizeText(term)));
+}
+
 function answerForTechnicalSkillsOverview(
   input: GeneratePortfolioAnswerInput,
 ): PortfolioAnswer | undefined {
@@ -253,27 +424,263 @@ function answerForTechnicalSkillsOverview(
     input.question,
     input.locale,
   );
-  const sections = PROFILE_SKILL_CATEGORY_ORDER.map((category) => {
-    const categorySkills = skills.filter(
-      (skill) => skill.value.category === category,
-    );
-
-    if (categorySkills.length === 0) {
-      return undefined;
-    }
-
-    return `${categoryLabel(category, language, categorySkills[0]?.value)} : ${categorySkills
-      .map((skill) => skill.value.name)
-      .join(", ")}`;
-  }).filter((section): section is string => Boolean(section));
+  const highlightedSkills = [
+    "Apache Kafka",
+    "Apache Spark",
+    "PySpark",
+    "Qdrant",
+    "Power BI",
+    "Python",
+    "FastAPI",
+    "Docker",
+    "Kubernetes",
+  ].filter((name) => skills.some((skill) => skill.value.name === name));
   const answer =
     language === "en"
-      ? `His main documented technical skills cover:\n\n${sections.join("\n\n")}.`
-      : `Ses principales compétences techniques documentées couvrent :\n\n${sections.join("\n\n")}.`;
+      ? `His main skills cover Data Engineering, Data Science and AI, especially Machine Learning, Deep Learning, NLP and RAG/LLM systems. He also works with technologies such as ${highlightedSkills.join(", ")}.`
+      : `Ses compétences principales couvrent le Data Engineering, la Data Science et l'IA, notamment le Machine Learning, le Deep Learning, le NLP et les systèmes RAG/LLM. Il travaille également avec des technologies comme ${highlightedSkills.join(", ")}.`;
 
   return {
     answer,
     usedEvidenceIds: primaryEvidenceIds(skills.map((skill) => skill.fact)),
+    uncertainty: "none",
+    language,
+  };
+}
+
+function answerForProfileSummary(
+  input: GeneratePortfolioAnswerInput,
+): PortfolioAnswer | undefined {
+  const evidenceIds = uniqueStrings([
+    ...profileRoleEvidenceIds(input),
+    ...currentEducationEvidenceIds(input),
+    ...primaryEvidenceIds(
+      profileSkillFacts(input)
+        .filter((skill) =>
+          [
+            "data-engineering",
+            "ml-deep-learning",
+            "nlp-llm-rag",
+            "cloud-devops",
+          ].includes(skill.value.category),
+        )
+        .slice(0, 3)
+        .map((skill) => skill.fact),
+    ),
+    ...representativeExperienceEvidenceIds(input),
+  ]);
+
+  if (evidenceIds.length === 0) {
+    return undefined;
+  }
+
+  const language = detectPortfolioAIResponseLanguage(
+    input.question,
+    input.locale,
+  );
+
+  return {
+    answer:
+      language === "en"
+        ? "Soufiane Azerdaoui is a Data & AI profile currently in Master 2 SIAD at ISIMA - Université Clermont Auvergne. His background combines software development, Business Intelligence, Data Engineering and Artificial Intelligence, with a particular interest in Machine Learning, NLP, RAG systems and data environments."
+        : "Soufiane Azerdaoui est un profil Data & AI actuellement en Master 2 SIAD à l'ISIMA - Université Clermont Auvergne. Son parcours combine développement logiciel, Business Intelligence, Data Engineering et Intelligence Artificielle, avec un intérêt particulier pour le Machine Learning, le NLP, les systèmes RAG et les environnements Data.",
+    usedEvidenceIds: evidenceIds.slice(0, 6),
+    uncertainty: "none",
+    language,
+  };
+}
+
+function answerForJourneySummary(
+  input: GeneratePortfolioAnswerInput,
+): PortfolioAnswer | undefined {
+  const evidenceIds = uniqueStrings([
+    ...currentEducationEvidenceIds(input),
+    ...factEvidenceForPredicates(
+      resultByEntityId(input, "education-ofppt-fullstack-2021"),
+      ["programme", "institution", "period"],
+    ).slice(0, 1),
+    ...representativeExperienceEvidenceIds(input),
+  ]);
+
+  if (evidenceIds.length === 0) {
+    return undefined;
+  }
+
+  const language = detectPortfolioAIResponseLanguage(
+    input.question,
+    input.locale,
+  );
+
+  return {
+    answer:
+      language === "en"
+        ? "Soufiane started with Full Stack development before moving toward Business Intelligence, then Data and Artificial Intelligence. He has worked on BI projects and on a multimodal RAG platform for medical reports. He is now pursuing a Master 2 SIAD at ISIMA - Université Clermont Auvergne."
+        : "Soufiane a commencé son parcours par le développement Full Stack, avant de s'orienter vers la Business Intelligence puis la Data et l'Intelligence Artificielle. Il a notamment travaillé sur des projets de BI et sur une plateforme RAG multimodale appliquée aux rapports médicaux. Il poursuit aujourd'hui un Master 2 SIAD à l'ISIMA - Université Clermont Auvergne.",
+    usedEvidenceIds: evidenceIds.slice(0, 6),
+    uncertainty: "none",
+    language,
+  };
+}
+
+function requestedAvailabilityContracts(input: GeneratePortfolioAnswerInput) {
+  const text = normalizeText(input.question);
+  const asksInternship =
+    text.includes("stage") || text.includes("internship");
+  const asksApprenticeship =
+    text.includes("alternance") || text.includes("apprenticeship");
+  const asksFullTime =
+    text.includes("cdi") ||
+    text.includes("full-time") ||
+    text.includes("full time");
+
+  if (!asksInternship && !asksApprenticeship && !asksFullTime) {
+    return {
+      internship: true,
+      apprenticeship: true,
+      fullTime: true,
+    };
+  }
+
+  return {
+    internship: asksInternship,
+    apprenticeship: asksApprenticeship,
+    fullTime: asksFullTime,
+  };
+}
+
+function answerForAvailability(
+  input: GeneratePortfolioAnswerInput,
+): PortfolioAnswer | undefined {
+  const availability = availabilityFact(input);
+
+  if (!availability) {
+    return undefined;
+  }
+
+  const evidenceIds = primaryEvidenceIds([availability.fact]);
+
+  if (evidenceIds.length === 0) {
+    return undefined;
+  }
+
+  const language = detectPortfolioAIResponseLanguage(
+    input.question,
+    input.locale,
+  );
+  const requested = requestedAvailabilityContracts(input);
+  const target =
+    language === "en"
+      ? availability.value.internship.targetAreas.join(" / ")
+      : availability.value.internship.targetAreas.join(" / ");
+  const parts: string[] = [];
+  const asksForMixedComparison =
+    [requested.internship, requested.apprenticeship, requested.fullTime].filter(
+      Boolean,
+    ).length > 1;
+
+  if (asksForMixedComparison && requested.internship) {
+    return {
+      answer:
+        language === "en"
+          ? `Soufiane is looking for a ${target}-related internship from ${availability.value.internship.availableFrom.en}. His availability for an apprenticeship or a full-time role is not specified in the portfolio.`
+          : `Soufiane recherche un stage en ${target} à partir d'${availability.value.internship.availableFrom.fr}. Sa disponibilité pour une alternance ou un CDI n'est pas précisée dans le portfolio.`,
+      usedEvidenceIds: evidenceIds,
+      uncertainty: "none",
+      language,
+    };
+  }
+
+  if (requested.internship) {
+    parts.push(
+      language === "en"
+        ? `Soufiane is looking for a ${target}-related internship from ${availability.value.internship.availableFrom.en}.`
+        : `Soufiane recherche un stage en ${target} à partir d'${availability.value.internship.availableFrom.fr}.`,
+    );
+  }
+
+  if (requested.apprenticeship) {
+    parts.push(
+      language === "en"
+        ? "Apprenticeship: this availability is not specified in the portfolio."
+        : "Alternance : cette disponibilité n'est pas précisée dans le portfolio.",
+    );
+  }
+
+  if (requested.fullTime) {
+    parts.push(
+      language === "en"
+        ? "Full-time role: this availability is not specified in the portfolio."
+        : "CDI : cette disponibilité n'est pas précisée dans le portfolio.",
+    );
+  }
+
+  return {
+    answer: parts.join(language === "en" ? " " : " "),
+    usedEvidenceIds: evidenceIds,
+    uncertainty: "none",
+    language,
+  };
+}
+
+function answerForCareerTarget(
+  input: GeneratePortfolioAnswerInput,
+): PortfolioAnswer | undefined {
+  const careerTarget = careerTargetFact(input);
+
+  if (!careerTarget) {
+    return undefined;
+  }
+
+  const evidenceIds = primaryEvidenceIds([careerTarget.fact]);
+
+  if (evidenceIds.length === 0) {
+    return undefined;
+  }
+
+  const language = detectPortfolioAIResponseLanguage(
+    input.question,
+    input.locale,
+  );
+  const roles = careerTarget.value.targetRoles;
+
+  return {
+    answer:
+      language === "en"
+        ? `Soufiane is mainly targeting Data Engineering and AI Engineering internship opportunities, including roles such as ${joinEnglishList(roles)}.`
+        : `Soufiane cible principalement des opportunités de stage en Data Engineering et AI Engineering, notamment pour des postes de ${joinFrenchList(roles)}.`,
+    usedEvidenceIds: evidenceIds,
+    uncertainty: "none",
+    language,
+  };
+}
+
+function certificationLabel(item: CertificationFactPair) {
+  return `${String(item.titleFact.value)} — ${String(item.issuerFact.value)}`;
+}
+
+function answerForCertifications(
+  input: GeneratePortfolioAnswerInput,
+): PortfolioAnswer | undefined {
+  const certifications = certificationFacts(input);
+
+  if (certifications.length === 0) {
+    return undefined;
+  }
+
+  const language = detectPortfolioAIResponseLanguage(
+    input.question,
+    input.locale,
+  );
+  const labels = certifications.map(certificationLabel);
+
+  return {
+    answer:
+      language === "en"
+        ? `Soufiane has certifications covering Data Engineering, Big Data, data preprocessing and Python: ${labels.join("; ")}.`
+        : `Soufiane dispose de certifications couvrant le Data Engineering, le Big Data, la préparation de données et Python : ${labels.join(" ; ")}.`,
+    usedEvidenceIds: primaryEvidenceIds(
+      certifications.flatMap((item) => [item.titleFact, item.issuerFact]),
+    ),
     uncertainty: "none",
     language,
   };
@@ -349,6 +756,21 @@ function answerForSkillLookup(
     };
   }
 
+  if (
+    input.retrieval.intent === "technology_evidence" &&
+    asksForTechnologyUsage(input)
+  ) {
+    return {
+      answer:
+        language === "en"
+          ? `${skill.value.name} is listed among his ${label} skills, but the portfolio does not document project or experience usage for it.`
+          : `${skill.value.name} figure parmi ses compétences ${label}, mais le portfolio ne documente pas son utilisation dans un projet ou une expérience.`,
+      usedEvidenceIds: evidenceIds,
+      uncertainty: "ambiguous",
+      language,
+    };
+  }
+
   return {
     answer:
       language === "en"
@@ -395,21 +817,11 @@ function answerForLanguageOverview(
       LANGUAGE_ORDER.indexOf(left.value.languageId) -
       LANGUAGE_ORDER.indexOf(right.value.languageId),
   );
-  const languageItems = orderedFacts.map((item) => ({
-    name: languageName(item.value.languageId, language),
-    level: languageLevel(item.value, language),
-  }));
-  const formattedLanguageItems = languageItems.map((item) =>
-    language === "en"
-      ? `${item.name} (${item.level})`
-      : `${item.name} : ${item.level}`,
-  );
-
   return {
     answer:
       language === "en"
-        ? `Documented languages: ${joinEnglishList(formattedLanguageItems)}.`
-        : `Langues documentées :\n\n${formattedLanguageItems.join("\n")}.`,
+        ? `Soufiane speaks Arabic as his native language. His levels are French B2, English B1 and German B1.`
+        : `Soufiane parle arabe comme langue maternelle. Il a un niveau B2 en français, B1 en anglais et B1 en allemand.`,
     usedEvidenceIds: primaryEvidenceIds(orderedFacts.map((item) => item.fact)),
     uncertainty: "none",
     language,
@@ -501,12 +913,40 @@ export function buildProfileFastPathAnswer(
     return answerForTechnicalSkillsOverview(input);
   }
 
+  if (input.retrieval.intent === "profile_lookup") {
+    return answerForProfileSummary(input);
+  }
+
+  if (input.retrieval.intent === "journey_summary") {
+    return answerForJourneySummary(input);
+  }
+
+  if (input.retrieval.intent === "availability_lookup") {
+    return answerForAvailability(input);
+  }
+
+  if (input.retrieval.intent === "career_target_lookup") {
+    return answerForCareerTarget(input);
+  }
+
+  if (input.retrieval.intent === "certification_lookup") {
+    return answerForCertifications(input);
+  }
+
   if (input.retrieval.intent === "skills_by_category") {
     return answerForSkillsByCategory(input);
   }
 
   if (input.retrieval.intent === "skill_lookup") {
     return answerForSkillLookup(input);
+  }
+
+  if (input.retrieval.intent === "technology_evidence") {
+    const hasProjectOrExperienceEvidence = input.retrieval.results.some((result) =>
+      ["project", "experience"].includes(result.entity.type),
+    );
+
+    return hasProjectOrExperienceEvidence ? undefined : answerForSkillLookup(input);
   }
 
   if (input.retrieval.intent === "language_overview") {

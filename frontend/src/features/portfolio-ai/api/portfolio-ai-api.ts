@@ -257,20 +257,47 @@ function publicSourceForEvidenceId(
 ): { key: string; source: PublicPortfolioAISource } {
   const evidence = findGroupEvidence(group, evidenceId);
 
+  if (group.entity.type === "certification") {
+    return {
+      key: `certification:${group.entity.id}`,
+      source: {
+        id: evidenceId,
+        entityId: group.entity.id,
+        type: "certification",
+        label: group.entity.canonicalName,
+      },
+    };
+  }
+
   if (
     group.entity.id === PERSON_ID &&
     evidence?.sourceType === "portfolio" &&
     (evidence.sourceId === "technical-skills" ||
-      evidence.sourceId === "languages")
+      evidence.sourceId === "languages" ||
+      evidence.sourceId === "availability" ||
+      evidence.sourceId === "career-target" ||
+      evidence.sourceId === "certifications")
   ) {
     const label =
       evidence.sourceId === "languages"
         ? locale === "en"
           ? "Languages"
           : "Langues"
-        : locale === "en"
-          ? "Technical profile"
-          : "Profil technique";
+        : evidence.sourceId === "availability"
+          ? locale === "en"
+            ? "Availability"
+            : "Disponibilités"
+          : evidence.sourceId === "career-target"
+            ? locale === "en"
+              ? "Career target"
+              : "Objectif professionnel"
+            : evidence.sourceId === "certifications"
+              ? locale === "en"
+                ? "Certifications"
+                : "Certifications"
+              : locale === "en"
+                ? "Technical profile"
+                : "Profil technique";
     const key = `profile:${evidence.sourceId}`;
 
     return {
@@ -442,6 +469,51 @@ export type PreparedPortfolioAIRequest = {
   requiresProviderGeneration: boolean;
 };
 
+function hasCurrentEducationFastPath(retrieval: PortfolioRetrievalResult) {
+  return (
+    retrieval.intent === "education_lookup" &&
+    retrieval.status === "verified" &&
+    retrieval.results.some(
+      (result) =>
+        result.entity.id === "education-isima-siad-2026" &&
+        result.facts.some(
+          (fact) =>
+            fact.predicate === "educationStatus" &&
+            fact.value === "in_progress" &&
+            fact.status === "verified",
+        ),
+    )
+  );
+}
+
+function hasDeterministicFastPath(retrieval: PortfolioRetrievalResult) {
+  if (retrieval.notDocumented && retrieval.results.length === 0) {
+    return true;
+  }
+
+  if (hasCurrentEducationFastPath(retrieval)) {
+    return true;
+  }
+
+  return (
+    retrieval.status === "verified" &&
+    [
+      "availability_lookup",
+      "career_target_lookup",
+      "certification_lookup",
+      "journey_summary",
+      "language_lookup",
+      "language_overview",
+      "profile_lookup",
+      "project_technology_lookup",
+      "technical_skills_overview",
+      "skills_by_category",
+      "skill_lookup",
+      "technology_evidence",
+    ].includes(retrieval.intent)
+  );
+}
+
 export function preparePortfolioAIRequest(
   rawPayload: unknown,
 ): PreparedPortfolioAIRequest {
@@ -467,8 +539,7 @@ export function preparePortfolioAIRequest(
     locale,
     retrieval,
     conversationContext,
-    requiresProviderGeneration:
-      !(retrieval.notDocumented && retrieval.results.length === 0),
+    requiresProviderGeneration: !hasDeterministicFastPath(retrieval),
   };
 }
 

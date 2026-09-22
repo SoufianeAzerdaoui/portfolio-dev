@@ -31,6 +31,9 @@ import {
   isPortfolioAIGreeting,
 } from "@/features/portfolio-ai/generation/response-language";
 import {
+  buildEducationFastPathAnswer,
+} from "@/features/portfolio-ai/generation/education-fast-path";
+import {
   buildProjectAttributeFastPathAnswer,
 } from "@/features/portfolio-ai/generation/project-attribute-fast-path";
 import {
@@ -242,6 +245,7 @@ export async function generatePortfolioAnswer(
   const ambiguousEvidenceCount = countEvidenceByStatus(input, "ambiguous");
   const projectTechnologyFastPathAnswer =
     buildProjectTechnologyFastPathAnswer(input);
+  const educationFastPathAnswer = buildEducationFastPathAnswer(input);
   const projectAttributeFastPathAnswer =
     buildProjectAttributeFastPathAnswer(input);
   const profileFastPathAnswer = buildProfileFastPathAnswer(input);
@@ -249,6 +253,7 @@ export async function generatePortfolioAnswer(
     buildVerifiedTechnologyFastPathAnswer(input);
   const fastPathAnswer =
     projectTechnologyFastPathAnswer ??
+    educationFastPathAnswer ??
     projectAttributeFastPathAnswer ??
     profileFastPathAnswer ??
     verifiedTechnologyFastPathAnswer;
@@ -270,12 +275,24 @@ export async function generatePortfolioAnswer(
         provider: "local",
         model: projectTechnologyFastPathAnswer
           ? "deterministic-project-technology"
+          : educationFastPathAnswer
+            ? "deterministic-education"
           : projectAttributeFastPathAnswer
             ? "deterministic-project-attribute"
             : profileFastPathAnswer
               ? input.retrieval.intent.startsWith("language")
                 ? "deterministic-profile-language"
-                : "deterministic-profile-skills"
+                : input.retrieval.intent === "availability_lookup"
+                  ? "deterministic-profile-availability"
+                : input.retrieval.intent === "career_target_lookup"
+                  ? "deterministic-profile-career-target"
+                  : input.retrieval.intent === "certification_lookup"
+                    ? "deterministic-profile-certifications"
+                    : input.retrieval.intent === "journey_summary"
+                      ? "deterministic-profile-journey"
+                      : input.retrieval.intent === "profile_lookup"
+                        ? "deterministic-profile-summary"
+                        : "deterministic-profile-skills"
               : "deterministic-verified-technology",
         latencyMs: 0,
         retrievedEntityCount,

@@ -299,21 +299,26 @@ const PROFILE_CATEGORY_RELATED_ENTITY_IDS: Record<
     "skill:data-engineering",
     "skill:big-data",
   ],
-  "ai-nlp-genai": [
+  "ml-deep-learning": [
+    "domain:ai-ml",
+    "skill:machine-learning",
+  ],
+  "nlp-llm-rag": [
     "domain:ai-ml",
     "skill:machine-learning",
     "skill:nlp",
     "skill:generative-ai",
     "skill:rag",
   ],
-  "databases-bi": [
+  "data-analysis-bi": [
     "domain:data-analytics",
     "domain:business-intelligence",
   ],
+  databases: ["domain:data-analytics"],
   "programming-languages": ["domain:software-engineering"],
   "cloud-devops": [],
-  "web-development": ["domain:software-engineering", "skill:web-development"],
-  "design-methods": [],
+  "web-api": ["domain:software-engineering", "skill:web-development"],
+  "design-agile": [],
 };
 
 const FIT_PROFILE_SKILL_IDS: Record<CandidateFitFocus, readonly string[]> = {
@@ -572,6 +577,68 @@ function candidatesForCurrentEducationSummary(
   ];
 }
 
+function candidatesForEducationIds(
+  educationIds: readonly string[],
+  matchedEntities: readonly DetectedEntity[],
+  reason: string,
+  baseScore: number,
+) {
+  return educationIds
+    .map((educationId, index) => {
+      const education = entityById(educationId);
+
+      if (!education) {
+        return undefined;
+      }
+
+      return createCandidate(
+        education,
+        matchedEntities,
+        reason,
+        baseScore - index * 5,
+        (fact) =>
+          ["programme", "institution", "period", "educationStatus"].includes(
+            fact.predicate,
+          ),
+        () => false,
+      );
+    })
+    .filter((candidate): candidate is RetrievalCandidate =>
+      Boolean(candidate),
+    );
+}
+
+function candidatesForExperienceIds(
+  experienceIds: readonly string[],
+  matchedEntities: readonly DetectedEntity[],
+  reason: string,
+  baseScore: number,
+) {
+  return experienceIds
+    .map((experienceId, index) => {
+      const experience = entityById(experienceId);
+
+      if (!experience) {
+        return undefined;
+      }
+
+      return createCandidate(
+        experience,
+        matchedEntities,
+        reason,
+        baseScore - index * 5,
+        (fact) =>
+          ["period", "role", "organization", "domain", "usesTechnology"].includes(
+            fact.predicate,
+          ),
+        (relation) => relation.type === "experience-project",
+      );
+    })
+    .filter((candidate): candidate is RetrievalCandidate =>
+      Boolean(candidate),
+    );
+}
+
 function candidatesForCandidateFitExperiences(
   focus: CandidateFitFocus,
   matchedEntities: readonly DetectedEntity[],
@@ -818,6 +885,172 @@ function candidatesForLanguages(
       () => false,
     ),
   ];
+}
+
+function candidatesForProfileSummary(
+  matchedEntities: readonly DetectedEntity[],
+) {
+  const person = personProfileEntity();
+
+  if (!person) {
+    return [];
+  }
+
+  return [
+    createCandidate(
+      person,
+      matchedEntities,
+      "profile summary matched",
+      150,
+      (fact) =>
+        ["hasRole", "hasInterest", "hasProfileSkill"].includes(fact.predicate),
+      (relation) =>
+        relation.type === "person-education" ||
+        relation.type === "person-experience",
+    ),
+    ...candidatesForCurrentEducationSummary(matchedEntities),
+    ...candidatesForExperienceIds(
+      [
+        "chu-mohammed-vi-pfe-2026",
+        "pfe-business-intelligence-2024",
+        "atline-alternance-2025",
+      ],
+      matchedEntities,
+      "profile summary professional progression evidence",
+      120,
+    ),
+  ].filter((candidate) => candidate.facts.length > 0 || candidate.relations.length > 0);
+}
+
+function candidatesForJourneySummary(
+  matchedEntities: readonly DetectedEntity[],
+) {
+  return [
+    ...candidatesForCurrentEducationSummary(matchedEntities),
+    ...candidatesForEducationIds(
+      ["education-ofppt-fullstack-2021"],
+      matchedEntities,
+      "journey summary foundational education evidence",
+      126,
+    ),
+    ...candidatesForExperienceIds(
+      [
+        "atline-alternance-2025",
+        "pfe-business-intelligence-2024",
+        "chu-mohammed-vi-pfe-2026",
+      ],
+      matchedEntities,
+      "journey summary professional progression evidence",
+      122,
+    ),
+  ].filter((candidate) => candidate.facts.length > 0 || candidate.relations.length > 0);
+}
+
+function candidatesForAvailability(
+  matchedEntities: readonly DetectedEntity[],
+) {
+  const person = personProfileEntity();
+
+  if (!person) {
+    return [];
+  }
+
+  return [
+    createCandidate(
+      person,
+      matchedEntities,
+      "profile availability matched",
+      150,
+      (fact) => fact.predicate === "hasAvailability",
+      () => false,
+    ),
+  ];
+}
+
+function candidatesForCareerTarget(
+  matchedEntities: readonly DetectedEntity[],
+) {
+  const person = personProfileEntity();
+
+  if (!person) {
+    return [];
+  }
+
+  return [
+    createCandidate(
+      person,
+      matchedEntities,
+      "profile career target matched",
+      150,
+      (fact) => fact.predicate === "hasCareerTarget",
+      () => false,
+    ),
+  ];
+}
+
+function candidatesForCertifications(
+  intent: IntentDetection,
+  matchedEntities: readonly DetectedEntity[],
+) {
+  const certificationMatches = matchedEntities.filter(
+    (match) => match.entity.type === "certification",
+  );
+  const matchedTechnologyNames = matchedEntities
+    .filter((match) => match.entity.type === "technology")
+    .flatMap((match) => [
+      match.entity.canonicalName,
+      match.matchedAlias,
+      ...match.entity.aliases,
+    ])
+    .map(normalizeText);
+  const knowledgeBase = getKnowledgeBase();
+  const certifications =
+    certificationMatches.length > 0
+      ? certificationMatches.map((match) => match.entity)
+      : knowledgeBase.entities.filter((entity) => entity.type === "certification");
+  const categoryCertificationIds = new Set(
+    intent.skillCategory === "data-engineering"
+      ? [
+          "certification:data-engineer-in-python-datacamp",
+          "certification:introduction-big-data-spark-hadoop-coursera",
+        ]
+      : intent.skillCategory === "data-analysis-bi"
+        ? ["certification:data-cleaning-preprocessing-pandas-365"]
+        : intent.skillCategory === "programming-languages"
+          ? ["certification:python-data-structures-coursera"]
+          : [],
+  );
+  const relevantCertifications =
+    matchedTechnologyNames.length > 0
+      ? certifications.filter((entity) => {
+          const text = normalizeText(
+            [entity.canonicalName, ...entity.aliases].join(" "),
+          );
+
+          return matchedTechnologyNames.some((technologyName) =>
+            text.includes(technologyName),
+          );
+        })
+      : categoryCertificationIds.size > 0
+        ? certifications.filter((entity) =>
+            categoryCertificationIds.has(entity.id),
+          )
+        : intent.certificationQueryKind === "specific"
+          ? []
+          : certifications;
+
+  return relevantCertifications.map((entity, index) =>
+    createCandidate(
+      entity,
+      matchedEntities,
+      "profile certification matched",
+      140 - index * 3,
+      (fact) =>
+        fact.predicate === "certificationTitle" ||
+        fact.predicate === "certificationIssuer",
+      () => false,
+    ),
+  );
 }
 
 function candidatesRelatedToOrganizations(
@@ -1189,6 +1422,25 @@ export function generateCandidates(
     ];
   }
 
+  if (intent.intent === "availability_lookup") {
+    candidates = [...candidates, ...candidatesForAvailability(matchedEntities)];
+  }
+
+  if (intent.intent === "career_target_lookup") {
+    candidates = [...candidates, ...candidatesForCareerTarget(matchedEntities)];
+  }
+
+  if (intent.intent === "certification_lookup") {
+    candidates = [
+      ...candidates,
+      ...candidatesForCertifications(intent, matchedEntities),
+    ];
+  }
+
+  if (intent.intent === "journey_summary") {
+    candidates = [...candidates, ...candidatesForJourneySummary(matchedEntities)];
+  }
+
   if (intent.intent === "technical_skills_overview") {
     candidates = [...candidates, ...candidatesForProfileSkills(matchedEntities)];
   }
@@ -1226,12 +1478,20 @@ export function generateCandidates(
     intent.intent === "technology_evidence" ||
     intent.intent === "projects_by_technology"
   ) {
+    const technologyCandidates = candidatesForTechnology(
+      matchedEntities,
+      intent.intent === "projects_by_technology",
+    );
+    const profileSkillCandidates =
+      intent.intent === "technology_evidence" &&
+      !technologyCandidates.some((candidate) => candidate.status === "verified")
+        ? candidatesForProfileSkillLookup(intent, matchedEntities)
+        : [];
+
     candidates = [
       ...candidates,
-      ...candidatesForTechnology(
-        matchedEntities,
-        intent.intent === "projects_by_technology",
-      ),
+      ...technologyCandidates,
+      ...profileSkillCandidates,
     ];
   }
 
@@ -1305,6 +1565,7 @@ export function generateCandidates(
     candidates = [
       ...candidates,
       ...candidatesForDirectEntities(matchedEntities, ["person"]),
+      ...candidatesForProfileSummary(matchedEntities),
     ];
   }
 
