@@ -2,7 +2,7 @@ services:
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile
+      # dockerfile: Dockerfile
     image: portfolio-frontend:compose
     container_name: portfolio-frontend
     env_file:
@@ -20,7 +20,7 @@ services:
   backend:
     build:
       context: ./backend
-      dockerfile: Dockerfile
+      # dockerfile: Dockerfile
     image: portfolio-backend:compose
     container_name: portfolio-backend
     env_file:
