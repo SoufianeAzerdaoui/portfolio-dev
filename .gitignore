@@ -7,21 +7,45 @@
 !frontend/.env.local.example
 !backend/.env.example
 
-# Frontend
+# Dependencies
 frontend/node_modules/
+backend/.venv/
+
+# Next.js
 frontend/.next/
 frontend/out/
-frontend/coverage/
+frontend/build/
 
-# Backend
-backend/.venv/
-backend/__pycache__/
-backend/**/*.pyc
+# Testing & coverage
+frontend/coverage/
 backend/.pytest_cache/
 backend/.mypy_cache/
-backend/.ruff_cache/
 backend/coverage.xml
 backend/htmlcov/
+
+# Python
+backend/__pycache__/
+backend/**/*.pyc
+
+# Ruff
+backend/.ruff_cache/
+
+# Next.js / TypeScript
+frontend/next-env.d.ts
+frontend/*.tsbuildinfo
+
+# Yarn / package managers
+frontend/.pnp
+frontend/.pnp.*
+frontend/.yarn/*
+!frontend/.yarn/patches
+!frontend/.yarn/plugins
+!frontend/.yarn/releases
+!frontend/.yarn/versions
+
+# Deployment / certificates
+frontend/.vercel
+*.pem
 
 # IDE
 .vscode/
@@ -34,3 +58,6 @@ Thumbs.db
 # Logs
 *.log
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*

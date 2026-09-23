@@ -1,0 +1,33 @@
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: portfolio-frontend:compose
+    container_name: portfolio-frontend
+    env_file:
+      - ./frontend/.env.docker.local
+    ports:
+      - "3000:3000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - backend
+    networks:
+      - default
+      - freellmapi_default
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: portfolio-backend:compose
+    container_name: portfolio-backend
+    env_file:
+      - ./backend/.env.docker.local
+    ports:
+      - "8000:8000"
+
+networks:
+  freellmapi_default:
+    external: true
