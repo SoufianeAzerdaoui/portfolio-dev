@@ -256,6 +256,7 @@ export function normalizeProjects(projects: readonly Project[] = PROJECTS) {
           contributors: project.contributors ?? [],
           links: project.links,
           featured: project.featured,
+          chronologyRank: project.chronologyRank,
           retrievalTerms: (project.searchKeywords ?? []).map((term) => ({
             term,
             evidence: {
@@ -311,6 +312,17 @@ export function normalizeProjects(projects: readonly Project[] = PROJECTS) {
           value: project.duration,
           status: "verified",
           evidence: [projectEvidence(project, "duration")],
+        });
+      }
+
+      if (project.chronologyRank) {
+        facts.push({
+          id: projectFactId(project.id, "chronologyRank", "value"),
+          subjectId: project.id,
+          predicate: "chronologyRank",
+          value: project.chronologyRank,
+          status: "verified",
+          evidence: [projectEvidence(project, "chronologyRank")],
         });
       }
 

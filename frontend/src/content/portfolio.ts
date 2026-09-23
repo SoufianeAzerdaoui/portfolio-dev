@@ -155,7 +155,7 @@ export const portfolioContentByLocale = {
       eyebrow: "AI & Data Engineering Portfolio",
       title: "",
       description:
-        "Étudiant en Master 2 SIAD à l'ISIMA - Université Clermont Auvergne. Je conçois des solutions Data & IA pensées pour résoudre des problématiques concrètes.",
+        "Étudiant en Master 2 SIAD à l'ISIMA - Université Clermont Auvergne.",
     },
     ctas: {
       primary: {

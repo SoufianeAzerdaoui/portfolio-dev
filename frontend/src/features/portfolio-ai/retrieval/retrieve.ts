@@ -62,7 +62,13 @@ export function retrievePortfolioKnowledge(
     intent.intent === "candidate_fit" ||
     intent.intent === "journey_summary" ||
     intent.intent === "profile_lookup"
-      ? Math.max(topK, 8)
+      ? Math.max(
+          topK,
+          intent.intent === "candidate_fit" &&
+            intent.candidateFitFocus === "comparison"
+            ? 10
+            : 8,
+        )
       : topK;
   const results = rankCandidates(candidates, effectiveTopK);
 

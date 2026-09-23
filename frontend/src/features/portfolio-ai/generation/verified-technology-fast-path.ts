@@ -174,12 +174,21 @@ function answerFor(
   technologyName: string,
   usages: readonly VerifiedTechnologyUsage[],
   language: "fr" | "en",
+  intent: GeneratePortfolioAnswerInput["retrieval"]["intent"],
 ) {
   const labels = joinLabels(
     usages.map((usage) => usage.label),
     language,
   );
   const noun = entityNoun(usages, language);
+
+  if (intent === "projects_by_technology") {
+    if (language === "en") {
+      return `${technologyName} is used in ${noun} ${labels}.`;
+    }
+
+    return `${technologyName} est utilisé dans ${noun} ${labels}.`;
+  }
 
   if (language === "en") {
     return `Yes. Soufiane has used ${technologyName}, notably in ${noun} ${labels}.`;
@@ -205,7 +214,8 @@ export function buildVerifiedTechnologyFastPathAnswer(
   input: GeneratePortfolioAnswerInput,
 ): PortfolioAnswer | undefined {
   if (
-    input.retrieval.intent !== "technology_evidence" ||
+    (input.retrieval.intent !== "technology_evidence" &&
+      input.retrieval.intent !== "projects_by_technology") ||
     input.retrieval.notDocumented ||
     input.retrieval.status !== "verified"
   ) {
@@ -223,10 +233,23 @@ export function buildVerifiedTechnologyFastPathAnswer(
     input.question,
     input.locale,
   );
+  const answerUsages =
+    input.retrieval.intent === "projects_by_technology"
+      ? usages.filter((usage) => usage.entityType === "project")
+      : usages;
+
+  if (answerUsages.length === 0) {
+    return undefined;
+  }
 
   return {
-    answer: answerFor(technology.canonicalName, usages, language),
-    usedEvidenceIds: usages.flatMap((usage) => usage.evidenceIds),
+    answer: answerFor(
+      technology.canonicalName,
+      answerUsages,
+      language,
+      input.retrieval.intent,
+    ),
+    usedEvidenceIds: answerUsages.flatMap((usage) => usage.evidenceIds),
     uncertainty: "none",
     language,
   };

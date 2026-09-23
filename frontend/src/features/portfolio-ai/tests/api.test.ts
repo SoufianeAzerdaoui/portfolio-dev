@@ -295,7 +295,7 @@ test("project objective lookup returns one project source without provider", asy
   }
 });
 
-test("technical skills API response uses profile source without provider", async () => {
+test("technical skills API response hides profile source without provider", async () => {
   const provider = new MockPortfolioAIProvider(() => {
     throw new Error("Provider should not be called.");
   });
@@ -313,24 +313,11 @@ test("technical skills API response uses profile source without provider", async
     assert.match(result.body.answer, /Data Science/);
     assert.match(result.body.answer, /RAG\/LLM/);
     assert.doesNotMatch(result.body.answer, /documentées/i);
-    assert.deepEqual(
-      result.body.sources.map((source) => ({
-        entityId: source.entityId,
-        type: source.type,
-        label: source.label,
-      })),
-      [
-        {
-          entityId: "person:soufiane-azerdaoui",
-          type: "profile",
-          label: "Profil technique",
-        },
-      ],
-    );
+    assert.deepEqual(result.body.sources, []);
   }
 });
 
-test("language API response uses profile source without provider", async () => {
+test("language API response hides profile source without provider", async () => {
   const provider = new MockPortfolioAIProvider(() => {
     throw new Error("Provider should not be called.");
   });
@@ -345,24 +332,11 @@ test("language API response uses profile source without provider", async () => {
   if ("answer" in result.body) {
     assert.match(result.body.answer, /B2 en français/);
     assert.match(result.body.answer, /B1 en allemand/);
-    assert.deepEqual(
-      result.body.sources.map((source) => ({
-        entityId: source.entityId,
-        type: source.type,
-        label: source.label,
-      })),
-      [
-        {
-          entityId: "person:soufiane-azerdaoui",
-          type: "profile",
-          label: "Langues",
-        },
-      ],
-    );
+    assert.deepEqual(result.body.sources, []);
   }
 });
 
-test("availability API response uses public availability source without provider", async () => {
+test("availability API response hides public availability source without provider", async () => {
   const provider = new MockPortfolioAIProvider(() => {
     throw new Error("Provider should not be called.");
   });
@@ -383,20 +357,7 @@ test("availability API response uses public availability source without provider
     assert.match(result.body.answer, /avril 2027/);
     assert.match(result.body.answer, /alternance/i);
     assert.match(result.body.answer, /CDI/);
-    assert.deepEqual(
-      result.body.sources.map((source) => ({
-        entityId: source.entityId,
-        type: source.type,
-        label: source.label,
-      })),
-      [
-        {
-          entityId: "person:soufiane-azerdaoui",
-          type: "profile",
-          label: "Disponibilités",
-        },
-      ],
-    );
+    assert.deepEqual(result.body.sources, []);
   }
 });
 
@@ -652,7 +613,7 @@ test("French current message uses French AI language with English UI locale", as
   );
 
   assert.equal(result.status, 200);
-  assert.equal(provider.inputs[0]?.locale, "fr");
+  assert.equal(provider.callCount, 0);
 
   if ("answer" in result.body) {
     assert.equal(result.body.language, "fr");
@@ -1004,10 +965,7 @@ test("not-documented deterministic bypass returns 200 without provider call", as
 
   if ("answer" in result.body) {
     assert.equal(result.body.uncertainty, "ambiguous");
-    assert.deepEqual(
-      result.body.sources.map((source) => source.type),
-      ["profile"],
-    );
+    assert.deepEqual(result.body.sources, []);
   }
 });
 
@@ -1027,10 +985,7 @@ test("Kubernetes expertise API answer is cautious and provider-free", async () =
     assert.equal(result.body.uncertainty, "ambiguous");
     assert.match(result.body.answer, /Kubernetes/);
     assert.match(result.body.answer, /ne documente pas un niveau/);
-    assert.deepEqual(
-      result.body.sources.map((source) => source.type),
-      ["profile"],
-    );
+    assert.deepEqual(result.body.sources, []);
   }
 });
 
@@ -1102,10 +1057,7 @@ test("explicit Kubernetes expertise question does not inherit RAG history", asyn
   if ("answer" in result.body) {
     assert.equal(result.body.uncertainty, "ambiguous");
     assert.match(result.body.answer, /Kubernetes/);
-    assert.deepEqual(
-      result.body.sources.map((source) => source.type),
-      ["profile"],
-    );
+    assert.deepEqual(result.body.sources, []);
     assert.equal(JSON.stringify(result.body).includes("Medical RAG"), false);
     assert.equal(JSON.stringify(result.body).includes("Qdrant"), false);
   }
@@ -1953,9 +1905,7 @@ test("profile language response streams without provider call", async () => {
     ]);
     assert.match(deltaText, /allemand/);
     assert.match(deltaText, /B1/);
-    assert.equal(sources?.length, 1);
-    assert.equal(sources?.[0]?.type, "profile");
-    assert.equal(sources?.[0]?.label, "Langues");
+    assert.deepEqual(sources, []);
   }
 });
 

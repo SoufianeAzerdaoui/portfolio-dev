@@ -166,6 +166,8 @@ function detectProfileSkillCategory(
     text.includes("genai") ||
     text.includes("gen ai") ||
     text.includes("nlp") ||
+    text.includes("traitement de texte") ||
+    text.includes("text processing") ||
     text.includes("natural language processing") ||
     text.includes("llm") ||
     text.includes("rag") ||
@@ -289,6 +291,71 @@ function hasTechnicalSkillsOverviewRequest(query: NormalizedQuery) {
     "outils maîtrise",
     "quels outils",
     "tools does he know",
+  ].some((term) => text.includes(term));
+}
+
+function hasProgrammingLanguagesRequest(query: NormalizedQuery) {
+  const text = queryText(query);
+
+  return [
+    "langages de programmation",
+    "langage de programmation",
+    "langages programmation",
+    "langage programmation",
+    "programming languages",
+    "programming language",
+    "coding languages",
+    "quels langages",
+  ].some((term) => text.includes(term));
+}
+
+function hasCloudProviderRequest(query: NormalizedQuery) {
+  const text = queryText(query);
+  const asksProvider =
+    text.includes("aws") ||
+    text.includes("azure") ||
+    text.includes("gcp") ||
+    text.includes("google cloud") ||
+    text.includes("cloud provider") ||
+    text.includes("fournisseur cloud");
+
+  return text.includes("cloud") && asksProvider;
+}
+
+function hasLatestProjectRequest(query: NormalizedQuery) {
+  const text = queryText(query);
+
+  return [
+    "dernier projet",
+    "projet le plus recent",
+    "projet le plus récent",
+    "projet recent",
+    "projet récent",
+    "dernier projet realise",
+    "dernier projet réalisé",
+    "projet actuel",
+    "latest project",
+    "most recent project",
+    "newest project",
+    "most recent work",
+  ].some((term) => text.includes(term));
+}
+
+function hasDomainProjectExperienceRequest(query: NormalizedQuery) {
+  const text = queryText(query);
+
+  return [
+    "deja travaille avec",
+    "déjà travaillé avec",
+    "as deja travaille avec",
+    "as déjà travaillé avec",
+    "worked with",
+    "have you worked with",
+    "has he worked with",
+    "deja fait",
+    "déjà fait",
+    "traitement de texte",
+    "text processing",
   ].some((term) => text.includes(term));
 }
 
@@ -699,6 +766,33 @@ export function detectIntent(
   const languageQueryKind = detectLanguageQueryKind(query, matchedEntities);
   const candidateFitFocus = detectCandidateFitFocus(query);
 
+  if (hasProgrammingLanguagesRequest(query)) {
+    return {
+      intent: "programming_languages_lookup",
+      confidence: 0.96,
+      reasons: ["programming languages wording matched"],
+      skillCategory: "programming-languages",
+    };
+  }
+
+  if (hasCloudProviderRequest(query)) {
+    return {
+      intent: "cloud_provider_lookup",
+      confidence: 0.95,
+      reasons: ["cloud provider wording matched"],
+      skillCategory: "cloud-devops",
+    };
+  }
+
+  if (hasLatestProjectRequest(query)) {
+    return {
+      intent: "latest_project_lookup",
+      confidence: 0.95,
+      reasons: ["latest project wording matched"],
+      requestedProjectAttribute: "overview",
+    };
+  }
+
   if (languageQueryKind === "overview") {
     return {
       intent: "language_overview",
@@ -847,6 +941,19 @@ export function detectIntent(
       intent: "projects_by_domain",
       confidence: 0.86,
       reasons: ["project and domain/category terms matched"],
+    };
+  }
+
+  if (
+    skillCategory &&
+    hasDomainProjectExperienceRequest(query) &&
+    ["ml-deep-learning", "nlp-llm-rag"].includes(skillCategory)
+  ) {
+    return {
+      intent: "projects_by_domain",
+      confidence: 0.9,
+      reasons: ["domain project experience wording matched"],
+      skillCategory,
     };
   }
 

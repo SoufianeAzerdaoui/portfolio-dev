@@ -721,6 +721,73 @@ function answerForSkillsByCategory(
   };
 }
 
+function answerForProgrammingLanguages(
+  input: GeneratePortfolioAnswerInput,
+): PortfolioAnswer | undefined {
+  const orderedLanguages = ["Python", "SQL", "Java", "TypeScript", "JavaScript", "PHP"];
+  const skills = profileSkillFacts(input).filter(
+    (skill) => skill.value.category === "programming-languages",
+  );
+  const skillNames = new Set(skills.map((skill) => skill.value.name));
+  const languages = orderedLanguages.filter((name) => skillNames.has(name));
+  const evidenceIds = primaryEvidenceIds(skills.map((skill) => skill.fact));
+
+  if (languages.length === 0 || evidenceIds.length === 0) {
+    return undefined;
+  }
+
+  const language = detectPortfolioAIResponseLanguage(
+    input.question,
+    input.locale,
+  );
+
+  return {
+    answer:
+      language === "en"
+        ? `Soufiane works with ${joinEnglishList(languages)}.`
+        : `Soufiane travaille notamment avec ${joinFrenchList(languages)}.`,
+    usedEvidenceIds: evidenceIds,
+    uncertainty: "none",
+    language,
+  };
+}
+
+function answerForCloudProviders(
+  input: GeneratePortfolioAnswerInput,
+): PortfolioAnswer | undefined {
+  const skills = profileSkillFacts(input).filter(
+    (skill) => skill.value.category === "cloud-devops",
+  );
+  const digitalOceanSkill = skills.find(
+    (skill) => skill.value.name === "DigitalOcean",
+  );
+
+  if (!digitalOceanSkill) {
+    return undefined;
+  }
+
+  const evidenceIds = primaryEvidenceIds([digitalOceanSkill.fact]);
+
+  if (evidenceIds.length === 0) {
+    return undefined;
+  }
+
+  const language = detectPortfolioAIResponseLanguage(
+    input.question,
+    input.locale,
+  );
+
+  return {
+    answer:
+      language === "en"
+        ? "AWS, Azure and GCP experience is not explicitly documented in the portfolio. DigitalOcean, however, is listed among the documented Cloud & DevOps technologies."
+        : "Je n’ai pas d’expérience AWS, Azure ou GCP explicitement documentée dans le portfolio. En revanche, DigitalOcean figure dans les technologies Cloud & DevOps documentées.",
+    usedEvidenceIds: evidenceIds,
+    uncertainty: "ambiguous",
+    language,
+  };
+}
+
 function answerForSkillLookup(
   input: GeneratePortfolioAnswerInput,
 ): PortfolioAnswer | undefined {
@@ -902,6 +969,75 @@ function answerForLanguageLookup(
   };
 }
 
+function asksDataEngineeringVsDataScience(input: GeneratePortfolioAnswerInput) {
+  const normalizedQuestion = normalizeText(input.question);
+
+  return (
+    input.retrieval.intent === "candidate_fit" &&
+    input.retrieval.candidateFitFocus === "comparison" &&
+    normalizedQuestion.includes("data engineering") &&
+    normalizedQuestion.includes("data science")
+  );
+}
+
+function answerForDataEngineeringDataScienceComparison(
+  input: GeneratePortfolioAnswerInput,
+): PortfolioAnswer | undefined {
+  if (!asksDataEngineeringVsDataScience(input)) {
+    return undefined;
+  }
+
+  const evidenceIds = uniqueStrings([
+    ...primaryEvidenceIds(
+      profileSkillFacts(input)
+        .filter((skill) =>
+          [
+            "data-engineering",
+            "ml-deep-learning",
+            "nlp-llm-rag",
+            "data-analysis-bi",
+          ].includes(skill.value.category),
+        )
+        .map((skill) => skill.fact),
+    ).slice(0, 2),
+    ...factEvidenceForPredicates(
+      resultByEntityId(input, "personalized-recommendation-system"),
+      ["projectShortDescription", "usesTechnology", "category"],
+    ).slice(0, 1),
+    ...factEvidenceForPredicates(
+      resultByEntityId(input, "real-time-ecommerce-activity-tracking"),
+      ["projectShortDescription", "usesTechnology", "category"],
+    ).slice(0, 1),
+    ...factEvidenceForPredicates(resultByEntityId(input, "algorithmic-trading-ml"), [
+      "projectShortDescription",
+      "category",
+    ]).slice(0, 1),
+    ...factEvidenceForPredicates(resultByEntityId(input, "callcenter-frustration-ai"), [
+      "projectShortDescription",
+      "category",
+    ]).slice(0, 1),
+  ]).slice(0, 5);
+
+  if (evidenceIds.length === 0) {
+    return undefined;
+  }
+
+  const language = detectPortfolioAIResponseLanguage(
+    input.question,
+    input.locale,
+  );
+
+  return {
+    answer:
+      language === "en"
+        ? "Soufiane's documented background has a particularly strong Data Engineering component: Spark/PySpark, Kafka, Delta Lake, ETL, Data Warehousing, BI/SQL work, plus projects such as Personalized Recommendation System and Real-time E-commerce Activity Tracking. It also includes Data Science and AI work through Machine Learning, NLP, RAG/LLM and projects such as Algorithmic Trading ML, Call Center AI, SyndiSmart AI and Medical RAG. Overall, the documented evidence leans slightly more toward Data Engineering, while still showing applied Machine Learning, NLP and AI experience."
+        : "Son parcours présente une composante Data Engineering particulièrement marquée : Spark/PySpark, Kafka, Delta Lake, ETL, Data Warehousing, BI/SQL, avec des projets comme Personalized Recommendation System et Real-time E-commerce Activity Tracking. Il intègre aussi une composante Data Science et IA avec le Machine Learning, le NLP, le RAG/LLM et des projets comme Algorithmic Trading ML, Call Center AI, SyndiSmart AI et Medical RAG. Globalement, les preuves documentées penchent légèrement vers le Data Engineering, tout en montrant une pratique appliquée du Machine Learning, du NLP et de l’IA.",
+    usedEvidenceIds: evidenceIds,
+    uncertainty: "none",
+    language,
+  };
+}
+
 export function buildProfileFastPathAnswer(
   input: GeneratePortfolioAnswerInput,
 ): PortfolioAnswer | undefined {
@@ -911,6 +1047,18 @@ export function buildProfileFastPathAnswer(
 
   if (input.retrieval.intent === "technical_skills_overview") {
     return answerForTechnicalSkillsOverview(input);
+  }
+
+  if (input.retrieval.intent === "programming_languages_lookup") {
+    return answerForProgrammingLanguages(input);
+  }
+
+  if (input.retrieval.intent === "cloud_provider_lookup") {
+    return answerForCloudProviders(input);
+  }
+
+  if (input.retrieval.intent === "candidate_fit") {
+    return answerForDataEngineeringDataScienceComparison(input);
   }
 
   if (input.retrieval.intent === "profile_lookup") {

@@ -884,6 +884,126 @@ test("main skills and stack questions stay deterministic and concise", async () 
   }
 });
 
+test("programming language lookup is deterministic and separate from spoken languages", async () => {
+  const question = "Tu maîtrises quels langages de programmation ?";
+  const retrieval = retrievePortfolioKnowledge(question, {
+    locale: "fr",
+    topK: 10,
+  });
+  const provider = new MockPortfolioAIProvider(() => {
+    throw new Error("Provider should not be called.");
+  });
+
+  const result = await generatePortfolioAnswer(
+    { question, locale: "fr", retrieval },
+    { provider },
+  );
+
+  assert.equal(retrieval.intent, "programming_languages_lookup");
+  assert.equal(provider.callCount, 0);
+  assert.equal(result.metadata.provider, "local");
+  assert.equal(result.metadata.fastPathUsed, true);
+  assert.match(result.answer.answer, /Python, SQL, Java, TypeScript, JavaScript et PHP/);
+  assert.doesNotMatch(result.answer.answer, /arabe|français|anglais|allemand/i);
+});
+
+test("cloud provider lookup documents DigitalOcean without inventing AWS Azure or GCP", async () => {
+  const question = "Tu as de l'expérience avec le Cloud (AWS, Azure, GCP) ?";
+  const retrieval = retrievePortfolioKnowledge(question, {
+    locale: "fr",
+    topK: 10,
+  });
+  const provider = new MockPortfolioAIProvider(() => {
+    throw new Error("Provider should not be called.");
+  });
+
+  const result = await generatePortfolioAnswer(
+    { question, locale: "fr", retrieval },
+    { provider },
+  );
+
+  assert.equal(retrieval.intent, "cloud_provider_lookup");
+  assert.equal(provider.callCount, 0);
+  assert.match(result.answer.answer, /AWS, Azure ou GCP explicitement documentée/);
+  assert.match(result.answer.answer, /DigitalOcean/);
+  assert.doesNotMatch(result.answer.answer, /Kubernetes.*AWS|Azure.*Kubernetes|GCP.*Docker/i);
+});
+
+test("Machine Learning project lookup excludes Medical RAG and stays deterministic", async () => {
+  const question = "Est-ce que tu as déjà travaillé avec le Machine Learning ?";
+  const retrieval = retrievePortfolioKnowledge(question, {
+    locale: "fr",
+    topK: 10,
+  });
+  const provider = new MockPortfolioAIProvider(() => {
+    throw new Error("Provider should not be called.");
+  });
+
+  const result = await generatePortfolioAnswer(
+    { question, locale: "fr", retrieval },
+    { provider },
+  );
+
+  assert.equal(retrieval.intent, "projects_by_domain");
+  assert.equal(retrieval.skillCategory, "ml-deep-learning");
+  assert.equal(provider.callCount, 0);
+  assert.match(result.answer.answer, /Algorithmic Trading ML/);
+  assert.match(result.answer.answer, /Call Center AI/);
+  assert.match(result.answer.answer, /Personalized Recommendation System/);
+  assert.doesNotMatch(result.answer.answer, /Medical RAG|Plateforme intelligente RAG/);
+});
+
+test("latest project lookup uses chronology metadata without provider", async () => {
+  const question = "Parle-moi de ton dernier projet.";
+  const retrieval = retrievePortfolioKnowledge(question, {
+    locale: "fr",
+    topK: 10,
+  });
+  const provider = new MockPortfolioAIProvider(() => {
+    throw new Error("Provider should not be called.");
+  });
+
+  const result = await generatePortfolioAnswer(
+    { question, locale: "fr", retrieval },
+    { provider },
+  );
+
+  assert.equal(retrieval.intent, "latest_project_lookup");
+  assert.deepEqual(
+    retrieval.results.map((group) => group.entity.id),
+    ["medical-rag-platform"],
+  );
+  assert.equal(provider.callCount, 0);
+  assert.equal(result.metadata.model, "deterministic-latest-project");
+  assert.match(result.answer.answer, /dernier projet documenté/);
+  assert.match(result.answer.answer, /RAG/);
+});
+
+test("Data Engineering versus Data Science comparison is grounded and avoids cross-project technology contamination", async () => {
+  const question = "Tu es plutôt Data Engineering ou Data Science ?";
+  const retrieval = retrievePortfolioKnowledge(question, {
+    locale: "fr",
+    topK: 10,
+  });
+  const provider = new MockPortfolioAIProvider(() => {
+    throw new Error("Provider should not be called.");
+  });
+
+  const result = await generatePortfolioAnswer(
+    { question, locale: "fr", retrieval },
+    { provider },
+  );
+
+  assert.equal(retrieval.intent, "candidate_fit");
+  assert.equal(retrieval.candidateFitFocus, "comparison");
+  assert.equal(provider.callCount, 0);
+  assert.match(result.answer.answer, /composante Data Engineering particulièrement marquée/);
+  assert.match(result.answer.answer, /Machine Learning, le NLP, le RAG\/LLM/);
+  assert.doesNotMatch(result.answer.answer, /expert|senior|avancé/i);
+  assert.doesNotMatch(result.answer.answer, /CHU[^.]*Kafka|CHU[^.]*Spark/i);
+  assert.doesNotMatch(result.answer.answer, /Medical RAG[^.]*Kafka|Medical RAG[^.]*Spark/i);
+});
+
 test("career target lookup uses canonical target roles without provider", async () => {
   const cases = [
     {

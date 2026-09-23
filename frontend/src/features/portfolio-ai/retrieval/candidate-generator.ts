@@ -161,7 +161,14 @@ function candidatesForDomainOrCategory(
   matchedEntities: readonly DetectedEntity[],
 ) {
   const knowledgeBase = getKnowledgeBase();
-  const matches = matchedEntities.filter(
+  const categoryMatches = matchedEntities.filter(
+    (match) => match.entity.type === "skill",
+  );
+  const matches = (
+    categoryMatches.length > 0
+      ? categoryMatches
+      : matchedEntities.filter((match) => match.entity.type === "domain")
+  ).filter(
     (match) => match.entity.type === "domain" || match.entity.type === "skill",
   );
 
@@ -192,6 +199,49 @@ function candidatesForDomainOrCategory(
         Boolean(candidate),
       ),
   );
+}
+
+function candidatesForLatestProject(
+  matchedEntities: readonly DetectedEntity[],
+) {
+  const rankedProjects = getKnowledgeBase()
+    .entities.filter((entity) => entity.type === "project")
+    .map((entity) => ({
+      entity,
+      rank:
+        typeof entity.metadata?.chronologyRank === "number"
+          ? entity.metadata.chronologyRank
+          : undefined,
+    }))
+    .filter((item): item is { entity: KnowledgeEntity; rank: number } =>
+      Number.isFinite(item.rank),
+    )
+    .sort((left, right) => left.rank - right.rank);
+  const latest = rankedProjects[0]?.entity;
+
+  if (!latest) {
+    return [];
+  }
+
+  return [
+    createCandidate(
+      latest,
+      matchedEntities,
+      "latest project chronology rank matched",
+      160,
+      (fact) =>
+        [
+          "chronologyRank",
+          "year",
+          "projectShortDescription",
+          "projectOverview",
+          "usesTechnology",
+          "duration",
+          "role",
+        ].includes(fact.predicate),
+      () => false,
+    ),
+  ];
 }
 
 function candidatesForDirectEntities(
@@ -299,13 +349,8 @@ const PROFILE_CATEGORY_RELATED_ENTITY_IDS: Record<
     "skill:data-engineering",
     "skill:big-data",
   ],
-  "ml-deep-learning": [
-    "domain:ai-ml",
-    "skill:machine-learning",
-  ],
+  "ml-deep-learning": ["skill:machine-learning"],
   "nlp-llm-rag": [
-    "domain:ai-ml",
-    "skill:machine-learning",
     "skill:nlp",
     "skill:generative-ai",
     "skill:rag",
@@ -416,6 +461,8 @@ const FIT_PROJECT_IDS: Record<CandidateFitFocus, readonly string[]> = {
   comparison: [
     "personalized-recommendation-system",
     "real-time-ecommerce-activity-tracking",
+    "algorithmic-trading-ml",
+    "callcenter-frustration-ai",
     "medical-rag-platform",
     "syndismart-ai",
   ],
@@ -1445,6 +1492,20 @@ export function generateCandidates(
     candidates = [...candidates, ...candidatesForProfileSkills(matchedEntities)];
   }
 
+  if (intent.intent === "programming_languages_lookup") {
+    candidates = [
+      ...candidates,
+      ...candidatesForProfileSkills(matchedEntities, "programming-languages"),
+    ];
+  }
+
+  if (intent.intent === "cloud_provider_lookup") {
+    candidates = [
+      ...candidates,
+      ...candidatesForProfileSkills(matchedEntities, "cloud-devops"),
+    ];
+  }
+
   if (intent.intent === "skills_by_category") {
     candidates = [
       ...candidates,
@@ -1496,7 +1557,16 @@ export function generateCandidates(
   }
 
   if (intent.intent === "projects_by_domain") {
-    candidates = [...candidates, ...candidatesForDomainOrCategory(matchedEntities)];
+    candidates = [
+      ...candidates,
+      ...(intent.skillCategory
+        ? candidatesForProfileCategoryEvidence(
+            intent.skillCategory,
+            matchedEntities,
+          )
+        : []),
+      ...candidatesForDomainOrCategory(matchedEntities),
+    ];
   }
 
   if (intent.intent === "experience_lookup") {
@@ -1534,6 +1604,10 @@ export function generateCandidates(
             ["project"],
           )),
     ];
+  }
+
+  if (intent.intent === "latest_project_lookup") {
+    candidates = [...candidates, ...candidatesForLatestProject(matchedEntities)];
   }
 
   if (intent.intent === "comparison") {

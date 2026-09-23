@@ -40,6 +40,10 @@ import {
   buildProfileFastPathAnswer,
 } from "@/features/portfolio-ai/generation/profile-fast-path";
 import {
+  buildLatestProjectFastPathAnswer,
+  buildProjectListFastPathAnswer,
+} from "@/features/portfolio-ai/generation/project-list-fast-path";
+import {
   buildProjectTechnologyFastPathAnswer,
   buildVerifiedTechnologyFastPathAnswer,
 } from "@/features/portfolio-ai/generation/verified-technology-fast-path";
@@ -249,6 +253,8 @@ export async function generatePortfolioAnswer(
   const projectAttributeFastPathAnswer =
     buildProjectAttributeFastPathAnswer(input);
   const profileFastPathAnswer = buildProfileFastPathAnswer(input);
+  const projectListFastPathAnswer = buildProjectListFastPathAnswer(input);
+  const latestProjectFastPathAnswer = buildLatestProjectFastPathAnswer(input);
   const verifiedTechnologyFastPathAnswer =
     buildVerifiedTechnologyFastPathAnswer(input);
   const fastPathAnswer =
@@ -256,6 +262,8 @@ export async function generatePortfolioAnswer(
     educationFastPathAnswer ??
     projectAttributeFastPathAnswer ??
     profileFastPathAnswer ??
+    projectListFastPathAnswer ??
+    latestProjectFastPathAnswer ??
     verifiedTechnologyFastPathAnswer;
 
   if (fastPathAnswer) {
@@ -293,6 +301,10 @@ export async function generatePortfolioAnswer(
                       : input.retrieval.intent === "profile_lookup"
                         ? "deterministic-profile-summary"
                         : "deterministic-profile-skills"
+              : projectListFastPathAnswer
+                ? "deterministic-project-list"
+                : latestProjectFastPathAnswer
+                  ? "deterministic-latest-project"
               : "deterministic-verified-technology",
         latencyMs: 0,
         retrievedEntityCount,

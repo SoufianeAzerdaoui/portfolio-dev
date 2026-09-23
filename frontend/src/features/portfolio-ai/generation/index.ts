@@ -74,6 +74,10 @@ export {
   buildProjectAttributeFastPathAnswer,
 } from "@/features/portfolio-ai/generation/project-attribute-fast-path";
 export {
+  buildLatestProjectFastPathAnswer,
+  buildProjectListFastPathAnswer,
+} from "@/features/portfolio-ai/generation/project-list-fast-path";
+export {
   buildProfileFastPathAnswer,
 } from "@/features/portfolio-ai/generation/profile-fast-path";
 export {
