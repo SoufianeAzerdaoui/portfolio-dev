@@ -92,18 +92,10 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: {
-    default: "Soufiane Azerdaoui — AI & Data Engineer",
-    template: "%s | Soufiane Azerdaoui",
-  },
+  title: "AZERDAOUI SOUFIANE",
   description:
     "Portfolio de Soufiane Azerdaoui, AI & Data Engineer spécialisé en Data Science, Machine Learning et NLP.",
   authors: [{ name: "Soufiane Azerdaoui" }],
-  icons: {
-    icon: "/favicon.ico",
-    shortcut: "/favicon.ico",
-    apple: "/favicon.ico",
-  },
   alternates: {
     canonical: "/",
   },

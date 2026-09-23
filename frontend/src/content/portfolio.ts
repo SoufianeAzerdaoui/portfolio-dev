@@ -69,42 +69,41 @@ export const portfolioContentByLocale = {
           { text: "Master 2 SIAD", tone: "strong" },
           { text: " à " },
           {
-            text: "l'ISIMA – Université Clermont Auvergne",
+            text: "l’ISIMA – Université Clermont Auvergne",
             tone: "strong",
           },
           {
-            text: ".",
+            text: ", avec un parcours orienté Data Engineering et Intelligence Artificielle.",
           },
         ],
         [
           { text: "Je conçois des solutions " },
           { text: "Data & IA", tone: "strong" },
           {
-            text: " capables de transformer des ",
+            text: " allant du traitement et de l’exploitation des données jusqu’au développement de systèmes de ",
           },
-          { text: "données complexes", tone: "accent" },
+          { text: "Machine Learning", tone: "accent" },
+          { text: ", " },
+          { text: "Deep Learning", tone: "accent" },
+          { text: ", " },
+          { text: "NLP", tone: "accent" },
           {
-            text: " en informations exploitables et en ",
+            text: " et ",
           },
-          { text: "outils d’aide à la décision", tone: "accent" },
+          { text: "RAG", tone: "accent" },
           {
             text: ".",
           },
         ],
         [
-          { text: "Je m’intéresse particulièrement à la " },
-          { text: "Data Science", tone: "strong" },
-          { text: ", au " },
-          { text: "Machine Learning", tone: "strong" },
-          { text: ", au " },
-          { text: "Deep Learning", tone: "strong" },
-          { text: " et au " },
-          { text: "NLP", tone: "strong" },
+          { text: "Je m’intéresse particulièrement à la conception de " },
+          { text: "pipelines de données", tone: "strong" },
+          { text: ", aux modèles d’apprentissage automatique et aux systèmes d’IA capables de transformer des données complexes en informations exploitables" },
           { text: "." },
         ],
         [
           {
-            text: "J’aime partir d’un besoin métier, comprendre les données disponibles, expérimenter différentes approches et construire une solution concrète que l’utilisateur peut réellement exploiter.",
+            text: "J’aime partir d’un besoin métier, comprendre les données disponibles, expérimenter différentes approches et construire une solution fiable, concrète et exploitable par l’utilisateur.",
           },
         ],
       ],
@@ -156,7 +155,7 @@ export const portfolioContentByLocale = {
       eyebrow: "AI & Data Engineering Portfolio",
       title: "",
       description:
-        "Étudiant en Master 2 SIAD à l'ISIMA - Université Clermont Auvergne. Je conçois des solutions Data & IA pensées pour résoudre des problématiques concrètes.",
+        "Étudiant en Master 2 SIAD à l'ISIMA - Université Clermont Auvergne.",
     },
     ctas: {
       primary: {

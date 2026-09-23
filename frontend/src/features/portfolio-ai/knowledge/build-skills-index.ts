@@ -51,12 +51,12 @@ const CANONICAL_TECHNOLOGIES: Record<
   "git bitbucket": {
     id: "tech:git-bitbucket",
     canonicalName: "Git / Bitbucket",
-    aliases: ["Git/Bitbucket", "Git", "Bitbucket"],
+    aliases: ["Git/Bitbucket"],
   },
   "git and bitbucket": {
     id: "tech:git-bitbucket",
     canonicalName: "Git / Bitbucket",
-    aliases: ["Git/Bitbucket", "Git", "Bitbucket"],
+    aliases: ["Git/Bitbucket"],
   },
   "baai bge m3": {
     id: "tech:baai-bge-m3",

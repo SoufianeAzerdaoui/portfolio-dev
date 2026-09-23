@@ -668,7 +668,7 @@ test("project problem and objective attributes expose grounded facts", () => {
   );
 });
 
-test("Kubernetes not-documented uses local answer and bypasses provider", async () => {
+test("Kubernetes usage lookup stays skill-scoped when no project usage is documented", async () => {
   const retrieval = retrievePortfolioKnowledge("A-t-il utilisé Kubernetes ?", {
     locale: "fr",
   });
@@ -682,7 +682,9 @@ test("Kubernetes not-documented uses local answer and bypasses provider", async 
   );
 
   assert.equal(provider.callCount, 0);
-  assert.equal(result.answer.uncertainty, "not-documented");
+  assert.equal(result.answer.uncertainty, "ambiguous");
+  assert.match(result.answer.answer, /compétences Cloud & DevOps/);
+  assert.match(result.answer.answer, /ne documente pas son utilisation/);
 });
 
 test("technical skills overview uses profile fast path without provider", async () => {
@@ -704,9 +706,394 @@ test("technical skills overview uses profile fast path without provider", async 
   assert.equal(result.metadata.model, "deterministic-profile-skills");
   assert.equal(result.answer.uncertainty, "none");
   assert.match(result.answer.answer, /Data Engineering/);
-  assert.match(result.answer.answer, /IA \/ NLP \/ GenAI/);
-  assert.match(result.answer.answer, /Cloud & DevOps/);
+  assert.match(result.answer.answer, /Data Science/);
+  assert.match(result.answer.answer, /RAG\/LLM/);
+  assert.doesNotMatch(result.answer.answer, /documentées/i);
   assert.ok(result.answer.usedEvidenceIds.length >= 7);
+});
+
+test("recruiter profile summary uses deterministic verified profile evidence", async () => {
+  for (const question of ["Qui est Soufiane ?", "Peux-tu te présenter ?"]) {
+    const retrieval = retrievePortfolioKnowledge(question, {
+      locale: "fr",
+      topK: 10,
+    });
+    const provider = new MockPortfolioAIProvider(() => {
+      throw new Error("Provider should not be called.");
+    });
+
+    const result = await generatePortfolioAnswer(
+      { question, locale: "fr", retrieval },
+      { provider },
+    );
+
+    assert.equal(retrieval.intent, "profile_lookup");
+    assert.equal(provider.callCount, 0);
+    assert.equal(result.metadata.model, "deterministic-profile-summary");
+    assert.equal(result.answer.uncertainty, "none");
+    assert.match(result.answer.answer, /Soufiane Azerdaoui/);
+    assert.match(result.answer.answer, /Master 2 SIAD/);
+    assert.match(result.answer.answer, /Data & AI/);
+    assert.match(result.answer.answer, /Business Intelligence/);
+    assert.doesNotMatch(result.answer.answer, /expert senior/i);
+    assert.doesNotMatch(result.answer.answer, /documenté/i);
+    assert.ok(result.answer.answer.length < 650);
+    assert.ok(result.answer.usedEvidenceIds.length > 0);
+  }
+});
+
+test("journey summary is documented and deterministic", async () => {
+  for (const question of [
+    "Peux-tu me présenter ton parcours en quelques lignes ?",
+    "Quel est ton parcours ?",
+  ]) {
+    const retrieval = retrievePortfolioKnowledge(question, {
+      locale: "fr",
+      topK: 10,
+    });
+    const provider = new MockPortfolioAIProvider(() => {
+      throw new Error("Provider should not be called.");
+    });
+
+    const result = await generatePortfolioAnswer(
+      { question, locale: "fr", retrieval },
+      { provider },
+    );
+
+    assert.equal(retrieval.intent, "journey_summary");
+    assert.equal(provider.callCount, 0);
+    assert.equal(result.metadata.model, "deterministic-profile-journey");
+    assert.equal(result.answer.uncertainty, "none");
+    assert.match(result.answer.answer, /Full Stack/);
+    assert.match(result.answer.answer, /Business Intelligence/);
+    assert.match(result.answer.answer, /plateforme RAG multimodale/);
+    assert.match(result.answer.answer, /Master 2 SIAD/);
+    assert.doesNotMatch(result.answer.answer, /Je ne trouve pas/);
+  }
+});
+
+test("simple current education lookup uses deterministic fast path", async () => {
+  for (const question of [
+    "Quelle est ta formation actuelle ?",
+    "Que fais-tu comme études actuellement ?",
+  ]) {
+    const retrieval = retrievePortfolioKnowledge(question, {
+      locale: "fr",
+      topK: 10,
+    });
+    const provider = new MockPortfolioAIProvider(() => {
+      throw new Error("Provider should not be called.");
+    });
+
+    const result = await generatePortfolioAnswer(
+      { question, locale: "fr", retrieval },
+      { provider },
+    );
+
+    assert.equal(retrieval.intent, "education_lookup");
+    assert.equal(provider.callCount, 0);
+    assert.equal(result.metadata.model, "deterministic-education");
+    assert.equal(result.metadata.fastPathUsed, true);
+    assert.equal(result.answer.uncertainty, "none");
+    assert.match(result.answer.answer, /Master 2/);
+    assert.match(result.answer.answer, /SIAD/);
+    assert.match(result.answer.answer, /ISIMA/);
+    assert.match(result.answer.answer, /Clermont-Ferrand/);
+    assert.ok(result.answer.usedEvidenceIds.length > 0);
+  }
+});
+
+test("availability lookup answers stage, alternance, and CDI without provider", async () => {
+  const cases = [
+    {
+      question: "Quelles sont tes disponibilités ?",
+      includes: [/avril 2027/, /alternance/i, /CDI/],
+    },
+    {
+      question: "Es-tu disponible pour un stage ?",
+      includes: [/stage/i, /avril 2027/, /Data \/ AI \/ Cloud/],
+    },
+    {
+      question: "Es-tu disponible pour une alternance ?",
+      includes: [/Alternance/, /n'est pas précisée/],
+    },
+    {
+      question: "Es-tu disponible pour un CDI ?",
+      includes: [/CDI/, /n'est pas précisée/],
+    },
+    {
+      question: "Es-tu disponible pour un stage / une alternance / un CDI ?",
+      includes: [/stage/i, /avril 2027/, /alternance/i, /CDI/],
+    },
+  ];
+
+  for (const item of cases) {
+    const retrieval = retrievePortfolioKnowledge(item.question, {
+      locale: "fr",
+      topK: 10,
+    });
+    const provider = new MockPortfolioAIProvider(() => {
+      throw new Error("Provider should not be called.");
+    });
+
+    const result = await generatePortfolioAnswer(
+      { question: item.question, locale: "fr", retrieval },
+      { provider },
+    );
+
+    assert.equal(retrieval.intent, "availability_lookup");
+    assert.equal(provider.callCount, 0);
+    assert.equal(result.metadata.model, "deterministic-profile-availability");
+    assert.equal(result.answer.uncertainty, "none");
+    item.includes.forEach((pattern) => {
+      assert.match(result.answer.answer, pattern);
+    });
+    assert.doesNotMatch(result.answer.answer, /Je ne trouve pas/);
+    assert.equal(result.answer.usedEvidenceIds.length, 1);
+  }
+});
+
+test("main skills and stack questions stay deterministic and concise", async () => {
+  for (const question of [
+    "Quelles sont tes compétences principales ?",
+    "Quel est ton stack ?",
+  ]) {
+    const retrieval = retrievePortfolioKnowledge(question, {
+      locale: "fr",
+      topK: 10,
+    });
+    const provider = new MockPortfolioAIProvider(() => {
+      throw new Error("Provider should not be called.");
+    });
+
+    const result = await generatePortfolioAnswer(
+      { question, locale: "fr", retrieval },
+      { provider },
+    );
+
+    assert.equal(retrieval.intent, "technical_skills_overview");
+    assert.equal(provider.callCount, 0);
+    assert.equal(result.metadata.model, "deterministic-profile-skills");
+    assert.equal(result.answer.uncertainty, "none");
+    assert.match(result.answer.answer, /Data Engineering/);
+    assert.match(result.answer.answer, /Data Science/);
+    assert.match(result.answer.answer, /RAG\/LLM/);
+    assert.match(result.answer.answer, /Apache Kafka/);
+    assert.doesNotMatch(result.answer.answer, /compétences documentées/i);
+    assert.ok(result.answer.answer.length < 500);
+  }
+});
+
+test("programming language lookup is deterministic and separate from spoken languages", async () => {
+  const question = "Tu maîtrises quels langages de programmation ?";
+  const retrieval = retrievePortfolioKnowledge(question, {
+    locale: "fr",
+    topK: 10,
+  });
+  const provider = new MockPortfolioAIProvider(() => {
+    throw new Error("Provider should not be called.");
+  });
+
+  const result = await generatePortfolioAnswer(
+    { question, locale: "fr", retrieval },
+    { provider },
+  );
+
+  assert.equal(retrieval.intent, "programming_languages_lookup");
+  assert.equal(provider.callCount, 0);
+  assert.equal(result.metadata.provider, "local");
+  assert.equal(result.metadata.fastPathUsed, true);
+  assert.match(result.answer.answer, /Python, SQL, Java, TypeScript, JavaScript et PHP/);
+  assert.doesNotMatch(result.answer.answer, /arabe|français|anglais|allemand/i);
+});
+
+test("cloud provider lookup documents DigitalOcean without inventing AWS Azure or GCP", async () => {
+  const question = "Tu as de l'expérience avec le Cloud (AWS, Azure, GCP) ?";
+  const retrieval = retrievePortfolioKnowledge(question, {
+    locale: "fr",
+    topK: 10,
+  });
+  const provider = new MockPortfolioAIProvider(() => {
+    throw new Error("Provider should not be called.");
+  });
+
+  const result = await generatePortfolioAnswer(
+    { question, locale: "fr", retrieval },
+    { provider },
+  );
+
+  assert.equal(retrieval.intent, "cloud_provider_lookup");
+  assert.equal(provider.callCount, 0);
+  assert.match(result.answer.answer, /AWS, Azure ou GCP explicitement documentée/);
+  assert.match(result.answer.answer, /DigitalOcean/);
+  assert.doesNotMatch(result.answer.answer, /Kubernetes.*AWS|Azure.*Kubernetes|GCP.*Docker/i);
+});
+
+test("Machine Learning project lookup excludes Medical RAG and stays deterministic", async () => {
+  const question = "Est-ce que tu as déjà travaillé avec le Machine Learning ?";
+  const retrieval = retrievePortfolioKnowledge(question, {
+    locale: "fr",
+    topK: 10,
+  });
+  const provider = new MockPortfolioAIProvider(() => {
+    throw new Error("Provider should not be called.");
+  });
+
+  const result = await generatePortfolioAnswer(
+    { question, locale: "fr", retrieval },
+    { provider },
+  );
+
+  assert.equal(retrieval.intent, "projects_by_domain");
+  assert.equal(retrieval.skillCategory, "ml-deep-learning");
+  assert.equal(provider.callCount, 0);
+  assert.match(result.answer.answer, /Algorithmic Trading ML/);
+  assert.match(result.answer.answer, /Call Center AI/);
+  assert.match(result.answer.answer, /Personalized Recommendation System/);
+  assert.doesNotMatch(result.answer.answer, /Medical RAG|Plateforme intelligente RAG/);
+});
+
+test("latest project lookup uses chronology metadata without provider", async () => {
+  const question = "Parle-moi de ton dernier projet.";
+  const retrieval = retrievePortfolioKnowledge(question, {
+    locale: "fr",
+    topK: 10,
+  });
+  const provider = new MockPortfolioAIProvider(() => {
+    throw new Error("Provider should not be called.");
+  });
+
+  const result = await generatePortfolioAnswer(
+    { question, locale: "fr", retrieval },
+    { provider },
+  );
+
+  assert.equal(retrieval.intent, "latest_project_lookup");
+  assert.deepEqual(
+    retrieval.results.map((group) => group.entity.id),
+    ["medical-rag-platform"],
+  );
+  assert.equal(provider.callCount, 0);
+  assert.equal(result.metadata.model, "deterministic-latest-project");
+  assert.match(result.answer.answer, /dernier projet documenté/);
+  assert.match(result.answer.answer, /RAG/);
+});
+
+test("Data Engineering versus Data Science comparison is grounded and avoids cross-project technology contamination", async () => {
+  const question = "Tu es plutôt Data Engineering ou Data Science ?";
+  const retrieval = retrievePortfolioKnowledge(question, {
+    locale: "fr",
+    topK: 10,
+  });
+  const provider = new MockPortfolioAIProvider(() => {
+    throw new Error("Provider should not be called.");
+  });
+
+  const result = await generatePortfolioAnswer(
+    { question, locale: "fr", retrieval },
+    { provider },
+  );
+
+  assert.equal(retrieval.intent, "candidate_fit");
+  assert.equal(retrieval.candidateFitFocus, "comparison");
+  assert.equal(provider.callCount, 0);
+  assert.match(result.answer.answer, /composante Data Engineering particulièrement marquée/);
+  assert.match(result.answer.answer, /Machine Learning, le NLP, le RAG\/LLM/);
+  assert.doesNotMatch(result.answer.answer, /expert|senior|avancé/i);
+  assert.doesNotMatch(result.answer.answer, /CHU[^.]*Kafka|CHU[^.]*Spark/i);
+  assert.doesNotMatch(result.answer.answer, /Medical RAG[^.]*Kafka|Medical RAG[^.]*Spark/i);
+});
+
+test("career target lookup uses canonical target roles without provider", async () => {
+  const cases = [
+    {
+      question: "Quel type de poste recherches-tu ?",
+      locale: "fr" as const,
+      expected: /Data Engineer, AI Engineer et Data & AI Engineer/,
+      model: "deterministic-profile-career-target",
+    },
+    {
+      question: "What roles are you targeting?",
+      locale: "en" as const,
+      expected: /Data Engineer, AI Engineer, and Data & AI Engineer/,
+      model: "deterministic-profile-career-target",
+    },
+  ];
+
+  for (const item of cases) {
+    const retrieval = retrievePortfolioKnowledge(item.question, {
+      locale: item.locale,
+      topK: 10,
+    });
+    const provider = new MockPortfolioAIProvider(() => {
+      throw new Error("Provider should not be called.");
+    });
+
+    const result = await generatePortfolioAnswer(
+      { question: item.question, locale: item.locale, retrieval },
+      { provider },
+    );
+
+    assert.equal(retrieval.intent, "career_target_lookup");
+    assert.equal(provider.callCount, 0);
+    assert.equal(result.metadata.model, item.model);
+    assert.equal(result.metadata.fastPathUsed, true);
+    assert.equal(result.answer.uncertainty, "none");
+    assert.match(result.answer.answer, /stage|internship/);
+    assert.match(result.answer.answer, item.expected);
+    assert.doesNotMatch(result.answer.answer, /currently holds|occupe actuellement/i);
+    assert.equal(result.answer.usedEvidenceIds.length, 1);
+  }
+});
+
+test("English recruiter profile, background, skills, and availability are supported", async () => {
+  const cases = [
+    {
+      question: "Who is Soufiane?",
+      intent: "profile_lookup",
+      expected: /Master 2 SIAD/,
+      model: "deterministic-profile-summary",
+    },
+    {
+      question: "Can you summarize your background?",
+      intent: "journey_summary",
+      expected: /Full Stack/,
+      model: "deterministic-profile-journey",
+    },
+    {
+      question: "What are your main skills?",
+      intent: "technical_skills_overview",
+      expected: /main skills/,
+      model: "deterministic-profile-skills",
+    },
+    {
+      question: "Are you available for an internship?",
+      intent: "availability_lookup",
+      expected: /April 2027/,
+      model: "deterministic-profile-availability",
+    },
+  ] as const;
+
+  for (const item of cases) {
+    const retrieval = retrievePortfolioKnowledge(item.question, {
+      locale: "en",
+      topK: 10,
+    });
+    const provider = new MockPortfolioAIProvider(() => {
+      throw new Error("Provider should not be called.");
+    });
+
+    const result = await generatePortfolioAnswer(
+      { question: item.question, locale: "en", retrieval },
+      { provider },
+    );
+
+    assert.equal(retrieval.intent, item.intent);
+    assert.equal(provider.callCount, 0);
+    assert.equal(result.metadata.model, item.model);
+    assert.equal(result.answer.language, "en");
+    assert.match(result.answer.answer, item.expected);
+  }
 });
 
 test("skills by category uses profile fast path without provider", async () => {
@@ -990,6 +1377,90 @@ test("Kubernetes expertise lookup does not invent expert level", async () => {
   assert.doesNotMatch(result.answer.answer, /est expert Kubernetes/i);
 });
 
+test("profile skill lookups cover documented skills without provider", async () => {
+  const cases = [
+    {
+      question: "Connaît-il PyTorch ?",
+      expected: /PyTorch/,
+      unexpected: /projet/i,
+    },
+    {
+      question: "Connaît-il Power BI ?",
+      expected: /Power BI/,
+      unexpected: /expert/i,
+    },
+  ];
+
+  for (const item of cases) {
+    const retrieval = retrievePortfolioKnowledge(item.question, {
+      locale: "fr",
+      topK: 10,
+    });
+    const provider = new MockPortfolioAIProvider(() => {
+      throw new Error("Provider should not be called.");
+    });
+
+    const result = await generatePortfolioAnswer(
+      { question: item.question, locale: "fr", retrieval },
+      { provider },
+    );
+
+    assert.equal(retrieval.intent, "skill_lookup");
+    assert.equal(provider.callCount, 0);
+    assert.equal(result.answer.uncertainty, "none");
+    assert.match(result.answer.answer, item.expected);
+    assert.doesNotMatch(result.answer.answer, item.unexpected);
+  }
+});
+
+test("certification lookup uses deterministic verified profile facts", async () => {
+  const provider = new MockPortfolioAIProvider(() => {
+    throw new Error("Provider should not be called.");
+  });
+  const overviewQuestion = "Quelles certifications as-tu ?";
+  const overviewRetrieval = retrievePortfolioKnowledge(overviewQuestion, {
+    locale: "fr",
+    topK: 10,
+  });
+  const overview = await generatePortfolioAnswer(
+    { question: overviewQuestion, locale: "fr", retrieval: overviewRetrieval },
+    { provider },
+  );
+
+  assert.equal(overviewRetrieval.intent, "certification_lookup");
+  assert.equal(provider.callCount, 0);
+  assert.equal(overview.metadata.model, "deterministic-profile-certifications");
+  assert.match(overview.answer.answer, /Data Engineer in Python — DataCamp/);
+  assert.match(
+    overview.answer.answer,
+    /Introduction to Big Data with Spark and Hadoop — Coursera/,
+  );
+  assert.match(
+    overview.answer.answer,
+    /Data Cleaning and Preprocessing with pandas — 365 Data Science/,
+  );
+  assert.match(overview.answer.answer, /Python Data Structures — Coursera/);
+  assert.ok(overview.answer.usedEvidenceIds.length >= 4);
+
+  const sparkQuestion = "As-tu une certification Spark ?";
+  const sparkRetrieval = retrievePortfolioKnowledge(sparkQuestion, {
+    locale: "fr",
+    topK: 10,
+  });
+  const spark = await generatePortfolioAnswer(
+    { question: sparkQuestion, locale: "fr", retrieval: sparkRetrieval },
+    { provider },
+  );
+
+  assert.equal(provider.callCount, 0);
+  assert.deepEqual(
+    sparkRetrieval.results.map((group) => group.entity.id),
+    ["certification:introduction-big-data-spark-hadoop-coursera"],
+  );
+  assert.match(spark.answer.answer, /Spark and Hadoop — Coursera/);
+  assert.doesNotMatch(spark.answer.answer, /Python Data Structures/);
+});
+
 test("language overview and lookups use deterministic profile source", async () => {
   const provider = new MockPortfolioAIProvider(() => {
     throw new Error("Provider should not be called.");
@@ -1006,10 +1477,10 @@ test("language overview and lookups use deterministic profile source", async () 
 
   assert.equal(provider.callCount, 0);
   assert.equal(overview.metadata.model, "deterministic-profile-language");
-  assert.match(overview.answer.answer, /arabe : langue maternelle/);
-  assert.match(overview.answer.answer, /français : B2/);
-  assert.match(overview.answer.answer, /anglais : B1/);
-  assert.match(overview.answer.answer, /allemand : B1/);
+  assert.match(overview.answer.answer, /arabe comme langue maternelle/);
+  assert.match(overview.answer.answer, /B2 en français/);
+  assert.match(overview.answer.answer, /B1 en anglais/);
+  assert.match(overview.answer.answer, /B1 en allemand/);
 
   const overviewEnQuestion = "What languages does he speak?";
   const overviewEnRetrieval = retrievePortfolioKnowledge(overviewEnQuestion, {
@@ -1027,10 +1498,10 @@ test("language overview and lookups use deterministic profile source", async () 
 
   assert.equal(provider.callCount, 0);
   assert.equal(overviewEn.answer.language, "en");
-  assert.match(overviewEn.answer.answer, /Arabic \(native\)/);
-  assert.match(overviewEn.answer.answer, /French \(B2\)/);
-  assert.match(overviewEn.answer.answer, /English \(B1\)/);
-  assert.match(overviewEn.answer.answer, /German \(B1\)/);
+  assert.match(overviewEn.answer.answer, /Arabic as his native language/);
+  assert.match(overviewEn.answer.answer, /French B2/);
+  assert.match(overviewEn.answer.answer, /English B1/);
+  assert.match(overviewEn.answer.answer, /German B1/);
 
   const frenchQuestion = "Quel est son niveau en français ?";
   const frenchRetrieval = retrievePortfolioKnowledge(frenchQuestion, {

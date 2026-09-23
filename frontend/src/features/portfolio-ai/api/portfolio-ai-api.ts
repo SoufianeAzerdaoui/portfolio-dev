@@ -257,20 +257,47 @@ function publicSourceForEvidenceId(
 ): { key: string; source: PublicPortfolioAISource } {
   const evidence = findGroupEvidence(group, evidenceId);
 
+  if (group.entity.type === "certification") {
+    return {
+      key: `certification:${group.entity.id}`,
+      source: {
+        id: evidenceId,
+        entityId: group.entity.id,
+        type: "certification",
+        label: group.entity.canonicalName,
+      },
+    };
+  }
+
   if (
     group.entity.id === PERSON_ID &&
     evidence?.sourceType === "portfolio" &&
     (evidence.sourceId === "technical-skills" ||
-      evidence.sourceId === "languages")
+      evidence.sourceId === "languages" ||
+      evidence.sourceId === "availability" ||
+      evidence.sourceId === "career-target" ||
+      evidence.sourceId === "certifications")
   ) {
     const label =
       evidence.sourceId === "languages"
         ? locale === "en"
           ? "Languages"
           : "Langues"
-        : locale === "en"
-          ? "Technical profile"
-          : "Profil technique";
+        : evidence.sourceId === "availability"
+          ? locale === "en"
+            ? "Availability"
+            : "Disponibilités"
+          : evidence.sourceId === "career-target"
+            ? locale === "en"
+              ? "Career target"
+              : "Objectif professionnel"
+            : evidence.sourceId === "certifications"
+              ? locale === "en"
+                ? "Certifications"
+                : "Certifications"
+              : locale === "en"
+                ? "Technical profile"
+                : "Profil technique";
     const key = `profile:${evidence.sourceId}`;
 
     return {
@@ -329,6 +356,52 @@ export function projectPublicSources(
   }
 
   return sources;
+}
+
+function shouldShowPublicSources(
+  retrieval: PortfolioRetrievalResult,
+  sources: readonly PublicPortfolioAISource[],
+) {
+  if (sources.length === 0) {
+    return false;
+  }
+
+  if (
+    [
+      "project_lookup",
+      "latest_project_lookup",
+      "projects_by_technology",
+      "projects_by_domain",
+      "comparison",
+      "candidate_fit",
+      "project_technology_lookup",
+      "project_technology_explanation",
+      "technology_explanation",
+    ].includes(retrieval.intent)
+  ) {
+    return true;
+  }
+
+  if (retrieval.intent === "technology_evidence") {
+    return sources.some((source) =>
+      ["project", "experience"].includes(source.type),
+    );
+  }
+
+  return false;
+}
+
+export function visiblePublicSources(
+  retrieval: PortfolioRetrievalResult,
+  usedEvidenceIds: readonly string[],
+  locale: LocaleCode = "fr",
+) {
+  const sources = projectPublicSources(retrieval, usedEvidenceIds, locale).slice(
+    0,
+    5,
+  );
+
+  return shouldShowPublicSources(retrieval, sources) ? sources : [];
 }
 
 function publicError(
@@ -442,6 +515,91 @@ export type PreparedPortfolioAIRequest = {
   requiresProviderGeneration: boolean;
 };
 
+function hasCurrentEducationFastPath(retrieval: PortfolioRetrievalResult) {
+  return (
+    retrieval.intent === "education_lookup" &&
+    retrieval.status === "verified" &&
+    retrieval.results.some(
+      (result) =>
+        result.entity.id === "education-isima-siad-2026" &&
+        result.facts.some(
+          (fact) =>
+            fact.predicate === "educationStatus" &&
+            fact.value === "in_progress" &&
+            fact.status === "verified",
+        ),
+    )
+  );
+}
+
+function normalizeText(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+function hasDataEngineeringDataScienceComparisonFastPath(
+  retrieval: PortfolioRetrievalResult,
+) {
+  const normalizedQuestion = normalizeText(retrieval.originalQuery);
+
+  return (
+    retrieval.intent === "candidate_fit" &&
+    retrieval.candidateFitFocus === "comparison" &&
+    normalizedQuestion.includes("data engineering") &&
+    normalizedQuestion.includes("data science")
+  );
+}
+
+function hasProjectListFastPath(retrieval: PortfolioRetrievalResult) {
+  return (
+    retrieval.intent === "projects_by_domain" &&
+    (retrieval.skillCategory === "ml-deep-learning" ||
+      retrieval.skillCategory === "nlp-llm-rag")
+  );
+}
+
+function hasDeterministicFastPath(retrieval: PortfolioRetrievalResult) {
+  if (retrieval.notDocumented && retrieval.results.length === 0) {
+    return true;
+  }
+
+  if (hasDataEngineeringDataScienceComparisonFastPath(retrieval)) {
+    return true;
+  }
+
+  if (hasProjectListFastPath(retrieval)) {
+    return true;
+  }
+
+  if (hasCurrentEducationFastPath(retrieval)) {
+    return true;
+  }
+
+  return (
+    retrieval.status === "verified" &&
+    [
+      "availability_lookup",
+      "career_target_lookup",
+      "cloud_provider_lookup",
+      "certification_lookup",
+      "journey_summary",
+      "language_lookup",
+      "language_overview",
+      "latest_project_lookup",
+      "profile_lookup",
+      "programming_languages_lookup",
+      "projects_by_technology",
+      "project_technology_lookup",
+      "technical_skills_overview",
+      "skills_by_category",
+      "skill_lookup",
+      "technology_evidence",
+    ].includes(retrieval.intent)
+  );
+}
+
 export function preparePortfolioAIRequest(
   rawPayload: unknown,
 ): PreparedPortfolioAIRequest {
@@ -467,8 +625,7 @@ export function preparePortfolioAIRequest(
     locale,
     retrieval,
     conversationContext,
-    requiresProviderGeneration:
-      !(retrieval.notDocumented && retrieval.results.length === 0),
+    requiresProviderGeneration: !hasDeterministicFastPath(retrieval),
   };
 }
 
@@ -543,7 +700,7 @@ export async function generatePublicPortfolioAIResponse(
     answer: result.answer.answer,
     language: result.answer.language,
     uncertainty: result.answer.uncertainty,
-    sources: projectPublicSources(
+    sources: visiblePublicSources(
       prepared.retrieval,
       result.answer.usedEvidenceIds,
       result.answer.language,

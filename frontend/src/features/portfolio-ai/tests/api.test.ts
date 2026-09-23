@@ -295,7 +295,7 @@ test("project objective lookup returns one project source without provider", asy
   }
 });
 
-test("technical skills API response uses profile source without provider", async () => {
+test("technical skills API response hides profile source without provider", async () => {
   const provider = new MockPortfolioAIProvider(() => {
     throw new Error("Provider should not be called.");
   });
@@ -310,25 +310,14 @@ test("technical skills API response uses profile source without provider", async
   if ("answer" in result.body) {
     assert.equal(result.body.language, "fr");
     assert.equal(result.body.uncertainty, "none");
-    assert.match(result.body.answer, /Cloud & DevOps/);
-    assert.deepEqual(
-      result.body.sources.map((source) => ({
-        entityId: source.entityId,
-        type: source.type,
-        label: source.label,
-      })),
-      [
-        {
-          entityId: "person:soufiane-azerdaoui",
-          type: "profile",
-          label: "Profil technique",
-        },
-      ],
-    );
+    assert.match(result.body.answer, /Data Science/);
+    assert.match(result.body.answer, /RAG\/LLM/);
+    assert.doesNotMatch(result.body.answer, /documentées/i);
+    assert.deepEqual(result.body.sources, []);
   }
 });
 
-test("language API response uses profile source without provider", async () => {
+test("language API response hides profile source without provider", async () => {
   const provider = new MockPortfolioAIProvider(() => {
     throw new Error("Provider should not be called.");
   });
@@ -341,23 +330,60 @@ test("language API response uses profile source without provider", async () => {
   assert.equal(provider.callCount, 0);
 
   if ("answer" in result.body) {
-    assert.match(result.body.answer, /français : B2/);
-    assert.match(result.body.answer, /allemand : B1/);
-    assert.deepEqual(
-      result.body.sources.map((source) => ({
-        entityId: source.entityId,
-        type: source.type,
-        label: source.label,
-      })),
-      [
-        {
-          entityId: "person:soufiane-azerdaoui",
-          type: "profile",
-          label: "Langues",
-        },
-      ],
-    );
+    assert.match(result.body.answer, /B2 en français/);
+    assert.match(result.body.answer, /B1 en allemand/);
+    assert.deepEqual(result.body.sources, []);
   }
+});
+
+test("availability API response hides public availability source without provider", async () => {
+  const provider = new MockPortfolioAIProvider(() => {
+    throw new Error("Provider should not be called.");
+  });
+  const result = await handlePortfolioAIRequest(
+    {
+      message: "Es-tu disponible pour un stage / une alternance / un CDI ?",
+      locale: "fr",
+    },
+    { provider, requestId: "req_profile_availability" },
+  );
+
+  assert.equal(result.status, 200);
+  assert.equal(provider.callCount, 0);
+
+  if ("answer" in result.body) {
+    assert.equal(result.body.language, "fr");
+    assert.equal(result.body.uncertainty, "none");
+    assert.match(result.body.answer, /avril 2027/);
+    assert.match(result.body.answer, /alternance/i);
+    assert.match(result.body.answer, /CDI/);
+    assert.deepEqual(result.body.sources, []);
+  }
+});
+
+test("deterministic recruiter requests do not require provider quota", () => {
+  [
+    "Qui est Soufiane ?",
+    "Peux-tu me présenter ton parcours en quelques lignes ?",
+    "Quelle est ta formation actuelle ?",
+    "Quelles sont tes disponibilités ?",
+    "Quelles sont tes compétences principales ?",
+    "Quel type de poste recherches-tu ?",
+  ].forEach((message) => {
+    const prepared = preparePortfolioAIRequest({ message, locale: "fr" });
+
+    assert.equal(prepared.requiresProviderGeneration, false, message);
+  });
+});
+
+test("generated recruiter synthesis still requires provider", () => {
+  const prepared = preparePortfolioAIRequest({
+    message: "Pourquoi Soufiane serait-il un bon candidat pour un stage Data & AI ?",
+    locale: "fr",
+  });
+
+  assert.equal(prepared.retrieval.intent, "candidate_fit");
+  assert.equal(prepared.requiresProviderGeneration, true);
 });
 
 test("French project technology lookup remains deterministic", async () => {
@@ -568,7 +594,6 @@ test("English current message uses English AI language with French UI locale", a
   );
 
   assert.equal(result.status, 200);
-  assert.equal(provider.inputs[0]?.locale, "en");
 
   if ("answer" in result.body) {
     assert.equal(result.body.language, "en");
@@ -588,7 +613,7 @@ test("French current message uses French AI language with English UI locale", as
   );
 
   assert.equal(result.status, 200);
-  assert.equal(provider.inputs[0]?.locale, "fr");
+  assert.equal(provider.callCount, 0);
 
   if ("answer" in result.body) {
     assert.equal(result.body.language, "fr");
@@ -618,8 +643,6 @@ test("current message language dominates older opposite-language history", async
   );
 
   assert.equal(result.status, 200);
-  assert.equal(provider.inputs[0]?.locale, "en");
-
   if ("answer" in result.body) {
     assert.equal(result.body.language, "en");
   }
@@ -638,8 +661,6 @@ test("ambiguous short input falls back to UI locale", async () => {
   );
 
   assert.equal(result.status, 200);
-  assert.equal(provider.inputs[0]?.locale, "en");
-
   if ("answer" in result.body) {
     assert.equal(result.body.language, "en");
   }
@@ -677,7 +698,7 @@ test("first rate-limited client request succeeds", async () => {
   const { limiter } = createTestLimiter();
   const provider = new MockPortfolioAIProvider(firstEvidenceAnswer);
   const result = await handlePortfolioAIRequest(
-    { message: "A-t-il utilisé Qdrant ?", locale: "fr" },
+    { message: GENERATED_API_TEST_MESSAGE, locale: "fr" },
     { provider, requestId: "req_limit_first", clientKey: "client-a", rateLimiter: limiter },
   );
 
@@ -689,7 +710,7 @@ test("three requests inside the burst window are allowed", async () => {
 
   for (let index = 0; index < PORTFOLIO_AI_RATE_LIMIT_CONFIG.burst.maxRequests; index += 1) {
     const result = await handlePortfolioAIRequest(
-      { message: "A-t-il utilisé Qdrant ?", locale: "fr" },
+      { message: GENERATED_API_TEST_MESSAGE, locale: "fr" },
       {
         provider: new MockPortfolioAIProvider(firstEvidenceAnswer),
         requestId: `req_burst_${index}`,
@@ -707,7 +728,7 @@ test("next burst request is blocked with 429 RATE_LIMITED", async () => {
 
   for (let index = 0; index < PORTFOLIO_AI_RATE_LIMIT_CONFIG.burst.maxRequests; index += 1) {
     await handlePortfolioAIRequest(
-      { message: "A-t-il utilisé Qdrant ?", locale: "fr" },
+      { message: GENERATED_API_TEST_MESSAGE, locale: "fr" },
       {
         provider: new MockPortfolioAIProvider(firstEvidenceAnswer),
         requestId: `req_burst_fill_${index}`,
@@ -718,7 +739,7 @@ test("next burst request is blocked with 429 RATE_LIMITED", async () => {
   }
 
   const blocked = await handlePortfolioAIRequest(
-    { message: "A-t-il utilisé Qdrant ?", locale: "fr" },
+    { message: GENERATED_API_TEST_MESSAGE, locale: "fr" },
     {
       provider: new MockPortfolioAIProvider(firstEvidenceAnswer),
       requestId: "req_burst_blocked",
@@ -742,7 +763,7 @@ test("burst window expiration allows requests again", async () => {
 
   for (let index = 0; index < PORTFOLIO_AI_RATE_LIMIT_CONFIG.burst.maxRequests; index += 1) {
     await handlePortfolioAIRequest(
-      { message: "A-t-il utilisé Qdrant ?", locale: "fr" },
+      { message: GENERATED_API_TEST_MESSAGE, locale: "fr" },
       {
         provider: new MockPortfolioAIProvider(firstEvidenceAnswer),
         requestId: `req_expire_${index}`,
@@ -755,7 +776,7 @@ test("burst window expiration allows requests again", async () => {
   clock.advance(PORTFOLIO_AI_RATE_LIMIT_CONFIG.burst.windowMs + 1);
 
   const result = await handlePortfolioAIRequest(
-    { message: "A-t-il utilisé Qdrant ?", locale: "fr" },
+    { message: GENERATED_API_TEST_MESSAGE, locale: "fr" },
     {
       provider: new MockPortfolioAIProvider(firstEvidenceAnswer),
       requestId: "req_expire_after",
@@ -793,7 +814,7 @@ test("different client keys do not share quota", async () => {
 
   for (let index = 0; index < PORTFOLIO_AI_RATE_LIMIT_CONFIG.burst.maxRequests; index += 1) {
     await handlePortfolioAIRequest(
-      { message: "A-t-il utilisé Qdrant ?", locale: "fr" },
+      { message: GENERATED_API_TEST_MESSAGE, locale: "fr" },
       {
         provider: new MockPortfolioAIProvider(firstEvidenceAnswer),
         requestId: `req_key_a_${index}`,
@@ -804,7 +825,7 @@ test("different client keys do not share quota", async () => {
   }
 
   const result = await handlePortfolioAIRequest(
-    { message: "A-t-il utilisé Qdrant ?", locale: "fr" },
+    { message: GENERATED_API_TEST_MESSAGE, locale: "fr" },
     {
       provider: new MockPortfolioAIProvider(firstEvidenceAnswer),
       requestId: "req_key_b",
@@ -943,7 +964,7 @@ test("not-documented deterministic bypass returns 200 without provider call", as
   assert.equal(provider.callCount, 0);
 
   if ("answer" in result.body) {
-    assert.equal(result.body.uncertainty, "not-documented");
+    assert.equal(result.body.uncertainty, "ambiguous");
     assert.deepEqual(result.body.sources, []);
   }
 });
@@ -964,10 +985,7 @@ test("Kubernetes expertise API answer is cautious and provider-free", async () =
     assert.equal(result.body.uncertainty, "ambiguous");
     assert.match(result.body.answer, /Kubernetes/);
     assert.match(result.body.answer, /ne documente pas un niveau/);
-    assert.deepEqual(
-      result.body.sources.map((source) => source.type),
-      ["profile"],
-    );
+    assert.deepEqual(result.body.sources, []);
   }
 });
 
@@ -1039,10 +1057,7 @@ test("explicit Kubernetes expertise question does not inherit RAG history", asyn
   if ("answer" in result.body) {
     assert.equal(result.body.uncertainty, "ambiguous");
     assert.match(result.body.answer, /Kubernetes/);
-    assert.deepEqual(
-      result.body.sources.map((source) => source.type),
-      ["profile"],
-    );
+    assert.deepEqual(result.body.sources, []);
     assert.equal(JSON.stringify(result.body).includes("Medical RAG"), false);
     assert.equal(JSON.stringify(result.body).includes("Qdrant"), false);
   }
@@ -1057,11 +1072,16 @@ test("current academic program after RAG history keeps retrieval focused", async
     { role: "assistant" as const, content: previousAnswer },
   ];
   const provider = new MockPortfolioAIProvider((input) => ({
-    answer: "His current academic program is documented in the portfolio.",
+    answer: "This provider should not be called.",
     usedEvidenceIds: input.allowedEvidenceIds.slice(0, 1),
     uncertainty: "none",
     language: "en",
   }));
+  const prepared = preparePortfolioAIRequest({
+    message: "What is his current academic program?",
+    locale: "en",
+    history,
+  });
   const result = await handlePortfolioAIRequest(
     {
       message: "What is his current academic program?",
@@ -1070,19 +1090,22 @@ test("current academic program after RAG history keeps retrieval focused", async
     },
     { provider, requestId: "req_current_program_after_rag" },
   );
-  const input = provider.inputs[0];
 
-  assert.equal(result.status, 200);
-  assert.ok(input);
-  assert.equal(input.groundedContext.intent, "education_lookup");
+  assert.equal(prepared.retrieval.intent, "education_lookup");
   assert.deepEqual(
-    input.groundedContext.entities.map((entity) => entity.id),
+    prepared.retrieval.results.map((resultItem) => resultItem.entity.id),
     ["education-isima-siad-2026"],
   );
-  assert.equal(input.userPrompt.split(previousQuestion).length - 1, 1);
-  assert.equal(input.userPrompt.split(previousAnswer).length - 1, 1);
-  assert.equal(JSON.stringify(input.groundedContext).includes("Medical RAG"), false);
-  assert.equal(JSON.stringify(input.groundedContext).includes("Qdrant"), false);
+  assert.equal(prepared.requiresProviderGeneration, false);
+  assert.equal(result.status, 200);
+  assert.equal(provider.callCount, 0);
+
+  if ("answer" in result.body) {
+    assert.match(result.body.answer, /Master 2/);
+    assert.match(result.body.answer, /ISIMA/);
+    assert.equal(JSON.stringify(result.body).includes("Medical RAG"), false);
+    assert.equal(JSON.stringify(result.body).includes("Qdrant"), false);
+  }
 });
 
 test("profile skill follow-up category stays focused on the new category", async () => {
@@ -1117,12 +1140,12 @@ test("profile skill follow-up category stays focused on the new category", async
   assert.equal(conversationContext.contextualized, false);
   assert.equal(conversationContext.retrievalQuery, "Et en IA ?");
   assert.equal(retrieval.intent, "skills_by_category");
-  assert.equal(retrieval.skillCategory, "ai-nlp-genai");
+  assert.equal(retrieval.skillCategory, "nlp-llm-rag");
   assert.equal(result.status, 200);
   assert.equal(provider.callCount, 0);
 
   if ("answer" in result.body) {
-    assert.match(result.body.answer, /Qdrant/);
+    assert.match(result.body.answer, /RAG \/ LLM Systems/);
     assert.match(result.body.answer, /Hugging Face Transformers/);
     assert.doesNotMatch(result.body.answer, /Apache Kafka/);
   }
@@ -1134,7 +1157,7 @@ test("language follow-up stays focused on the requested language", async () => {
     {
       role: "assistant" as const,
       content:
-        "Langues documentées : arabe : langue maternelle, français : B2, anglais : B1 et allemand : B1.",
+        "Soufiane parle arabe comme langue maternelle. Il a un niveau B2 en français, B1 en anglais et B1 en allemand.",
     },
   ];
   const conversationContext = buildConversationContext(
@@ -1350,7 +1373,7 @@ test("local limiter maps to 429 RATE_LIMITED separately from provider 503", asyn
 
   for (let index = 0; index < PORTFOLIO_AI_RATE_LIMIT_CONFIG.burst.maxRequests; index += 1) {
     await handlePortfolioAIRequest(
-      { message: "A-t-il utilisé Qdrant ?", locale: "fr" },
+      { message: GENERATED_API_TEST_MESSAGE, locale: "fr" },
       {
         provider: new MockPortfolioAIProvider(firstEvidenceAnswer),
         requestId: `req_local_limit_${index}`,
@@ -1361,7 +1384,7 @@ test("local limiter maps to 429 RATE_LIMITED separately from provider 503", asyn
   }
 
   const result = await handlePortfolioAIRequest(
-    { message: "A-t-il utilisé Qdrant ?", locale: "fr" },
+    { message: GENERATED_API_TEST_MESSAGE, locale: "fr" },
     {
       provider: new MockPortfolioAIProvider(() => {
         throw new GenerationRateLimitError("provider quota");
@@ -1398,7 +1421,7 @@ test("local RATE_LIMITED does not start Gemini or FreeLLMAPI fallback", async ()
     releaseGenerationSlot: () => {},
   };
   const result = await handlePortfolioAIRequest(
-    { message: "A-t-il utilisé Qdrant ?", locale: "fr" },
+    { message: GENERATED_API_TEST_MESSAGE, locale: "fr" },
     {
       provider,
       requestId: "req_local_limited_no_fallback",
@@ -1843,13 +1866,12 @@ test("deterministic not-documented response streams without provider call", asyn
   if ("response" in result) {
     const events = await readSSEEvents(result.response);
 
-    assert.deepEqual(events.map((event) => event.event), [
-      "meta",
-      "delta",
-      "delta",
-      "sources",
-      "done",
-    ]);
+    const eventNames = events.map((event) => event.event);
+
+    assert.equal(eventNames[0], "meta");
+    assert.equal(eventNames.at(-2), "sources");
+    assert.equal(eventNames.at(-1), "done");
+    assert.ok(eventNames.slice(1, -2).every((event) => event === "delta"));
     assert.equal(provider.callCount, 0);
   }
 });
@@ -1883,9 +1905,7 @@ test("profile language response streams without provider call", async () => {
     ]);
     assert.match(deltaText, /allemand/);
     assert.match(deltaText, /B1/);
-    assert.equal(sources?.length, 1);
-    assert.equal(sources?.[0]?.type, "profile");
-    assert.equal(sources?.[0]?.label, "Langues");
+    assert.deepEqual(sources, []);
   }
 });
 
@@ -2146,7 +2166,7 @@ test("streaming local rate limit returns HTTP 429 before SSE begins", async () =
 
   for (let index = 0; index < PORTFOLIO_AI_RATE_LIMIT_CONFIG.burst.maxRequests; index += 1) {
     await handlePortfolioAIRequest(
-      { message: "A-t-il utilisé Qdrant ?", locale: "fr" },
+      { message: GENERATED_API_TEST_MESSAGE, locale: "fr" },
       {
         provider: new MockPortfolioAIProvider(firstEvidenceAnswer),
         requestId: `req_stream_preflight_fill_${index}`,
@@ -2157,7 +2177,7 @@ test("streaming local rate limit returns HTTP 429 before SSE begins", async () =
   }
 
   const result = createPortfolioAIStreamResponse(
-    { message: "A-t-il utilisé Qdrant ?", locale: "fr" },
+    { message: GENERATED_API_TEST_MESSAGE, locale: "fr" },
     {
       provider: new MockPortfolioAIProvider(firstEvidenceAnswer),
       requestId: "req_stream_preflight_block",

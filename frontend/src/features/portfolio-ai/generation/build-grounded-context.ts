@@ -14,7 +14,7 @@ import type {
 } from "@/features/portfolio-ai/generation/generation.types";
 
 const MAX_CONTEXT_ENTITIES = 5;
-const MAX_CANDIDATE_FIT_CONTEXT_ENTITIES = 8;
+const MAX_CANDIDATE_FIT_CONTEXT_ENTITIES = 10;
 const MAX_CONTEXT_FACTS_PER_ENTITY = 10;
 
 type RetrievedFact =

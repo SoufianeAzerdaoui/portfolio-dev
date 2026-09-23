@@ -14,12 +14,14 @@ import type {
 
 type ProfileSkillCategory =
   | "data-engineering"
-  | "ai-nlp-genai"
-  | "databases-bi"
+  | "ml-deep-learning"
+  | "nlp-llm-rag"
+  | "data-analysis-bi"
+  | "databases"
   | "programming-languages"
   | "cloud-devops"
-  | "web-development"
-  | "design-methods";
+  | "web-api"
+  | "design-agile";
 
 type ProfileSkillDefinition = {
   name: string;
@@ -39,33 +41,86 @@ const PROFILE_SKILL_CATEGORIES: Record<
     fr: "Data Engineering",
     en: "Data Engineering",
   },
-  "ai-nlp-genai": {
-    fr: "IA / NLP / GenAI",
-    en: "AI / NLP / GenAI",
+  "ml-deep-learning": {
+    fr: "ML & Deep Learning",
+    en: "ML & Deep Learning",
   },
-  "databases-bi": {
-    fr: "Bases de données & BI",
-    en: "Databases & BI",
+  "nlp-llm-rag": {
+    fr: "NLP, LLM & RAG",
+    en: "NLP, LLM & RAG",
+  },
+  "data-analysis-bi": {
+    fr: "Data Analysis & BI",
+    en: "Data Analysis & BI",
+  },
+  databases: {
+    fr: "Bases de données",
+    en: "Databases",
   },
   "programming-languages": {
     fr: "Langages",
-    en: "Programming languages",
+    en: "Programming Languages",
   },
   "cloud-devops": {
     fr: "Cloud & DevOps",
     en: "Cloud & DevOps",
   },
-  "web-development": {
-    fr: "Développement web",
-    en: "Web development",
+  "web-api": {
+    fr: "Web & API",
+    en: "Web & API",
   },
-  "design-methods": {
-    fr: "Conception & méthodes",
-    en: "Design & methods",
+  "design-agile": {
+    fr: "Conception & Agile",
+    en: "Design & Agile",
   },
 };
 
 const PROFILE_TECHNICAL_SKILLS: ProfileSkillDefinition[] = [
+  ...[
+    "scikit-learn",
+    "XGBoost",
+    "TensorFlow",
+    "PyTorch",
+  ].map((name) => ({
+    name,
+    category: "ml-deep-learning" as const,
+    categoryLabel: PROFILE_SKILL_CATEGORIES["ml-deep-learning"],
+    ...(name === "scikit-learn"
+      ? {
+          aliases: ["Scikit-learn", "sklearn"],
+        }
+      : {}),
+  })),
+  ...[
+    "Hugging Face Transformers",
+    "RAG / LLM Systems",
+    "Ollama",
+  ].map((name) => ({
+    name,
+    category: "nlp-llm-rag" as const,
+    categoryLabel: PROFILE_SKILL_CATEGORIES["nlp-llm-rag"],
+    ...(name === "Hugging Face Transformers"
+      ? {
+          aliases: ["Transformers", "Hugging Face"],
+        }
+      : {}),
+    ...(name === "RAG / LLM Systems"
+      ? {
+          aliases: [
+            "RAG",
+            "LLM",
+            "LLMs",
+            "RAG/LLM",
+            "RAG systems",
+            "LLM systems",
+            "retrieval augmented generation",
+            "retrieval-augmented generation",
+            "large language model",
+            "large language models",
+          ],
+        }
+      : {}),
+  })),
   ...[
     "ETL",
     "Data Warehousing",
@@ -80,42 +135,49 @@ const PROFILE_TECHNICAL_SKILLS: ProfileSkillDefinition[] = [
     name,
     category: "data-engineering" as const,
     categoryLabel: PROFILE_SKILL_CATEGORIES["data-engineering"],
-  })),
-  ...[
-    "scikit-learn",
-    "XGBoost",
-    "TensorFlow",
-    "PyTorch",
-    "Hugging Face Transformers",
-    "RAG / LLM Systems",
-    "FAISS",
-    "Qdrant",
-    "Whisper",
-    "Ollama",
-  ].map((name) => ({
-    name,
-    category: "ai-nlp-genai" as const,
-    categoryLabel: PROFILE_SKILL_CATEGORIES["ai-nlp-genai"],
-    ...(name === "RAG / LLM Systems"
+    ...(name === "Apache Spark"
       ? {
-          aliases: [
-            "RAG",
-            "LLM",
-            "LLMs",
-            "RAG/LLM",
-            "RAG systems",
-            "LLM systems",
-          ],
+          aliases: ["Spark", "Spark/PySpark"],
+        }
+      : {}),
+    ...(name === "PySpark"
+      ? {
+          aliases: ["Spark/PySpark"],
+        }
+      : {}),
+    ...(name === "Apache Kafka"
+      ? {
+          aliases: ["Kafka"],
+        }
+      : {}),
+    ...(name === "Hadoop"
+      ? {
+          aliases: ["Hadoop/HDFS"],
+        }
+      : {}),
+    ...(name === "HDFS"
+      ? {
+          aliases: ["Hadoop/HDFS"],
         }
       : {}),
   })),
-  ...["SQL Server", "MySQL", "MongoDB", "SQLite", "Power BI", "DAX"].map(
+  ...["Pandas", "NumPy", "Power BI", "DAX"].map(
     (name) => ({
       name,
-      category: "databases-bi" as const,
-      categoryLabel: PROFILE_SKILL_CATEGORIES["databases-bi"],
+      category: "data-analysis-bi" as const,
+      categoryLabel: PROFILE_SKILL_CATEGORIES["data-analysis-bi"],
+      ...(name === "Power BI"
+        ? {
+            aliases: ["PowerBI"],
+          }
+        : {}),
     }),
   ),
+  ...["SQL Server", "MySQL", "MongoDB", "SQLite", "Qdrant"].map((name) => ({
+    name,
+    category: "databases" as const,
+    categoryLabel: PROFILE_SKILL_CATEGORIES.databases,
+  })),
   ...["Python", "SQL", "Java", "PHP", "JavaScript", "TypeScript"].map(
     (name) => ({
       name,
@@ -128,6 +190,16 @@ const PROFILE_TECHNICAL_SKILLS: ProfileSkillDefinition[] = [
       name,
       category: "cloud-devops" as const,
       categoryLabel: PROFILE_SKILL_CATEGORIES["cloud-devops"],
+      ...(name === "Kubernetes"
+        ? {
+            aliases: ["K8s"],
+          }
+        : {}),
+      ...(name === "GitHub Actions"
+        ? {
+            aliases: ["CI/CD", "GitHub Actions"],
+          }
+        : {}),
     }),
   ),
   {
@@ -139,15 +211,42 @@ const PROFILE_TECHNICAL_SKILLS: ProfileSkillDefinition[] = [
   ...["FastAPI", "Spring Boot", "Angular", "React.js", "Next.js"].map(
     (name) => ({
       name,
-      category: "web-development" as const,
-      categoryLabel: PROFILE_SKILL_CATEGORIES["web-development"],
+      category: "web-api" as const,
+      categoryLabel: PROFILE_SKILL_CATEGORIES["web-api"],
+      ...(name === "React.js"
+        ? {
+            aliases: ["React"],
+          }
+        : {}),
+      ...(name === "Next.js"
+        ? {
+            aliases: ["Next"],
+          }
+        : {}),
     }),
   ),
-  ...["UML", "Merise", "Data Modeling", "Jira", "Agile / Scrum"].map(
+  ...[
+    "UML",
+    "Merise",
+    "Software modeling",
+    "Data Modeling",
+    "Jira",
+    "Agile / Scrum",
+  ].map(
     (name) => ({
       name,
-      category: "design-methods" as const,
-      categoryLabel: PROFILE_SKILL_CATEGORIES["design-methods"],
+      category: "design-agile" as const,
+      categoryLabel: PROFILE_SKILL_CATEGORIES["design-agile"],
+      ...(name === "Software modeling"
+        ? {
+            aliases: ["modélisation logicielle", "modelisation logicielle"],
+          }
+        : {}),
+      ...(name === "Data Modeling"
+        ? {
+            aliases: ["modélisation de données", "modelisation de donnees"],
+          }
+        : {}),
     }),
   ),
 ];
@@ -198,6 +297,55 @@ const PROFILE_LANGUAGES = [
   },
 ] as const;
 
+const PROFILE_CERTIFICATIONS = [
+  {
+    id: "certification:data-engineer-in-python-datacamp",
+    title: "Data Engineer in Python",
+    issuer: "DataCamp",
+    aliases: [
+      "Data Engineer in Python",
+      "certification Data Engineering",
+      "certification Data Engineer",
+      "DataCamp Data Engineer in Python",
+    ],
+  },
+  {
+    id: "certification:introduction-big-data-spark-hadoop-coursera",
+    title: "Introduction to Big Data with Spark and Hadoop",
+    issuer: "Coursera",
+    aliases: [
+      "Introduction to Big Data with Spark and Hadoop",
+      "certification Spark",
+      "certification Hadoop",
+      "Spark certification",
+      "Hadoop certification",
+      "Coursera Spark Hadoop",
+    ],
+  },
+  {
+    id: "certification:data-cleaning-preprocessing-pandas-365",
+    title: "Data Cleaning and Preprocessing with pandas",
+    issuer: "365 Data Science",
+    aliases: [
+      "Data Cleaning and Preprocessing with pandas",
+      "certification pandas",
+      "pandas certification",
+      "365 Data Science pandas",
+    ],
+  },
+  {
+    id: "certification:python-data-structures-coursera",
+    title: "Python Data Structures",
+    issuer: "Coursera",
+    aliases: [
+      "Python Data Structures",
+      "certification Python",
+      "Python certification",
+      "Coursera Python Data Structures",
+    ],
+  },
+] as const;
+
 function profileEvidence(sourceId: string, field: string) {
   return {
     sourceType: "portfolio" as const,
@@ -231,6 +379,32 @@ export function normalizeProfile() {
       display: language.display,
     },
   }));
+  const certificationEntities: KnowledgeEntity[] = PROFILE_CERTIFICATIONS.map(
+    (certification) => ({
+      id: certification.id,
+      type: "certification",
+      canonicalName: certification.title,
+      aliases: [
+        certification.title,
+        certification.issuer,
+        ...certification.aliases,
+      ],
+      localeContent: {
+        fr: {
+          title: certification.title,
+          summary: certification.issuer,
+        },
+        en: {
+          title: certification.title,
+          summary: certification.issuer,
+        },
+      },
+      sourceRefs: [sourceRef("portfolio", "certifications")],
+      metadata: {
+        issuer: certification.issuer,
+      },
+    }),
+  );
 
   const entity: KnowledgeEntity = {
     id: PERSON_ID,
@@ -295,6 +469,48 @@ export function normalizeProfile() {
         },
       ],
     },
+    {
+      id: "fact:person:soufiane-azerdaoui:availability",
+      subjectId: PERSON_ID,
+      predicate: "hasAvailability",
+      value: {
+        internship: {
+          status: "documented",
+          availableFrom: {
+            fr: "avril 2027",
+            en: "April 2027",
+          },
+          targetAreas: ["Data", "AI", "Cloud"],
+        },
+        apprenticeship: {
+          status: "not-documented",
+        },
+        fullTime: {
+          status: "not-documented",
+        },
+      },
+      status: "verified",
+      evidence: [profileEvidence("availability", "career-availability")],
+      tags: ["profile-availability"],
+      metadata: {
+        provenance: "owner-confirmed-profile",
+      },
+    },
+    {
+      id: "fact:person:soufiane-azerdaoui:career-target",
+      subjectId: PERSON_ID,
+      predicate: "hasCareerTarget",
+      value: {
+        opportunityType: "internship",
+        targetRoles: ["Data Engineer", "AI Engineer", "Data & AI Engineer"],
+      },
+      status: "verified",
+      evidence: [profileEvidence("career-target", "target-roles")],
+      tags: ["profile-career-target"],
+      metadata: {
+        provenance: "owner-confirmed-profile",
+      },
+    },
   ];
 
   PROFILE_TECHNICAL_SKILLS.forEach((skill) => {
@@ -346,8 +562,42 @@ export function normalizeProfile() {
     });
   });
 
+  PROFILE_CERTIFICATIONS.forEach((certification) => {
+    facts.push(
+      {
+        id: `fact:${certification.id}:title`,
+        subjectId: certification.id,
+        predicate: "certificationTitle",
+        value: certification.title,
+        status: "verified",
+        evidence: [profileEvidence("certifications", certification.id)],
+        tags: ["profile-certification"],
+        metadata: {
+          provenance: "owner-confirmed-profile",
+        },
+      },
+      {
+        id: `fact:${certification.id}:issuer`,
+        subjectId: certification.id,
+        predicate: "certificationIssuer",
+        value: certification.issuer,
+        status: "verified",
+        evidence: [profileEvidence("certifications", certification.id)],
+        tags: ["profile-certification"],
+        metadata: {
+          provenance: "owner-confirmed-profile",
+        },
+      },
+    );
+  });
+
   return {
-    entities: [entity, ...technologyEntities, ...languageEntities],
+    entities: [
+      entity,
+      ...technologyEntities,
+      ...languageEntities,
+      ...certificationEntities,
+    ],
     facts,
   };
 }

@@ -1,5 +1,6 @@
 import type {
   CandidateFitFocus,
+  CertificationQueryKind,
   DetectedEntity,
   IntentDetection,
   ProfileSkillCategory,
@@ -151,17 +152,43 @@ function detectProfileSkillCategory(
 
   if (
     matchedEntityIds.has("domain:ai-ml") ||
+    text.includes("machine learning") ||
+    text.includes("deep learning") ||
+    text.includes(" ml ") ||
+    text.includes(" dl ")
+  ) {
+    return "ml-deep-learning";
+  }
+
+  if (
     matchedEntityIds.has("skill:nlp") ||
     matchedEntityIds.has("skill:rag") ||
     text.includes("genai") ||
     text.includes("gen ai") ||
     text.includes("nlp") ||
+    text.includes("traitement de texte") ||
+    text.includes("text processing") ||
+    text.includes("natural language processing") ||
     text.includes("llm") ||
+    text.includes("rag") ||
     text.includes("intelligence artificielle") ||
     text.includes(" ai ") ||
     text.includes(" ia ")
   ) {
-    return "ai-nlp-genai";
+    return "nlp-llm-rag";
+  }
+
+  if (
+    text.includes("business intelligence") ||
+    text.includes(" bi ") ||
+    text.includes("power bi") ||
+    text.includes("dax") ||
+    text.includes("pandas") ||
+    text.includes("numpy") ||
+    text.includes("data analysis") ||
+    text.includes("analyse de donnees")
+  ) {
+    return "data-analysis-bi";
   }
 
   if (
@@ -169,12 +196,13 @@ function detectProfileSkillCategory(
     text.includes("bases de donnees") ||
     text.includes("database") ||
     text.includes("databases") ||
-    text.includes("business intelligence") ||
-    text.includes(" bi ") ||
-    text.includes("power bi") ||
-    text.includes("dax")
+    text.includes("mysql") ||
+    text.includes("sql server") ||
+    text.includes("mongodb") ||
+    text.includes("sqlite") ||
+    text.includes("qdrant")
   ) {
-    return "databases-bi";
+    return "databases";
   }
 
   if (
@@ -210,7 +238,7 @@ function detectProfileSkillCategory(
     text.includes("react") ||
     text.includes("next js")
   ) {
-    return "web-development";
+    return "web-api";
   }
 
   if (
@@ -224,7 +252,7 @@ function detectProfileSkillCategory(
     text.includes("methode") ||
     text.includes("method")
   ) {
-    return "design-methods";
+    return "design-agile";
   }
 
   return undefined;
@@ -234,6 +262,20 @@ function hasTechnicalSkillsOverviewRequest(query: NormalizedQuery) {
   const text = queryText(query);
 
   return [
+    "competences principales",
+    "principales competences",
+    "quelles sont tes competences",
+    "quelles sont ses competences",
+    "quelles competences",
+    "quel est ton stack",
+    "quel est son stack",
+    "main skills",
+    "core skills",
+    "primary skills",
+    "what are your skills",
+    "what are his skills",
+    "what is your stack",
+    "what is his stack",
     "competences techniques",
     "profil technique",
     "stack technique",
@@ -249,6 +291,220 @@ function hasTechnicalSkillsOverviewRequest(query: NormalizedQuery) {
     "outils maîtrise",
     "quels outils",
     "tools does he know",
+  ].some((term) => text.includes(term));
+}
+
+function hasProgrammingLanguagesRequest(query: NormalizedQuery) {
+  const text = queryText(query);
+
+  return [
+    "langages de programmation",
+    "langage de programmation",
+    "langages programmation",
+    "langage programmation",
+    "programming languages",
+    "programming language",
+    "coding languages",
+    "quels langages",
+  ].some((term) => text.includes(term));
+}
+
+function hasCloudProviderRequest(query: NormalizedQuery) {
+  const text = queryText(query);
+  const asksProvider =
+    text.includes("aws") ||
+    text.includes("azure") ||
+    text.includes("gcp") ||
+    text.includes("google cloud") ||
+    text.includes("cloud provider") ||
+    text.includes("fournisseur cloud");
+
+  return text.includes("cloud") && asksProvider;
+}
+
+function hasLatestProjectRequest(query: NormalizedQuery) {
+  const text = queryText(query);
+
+  return [
+    "dernier projet",
+    "projet le plus recent",
+    "projet le plus récent",
+    "projet recent",
+    "projet récent",
+    "dernier projet realise",
+    "dernier projet réalisé",
+    "projet actuel",
+    "latest project",
+    "most recent project",
+    "newest project",
+    "most recent work",
+  ].some((term) => text.includes(term));
+}
+
+function hasDomainProjectExperienceRequest(query: NormalizedQuery) {
+  const text = queryText(query);
+
+  return [
+    "deja travaille avec",
+    "déjà travaillé avec",
+    "as deja travaille avec",
+    "as déjà travaillé avec",
+    "worked with",
+    "have you worked with",
+    "has he worked with",
+    "deja fait",
+    "déjà fait",
+    "traitement de texte",
+    "text processing",
+  ].some((term) => text.includes(term));
+}
+
+function hasProfileSummaryRequest(query: NormalizedQuery) {
+  const text = queryText(query);
+
+  return [
+    "qui est soufiane",
+    "qui est soufiane azerdaoui",
+    "qui es-tu",
+    "qui es tu",
+    "peux-tu te presenter",
+    "peux tu te presenter",
+    "presente-toi",
+    "presente toi",
+    "quel est ton profil",
+    "quel est son profil",
+    "parle-moi de ton profil",
+    "parle moi de ton profil",
+    "who is soufiane",
+    "who is soufiane azerdaoui",
+    "who are you",
+    "tell me about yourself",
+    "can you introduce yourself",
+    "what is your profile",
+    "what is his profile",
+  ].some((term) => text.includes(term));
+}
+
+function hasJourneySummaryRequest(query: NormalizedQuery) {
+  const text = queryText(query);
+
+  return [
+    "presente ton parcours",
+    "presente son parcours",
+    "presenter ton parcours",
+    "presenter son parcours",
+    "quel est ton parcours",
+    "quel est son parcours",
+    "resume-moi ton parcours",
+    "resume son parcours",
+    "parcours en quelques lignes",
+    "parcours professionnel",
+    "quelle est ton experience",
+    "quelle est son experience",
+    "comment as-tu evolue",
+    "comment a-t-il evolue",
+    "summarize your background",
+    "summarise your background",
+    "summarize his background",
+    "summarise his background",
+    "what is your background",
+    "what is his background",
+    "professional journey",
+    "career path",
+  ].some((term) => text.includes(term));
+}
+
+function hasAvailabilityRequest(query: NormalizedQuery) {
+  const text = queryText(query);
+
+  if (
+    [
+      "disponibilite",
+      "disponibilites",
+      "disponible",
+      "availability",
+      "available",
+      "starting when",
+      "from when",
+      "a partir de quand",
+    ].some((term) => text.includes(term))
+  ) {
+    return true;
+  }
+
+  const contractMentions = [
+    text.includes("stage") || text.includes("internship"),
+    text.includes("alternance") || text.includes("apprenticeship"),
+    text.includes("cdi") ||
+      text.includes("full-time") ||
+      text.includes("full time"),
+  ].filter(Boolean).length;
+
+  return (
+    contractMentions > 0 &&
+    (text.includes("/") ||
+      (contractMentions >= 2 &&
+        (text.includes(" or ") || text.includes(" ou "))))
+  );
+}
+
+function hasCertificationRequest(query: NormalizedQuery) {
+  const text = queryText(query);
+
+  return [
+    "certification",
+    "certifications",
+    "certificat",
+    "certificats",
+    "certificate",
+    "certificates",
+    "credential",
+    "credentials",
+  ].some((term) => text.includes(term));
+}
+
+function detectCertificationQueryKind(query: NormalizedQuery): CertificationQueryKind {
+  const text = queryText(query);
+
+  if (
+    [
+      "quelles certifications",
+      "quels certificats",
+      "liste des certifications",
+      "tes certifications",
+      "ses certifications",
+      "what certifications",
+      "which certifications",
+      "list certifications",
+    ].some((term) => text.includes(term))
+  ) {
+    return "overview";
+  }
+
+  return "specific";
+}
+
+function hasCareerTargetRequest(query: NormalizedQuery) {
+  const text = queryText(query);
+
+  return [
+    "quel type de poste recherches",
+    "quel type de poste recherche",
+    "quel poste recherches",
+    "quel poste recherche",
+    "quels postes t interessent",
+    "quels postes l interessent",
+    "quel stage recherches",
+    "quel stage recherche",
+    "objectif professionnel",
+    "tu recherches plutot",
+    "tu recherches plutôt",
+    "what roles are you targeting",
+    "what roles is he targeting",
+    "what kind of internship are you looking for",
+    "what kind of internship is he looking for",
+    "what positions are you interested in",
+    "what positions is he interested in",
   ].some((term) => text.includes(term));
 }
 
@@ -313,6 +569,36 @@ function hasRecruiterFitRequest(query: NormalizedQuery) {
   ].some((term) => text.includes(term));
 }
 
+function hasRecruiterSynthesisCue(query: NormalizedQuery) {
+  const text = queryText(query);
+
+  return [
+    "pourquoi",
+    "why",
+    "pertinent",
+    "relevant",
+    "bon candidat",
+    "good candidate",
+    "bon profil",
+    "good fit",
+    "fit for",
+    "candidat",
+    "candidate",
+    "forces",
+    "strength",
+    "strengths",
+    "poste",
+    "role",
+    "plutot",
+    "plutôt",
+    "plus adapte",
+    "plus adapté",
+    "lean more",
+    "rather",
+    "more toward",
+  ].some((term) => text.includes(term));
+}
+
 function detectCandidateFitFocus(query: NormalizedQuery): CandidateFitFocus | undefined {
   const text = queryText(query);
   const hasData =
@@ -342,6 +628,8 @@ function detectCandidateFitFocus(query: NormalizedQuery): CandidateFitFocus | un
   if (
     text.includes("plutot") ||
     text.includes("plutôt") ||
+    text.includes("plus adapte") ||
+    text.includes("plus adapté") ||
     text.includes("lean more") ||
     text.includes("more toward") ||
     text.includes("rather data") ||
@@ -478,6 +766,33 @@ export function detectIntent(
   const languageQueryKind = detectLanguageQueryKind(query, matchedEntities);
   const candidateFitFocus = detectCandidateFitFocus(query);
 
+  if (hasProgrammingLanguagesRequest(query)) {
+    return {
+      intent: "programming_languages_lookup",
+      confidence: 0.96,
+      reasons: ["programming languages wording matched"],
+      skillCategory: "programming-languages",
+    };
+  }
+
+  if (hasCloudProviderRequest(query)) {
+    return {
+      intent: "cloud_provider_lookup",
+      confidence: 0.95,
+      reasons: ["cloud provider wording matched"],
+      skillCategory: "cloud-devops",
+    };
+  }
+
+  if (hasLatestProjectRequest(query)) {
+    return {
+      intent: "latest_project_lookup",
+      confidence: 0.95,
+      reasons: ["latest project wording matched"],
+      requestedProjectAttribute: "overview",
+    };
+  }
+
   if (languageQueryKind === "overview") {
     return {
       intent: "language_overview",
@@ -510,12 +825,63 @@ export function detectIntent(
     };
   }
 
+  if (hasAvailabilityRequest(query)) {
+    return {
+      intent: "availability_lookup",
+      confidence: 0.94,
+      reasons: ["availability wording matched"],
+    };
+  }
+
+  if (hasCareerTargetRequest(query)) {
+    return {
+      intent: "career_target_lookup",
+      confidence: 0.94,
+      reasons: ["career target wording matched"],
+    };
+  }
+
+  if (hasCertificationRequest(query)) {
+    return {
+      intent: "certification_lookup",
+      confidence: 0.94,
+      reasons: ["certification wording matched"],
+      skillCategory,
+      certificationQueryKind: detectCertificationQueryKind(query),
+    };
+  }
+
+  if (hasProfileSummaryRequest(query)) {
+    return {
+      intent: "profile_lookup",
+      confidence: 0.92,
+      reasons: ["profile summary wording matched"],
+    };
+  }
+
+  if (hasJourneySummaryRequest(query)) {
+    return {
+      intent: "journey_summary",
+      confidence: 0.91,
+      reasons: ["journey summary wording matched"],
+    };
+  }
+
   if (
     hasAny(query, [
       "formation",
+      "etudes",
+      "études",
+      "etudies",
+      "étudies",
+      "ecole",
+      "école",
       "master",
       "diplome",
       "education",
+      "studies",
+      "studying",
+      "school",
       "obtenu",
       "academic program",
       "current academic",
@@ -575,6 +941,33 @@ export function detectIntent(
       intent: "projects_by_domain",
       confidence: 0.86,
       reasons: ["project and domain/category terms matched"],
+    };
+  }
+
+  if (
+    skillCategory &&
+    hasDomainProjectExperienceRequest(query) &&
+    ["ml-deep-learning", "nlp-llm-rag"].includes(skillCategory)
+  ) {
+    return {
+      intent: "projects_by_domain",
+      confidence: 0.9,
+      reasons: ["domain project experience wording matched"],
+      skillCategory,
+    };
+  }
+
+  if (
+    (candidateFitFocus || skillCategory) &&
+    hasRecruiterFitRequest(query) &&
+    hasRecruiterSynthesisCue(query)
+  ) {
+    return {
+      intent: "candidate_fit",
+      confidence: 0.91,
+      reasons: ["recruiter synthesis wording matched before experience entity"],
+      skillCategory,
+      candidateFitFocus: candidateFitFocus ?? "technical-strengths",
     };
   }
 
@@ -679,6 +1072,7 @@ export function detectIntent(
       intent: "technology_evidence",
       confidence: entityTypes.has("technology") ? 0.88 : 0.68,
       reasons: ["technology usage wording matched"],
+      normalizedSkillId: matchedSkillEntityId(matchedEntities),
     };
   }
 

@@ -31,11 +31,18 @@ import {
   isPortfolioAIGreeting,
 } from "@/features/portfolio-ai/generation/response-language";
 import {
+  buildEducationFastPathAnswer,
+} from "@/features/portfolio-ai/generation/education-fast-path";
+import {
   buildProjectAttributeFastPathAnswer,
 } from "@/features/portfolio-ai/generation/project-attribute-fast-path";
 import {
   buildProfileFastPathAnswer,
 } from "@/features/portfolio-ai/generation/profile-fast-path";
+import {
+  buildLatestProjectFastPathAnswer,
+  buildProjectListFastPathAnswer,
+} from "@/features/portfolio-ai/generation/project-list-fast-path";
 import {
   buildProjectTechnologyFastPathAnswer,
   buildVerifiedTechnologyFastPathAnswer,
@@ -242,15 +249,21 @@ export async function generatePortfolioAnswer(
   const ambiguousEvidenceCount = countEvidenceByStatus(input, "ambiguous");
   const projectTechnologyFastPathAnswer =
     buildProjectTechnologyFastPathAnswer(input);
+  const educationFastPathAnswer = buildEducationFastPathAnswer(input);
   const projectAttributeFastPathAnswer =
     buildProjectAttributeFastPathAnswer(input);
   const profileFastPathAnswer = buildProfileFastPathAnswer(input);
+  const projectListFastPathAnswer = buildProjectListFastPathAnswer(input);
+  const latestProjectFastPathAnswer = buildLatestProjectFastPathAnswer(input);
   const verifiedTechnologyFastPathAnswer =
     buildVerifiedTechnologyFastPathAnswer(input);
   const fastPathAnswer =
     projectTechnologyFastPathAnswer ??
+    educationFastPathAnswer ??
     projectAttributeFastPathAnswer ??
     profileFastPathAnswer ??
+    projectListFastPathAnswer ??
+    latestProjectFastPathAnswer ??
     verifiedTechnologyFastPathAnswer;
 
   if (fastPathAnswer) {
@@ -270,12 +283,28 @@ export async function generatePortfolioAnswer(
         provider: "local",
         model: projectTechnologyFastPathAnswer
           ? "deterministic-project-technology"
+          : educationFastPathAnswer
+            ? "deterministic-education"
           : projectAttributeFastPathAnswer
             ? "deterministic-project-attribute"
             : profileFastPathAnswer
               ? input.retrieval.intent.startsWith("language")
                 ? "deterministic-profile-language"
-                : "deterministic-profile-skills"
+                : input.retrieval.intent === "availability_lookup"
+                  ? "deterministic-profile-availability"
+                : input.retrieval.intent === "career_target_lookup"
+                  ? "deterministic-profile-career-target"
+                  : input.retrieval.intent === "certification_lookup"
+                    ? "deterministic-profile-certifications"
+                    : input.retrieval.intent === "journey_summary"
+                      ? "deterministic-profile-journey"
+                      : input.retrieval.intent === "profile_lookup"
+                        ? "deterministic-profile-summary"
+                        : "deterministic-profile-skills"
+              : projectListFastPathAnswer
+                ? "deterministic-project-list"
+                : latestProjectFastPathAnswer
+                  ? "deterministic-latest-project"
               : "deterministic-verified-technology",
         latencyMs: 0,
         retrievedEntityCount,

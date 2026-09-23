@@ -65,6 +65,85 @@ describe("Portfolio AI knowledge base", () => {
     assert.deepEqual(usageEvidence.evidence, []);
   });
 
+  it("stores canonical technical skills without duplicate common aliases", () => {
+    const facts = getFactsForEntity("person:soufiane-azerdaoui").filter(
+      (fact) => fact.predicate === "hasProfileSkill",
+    );
+    const skillValues = facts.map(
+      (fact) => fact.value as { name?: string; category?: string },
+    );
+    const names = new Set(skillValues.map((value) => value.name));
+    const categories = new Set(skillValues.map((value) => value.category));
+
+    [
+      "Pandas",
+      "NumPy",
+      "Kubernetes",
+      "Qdrant",
+      "Software modeling",
+      "Data Modeling",
+    ].forEach((name) => {
+      assert.equal(names.has(name), true);
+    });
+    [
+      "ml-deep-learning",
+      "nlp-llm-rag",
+      "data-engineering",
+      "data-analysis-bi",
+      "databases",
+      "programming-languages",
+      "web-api",
+      "cloud-devops",
+      "design-agile",
+    ].forEach((category) => {
+      assert.equal(categories.has(category), true);
+    });
+
+    assert.equal(findEntitiesByAlias("sklearn")[0]?.id, "tech:scikit-learn");
+    assert.equal(findEntitiesByAlias("PowerBI")[0]?.id, "tech:power-bi");
+    assert.equal(findEntitiesByAlias("K8s")[0]?.id, "tech:kubernetes");
+    assert.equal(findEntitiesByAlias("React")[0]?.id, "tech:react");
+    assert.equal(findEntitiesByAlias("Git")[0]?.id, "tech:git");
+    assert.equal(findEntitiesByAlias("Bitbucket")[0]?.id, "tech:bitbucket");
+  });
+
+  it("stores canonical certifications as verified profile facts", () => {
+    const certifications = getKnowledgeBase().entities.filter(
+      (entity) => entity.type === "certification",
+    );
+
+    assert.deepEqual(
+      certifications.map((entity) => entity.canonicalName).sort(),
+      [
+        "Data Cleaning and Preprocessing with pandas",
+        "Data Engineer in Python",
+        "Introduction to Big Data with Spark and Hadoop",
+        "Python Data Structures",
+      ].sort(),
+    );
+
+    certifications.forEach((certification) => {
+      const facts = getFactsForEntity(certification.id);
+
+      assert.equal(
+        facts.some(
+          (fact) =>
+            fact.predicate === "certificationTitle" &&
+            fact.status === "verified",
+        ),
+        true,
+      );
+      assert.equal(
+        facts.some(
+          (fact) =>
+            fact.predicate === "certificationIssuer" &&
+            fact.status === "verified",
+        ),
+        true,
+      );
+    });
+  });
+
   it("stores recruiter-facing spoken language levels", () => {
     const languageFacts = getFactsForEntity("person:soufiane-azerdaoui").filter(
       (fact) => fact.predicate === "speaksLanguage",
@@ -236,6 +315,84 @@ describe("Portfolio AI knowledge base", () => {
     assert.ok(completedIds.includes("education-esisa-ai-2024"));
     assert.ok(completedIds.includes("education-est-big-data-2023"));
     assert.ok(completedIds.includes("education-ofppt-fullstack-2021"));
+  });
+
+  it("stores canonical recruiter availability without inferring other contracts", () => {
+    const availability = getFactsForEntity("person:soufiane-azerdaoui").find(
+      (fact) => fact.predicate === "hasAvailability",
+    );
+
+    assert.equal(availability?.status, "verified");
+    assert.deepEqual(availability?.evidence, [
+      {
+        sourceType: "portfolio",
+        sourceId: "availability",
+        field: "career-availability",
+        strength: "primary",
+      },
+    ]);
+    assert.equal(
+      (
+        availability?.value as
+          | {
+              internship?: { availableFrom?: { en?: string } };
+              apprenticeship?: { status?: string };
+              fullTime?: { status?: string };
+            }
+          | undefined
+      )?.internship?.availableFrom?.en,
+      "April 2027",
+    );
+    assert.equal(
+      (
+        availability?.value as
+          | { apprenticeship?: { status?: string } }
+          | undefined
+      )?.apprenticeship?.status,
+      "not-documented",
+    );
+    assert.equal(
+      (availability?.value as { fullTime?: { status?: string } } | undefined)
+        ?.fullTime?.status,
+      "not-documented",
+    );
+  });
+
+  it("stores canonical career target roles without duplicating availability", () => {
+    const target = getFactsForEntity("person:soufiane-azerdaoui").find(
+      (fact) => fact.predicate === "hasCareerTarget",
+    );
+
+    assert.equal(target?.status, "verified");
+    assert.deepEqual(target?.evidence, [
+      {
+        sourceType: "portfolio",
+        sourceId: "career-target",
+        field: "target-roles",
+        strength: "primary",
+      },
+    ]);
+    assert.deepEqual(
+      (
+        target?.value as
+          | { opportunityType?: string; targetRoles?: readonly string[] }
+          | undefined
+      )?.targetRoles,
+      ["Data Engineer", "AI Engineer", "Data & AI Engineer"],
+    );
+    assert.equal(
+      (
+        target?.value as
+          | { opportunityType?: string; availableFrom?: string }
+          | undefined
+      )?.opportunityType,
+      "internship",
+    );
+    assert.equal(
+      "availableFrom" in
+        ((target?.value as Record<string, unknown> | undefined) ?? {}),
+      false,
+    );
   });
 
   it("does not create separate FR and EN project entities", () => {

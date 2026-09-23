@@ -33,10 +33,10 @@ test("About section uses final French copy with accurate current Master 2 status
   assert.equal(
     text,
     [
-      "Je suis Soufiane Azerdaoui, étudiant en Master 2 SIAD à l'ISIMA – Université Clermont Auvergne.",
-      "Je conçois des solutions Data & IA capables de transformer des données complexes en informations exploitables et en outils d’aide à la décision.",
-      "Je m’intéresse particulièrement à la Data Science, au Machine Learning, au Deep Learning et au NLP.",
-      "J’aime partir d’un besoin métier, comprendre les données disponibles, expérimenter différentes approches et construire une solution concrète que l’utilisateur peut réellement exploiter.",
+      "Je suis Soufiane Azerdaoui, étudiant en Master 2 SIAD à l’ISIMA – Université Clermont Auvergne, avec un parcours orienté Data Engineering et Intelligence Artificielle.",
+      "Je conçois des solutions Data & IA allant du traitement et de l’exploitation des données jusqu’au développement de systèmes de Machine Learning, Deep Learning, NLP et RAG.",
+      "Je m’intéresse particulièrement à la conception de pipelines de données, aux modèles d’apprentissage automatique et aux systèmes d’IA capables de transformer des données complexes en informations exploitables.",
+      "J’aime partir d’un besoin métier, comprendre les données disponibles, expérimenter différentes approches et construire une solution fiable, concrète et exploitable par l’utilisateur.",
     ].join("\n\n"),
   );
   assert.doesNotMatch(text, /dipl[oô]m[eé]|completed|senior|expert/i);

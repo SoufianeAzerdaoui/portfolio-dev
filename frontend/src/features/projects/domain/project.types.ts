@@ -160,6 +160,7 @@ export interface Project {
   organization?: string;
   featured: boolean;
   featuredOrder: number | null;
+  chronologyRank?: number;
   homeIconKey?: ProjectHomeIconKey;
   homeCategoryNames?: ProjectLocalizedTagSet;
   createdAt?: string;

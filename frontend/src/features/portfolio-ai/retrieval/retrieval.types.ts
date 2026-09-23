@@ -15,11 +15,17 @@ export type RetrievalIntent =
   | "technology_evidence"
   | "technology_explanation"
   | "candidate_fit"
+  | "availability_lookup"
+  | "career_target_lookup"
+  | "certification_lookup"
+  | "journey_summary"
   | "technical_skills_overview"
   | "skills_by_category"
   | "skill_lookup"
   | "language_overview"
   | "language_lookup"
+  | "programming_languages_lookup"
+  | "cloud_provider_lookup"
   | "projects_by_technology"
   | "projects_by_domain"
   | "project_technology_lookup"
@@ -27,6 +33,7 @@ export type RetrievalIntent =
   | "experience_lookup"
   | "education_lookup"
   | "project_lookup"
+  | "latest_project_lookup"
   | "skills_overview"
   | "profile_lookup"
   | "comparison"
@@ -47,14 +54,17 @@ export type ProjectAttribute =
 
 export type ProfileSkillCategory =
   | "data-engineering"
-  | "ai-nlp-genai"
-  | "databases-bi"
+  | "ml-deep-learning"
+  | "nlp-llm-rag"
+  | "data-analysis-bi"
+  | "databases"
   | "programming-languages"
   | "cloud-devops"
-  | "web-development"
-  | "design-methods";
+  | "web-api"
+  | "design-agile";
 
 export type LanguageQueryKind = "overview" | "level" | "speaks" | "native";
+export type CertificationQueryKind = "overview" | "specific";
 
 export type CandidateFitFocus =
   | "data-ai"
@@ -85,6 +95,7 @@ export type IntentDetection = {
   normalizedSkillId?: string;
   languageId?: string;
   languageQueryKind?: LanguageQueryKind;
+  certificationQueryKind?: CertificationQueryKind;
   candidateFitFocus?: CandidateFitFocus;
 };
 
@@ -140,6 +151,7 @@ export type PortfolioRetrievalResult = {
   normalizedSkillId?: string;
   languageId?: string;
   languageQueryKind?: LanguageQueryKind;
+  certificationQueryKind?: CertificationQueryKind;
   candidateFitFocus?: CandidateFitFocus;
   normalizedQuery: string;
   originalQuery: string;

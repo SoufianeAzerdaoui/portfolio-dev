@@ -221,6 +221,7 @@ export const PROJECTS = [
     role: "Co-développement en binôme",
     featured: true,
     featuredOrder: 1,
+    chronologyRank: 1,
     homeIconKey: "medical-rag",
     homeCategoryNames: {
       fr: ["RAG", "NLP", "Multimodal AI"],
@@ -371,6 +372,7 @@ export const PROJECTS = [
     organization: "Projet individuel",
     featured: true,
     featuredOrder: 2,
+    chronologyRank: 2,
     homeIconKey: "syndismart",
     homeCategoryNames: {
       fr: ["RAG", "NLP", "Generative AI"],
@@ -557,6 +559,7 @@ export const PROJECTS = [
     organization: "Projet individuel",
     featured: true,
     featuredOrder: 3,
+    chronologyRank: 6,
     homeIconKey: "call-center",
     homeCategoryNames: {
       fr: ["NLP", "Speech AI", "Sentiment Analysis"],
@@ -681,6 +684,7 @@ export const PROJECTS = [
     homeIconKey: "realtime-tracking",
     featured: false,
     featuredOrder: null,
+    chronologyRank: 9,
     publishedAt: null,
   },
   {
@@ -814,6 +818,7 @@ export const PROJECTS = [
     organization: "Projet individuel",
     featured: true,
     featuredOrder: 4,
+    chronologyRank: 3,
     homeIconKey: "recommendation",
     homeCategoryNames: {
       fr: ["Recommender Systems", "Machine Learning", "Data Engineering"],
@@ -922,6 +927,7 @@ export const PROJECTS = [
     homeIconKey: "bank-decision",
     featured: false,
     featuredOrder: null,
+    chronologyRank: 8,
     publishedAt: null,
   },
   {
@@ -1056,6 +1062,7 @@ export const PROJECTS = [
     homeIconKey: "school-analytics",
     featured: false,
     featuredOrder: null,
+    chronologyRank: 5,
     publishedAt: null,
   },
   {
@@ -1210,6 +1217,7 @@ export const PROJECTS = [
     homeIconKey: "nutrition-analysis",
     featured: false,
     featuredOrder: null,
+    chronologyRank: 7,
     publishedAt: null,
   },
   {
@@ -1330,6 +1338,7 @@ export const PROJECTS = [
     organization: "Projet individuel",
     featured: true,
     featuredOrder: 5,
+    chronologyRank: 4,
     homeIconKey: "algorithmic-trading",
     homeCategoryNames: {
       fr: ["Machine Learning", "Data Analysis", "Predictive Modeling"],
@@ -1441,6 +1450,7 @@ export const PROJECTS = [
     homeIconKey: "blood-donation",
     featured: false,
     featuredOrder: null,
+    chronologyRank: 10,
     publishedAt: null,
   },
 ] satisfies Project[];

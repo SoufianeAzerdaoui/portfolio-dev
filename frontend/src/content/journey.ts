@@ -82,7 +82,7 @@ export const journeyExperiencesByLocale = {
     startDateTime: "2026-02",
     endDateTime: "2026-06",
     experienceType: "final-year-internship",
-    role: "Stage PFE — Data & IA",
+    role: "Data & IA Engineer",
     organization: "CHU Mohammed VI",
     context: "PFE — MASTER IS2IA · ESISA",
     description:
@@ -118,7 +118,8 @@ export const journeyExperiencesByLocale = {
     period: "AVR. 2024 — JUIN 2024",
     startDateTime: "2024-04",
     endDateTime: "2024-06",
-    role: "Stage de fin d’études — Business Intelligence",
+    experienceType: "final-year-internship",
+    role: "Développeur de Business Intelligence",
     organization: "SEND SPACE",
     description:
       "Conception d’une solution décisionnelle pour le suivi et l’analyse des ventes de smartphones, de l’ETL jusqu’aux tableaux de bord Power BI.",
@@ -135,12 +136,14 @@ export const journeyExperiencesByLocale = {
   {
     id: "epg-stage-2023",
     period: "MARS 2023 — AVR. 2023",
+    experienceType: "final-year-internship",
     startDateTime: "2023-03",
     endDateTime: "2023-04",
     role: "Développement Full Stack",
     organization: "EPG",
+    context: "Projet de fin d’études — Master IS2IA · ESISA",
     description:
-      "Développement d’une page d’inscription Full Stack pour l’école EPG.",
+      "Conception et développement d’une interface d’inscription Full Stack pour l’école EPG, destinée à simplifier le processus d’inscription des étudiants, de la saisie des informations jusqu’à leur traitement et leur enregistrement .",
     technologies: ["React", "PHP", "MySQL", "UML"],
   },
   ],

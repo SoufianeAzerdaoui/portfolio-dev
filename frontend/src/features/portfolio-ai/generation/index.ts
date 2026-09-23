@@ -68,8 +68,15 @@ export {
 export { generatePortfolioAnswer } from "@/features/portfolio-ai/generation/generate-answer";
 export { validateGroundedAnswer } from "@/features/portfolio-ai/generation/validate-grounding";
 export {
+  buildEducationFastPathAnswer,
+} from "@/features/portfolio-ai/generation/education-fast-path";
+export {
   buildProjectAttributeFastPathAnswer,
 } from "@/features/portfolio-ai/generation/project-attribute-fast-path";
+export {
+  buildLatestProjectFastPathAnswer,
+  buildProjectListFastPathAnswer,
+} from "@/features/portfolio-ai/generation/project-list-fast-path";
 export {
   buildProfileFastPathAnswer,
 } from "@/features/portfolio-ai/generation/profile-fast-path";

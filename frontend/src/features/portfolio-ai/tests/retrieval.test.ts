@@ -146,7 +146,8 @@ const kubernetes = retrievePortfolioKnowledge(
   "A-t-il travaillé avec Kubernetes ?",
   { locale: "fr" },
 );
-assertNotDocumented(kubernetes);
+assert.equal(kubernetes.intent, "technology_evidence");
+assertExactEntities(kubernetes, ["person:soufiane-azerdaoui"]);
 
 const faiss = retrievePortfolioKnowledge("A-t-il utilisé FAISS ?", {
   locale: "fr",
@@ -620,7 +621,7 @@ const nlpSkills = retrievePortfolioKnowledge(
   { locale: "fr", topK: 10 },
 );
 assert.equal(nlpSkills.intent, "skills_by_category");
-assert.equal(nlpSkills.skillCategory, "ai-nlp-genai");
+assert.equal(nlpSkills.skillCategory, "nlp-llm-rag");
 assertExactEntities(nlpSkills, ["person:soufiane-azerdaoui"]);
 
 const kubernetesSkill = retrievePortfolioKnowledge("Connaît-il Kubernetes ?", {
@@ -640,6 +641,91 @@ const kubernetesExpertise = retrievePortfolioKnowledge(
 assert.equal(kubernetesExpertise.intent, "skill_lookup");
 assert.equal(kubernetesExpertise.normalizedSkillId, "tech:kubernetes");
 assertExactEntities(kubernetesExpertise, ["person:soufiane-azerdaoui"]);
+
+const profileSummary = retrievePortfolioKnowledge("Qui est Soufiane ?", {
+  locale: "fr",
+  topK: 10,
+});
+assert.equal(profileSummary.intent, "profile_lookup");
+assertIncludesEntities(profileSummary, [
+  "person:soufiane-azerdaoui",
+  "education-isima-siad-2026",
+]);
+
+const englishProfileSummary = retrievePortfolioKnowledge("Who is Soufiane?", {
+  locale: "en",
+  topK: 10,
+});
+assert.equal(englishProfileSummary.intent, "profile_lookup");
+
+const journeySummary = retrievePortfolioKnowledge(
+  "Peux-tu me présenter ton parcours en quelques lignes ?",
+  { locale: "fr", topK: 10 },
+);
+assert.equal(journeySummary.intent, "journey_summary");
+assertIncludesEntities(journeySummary, [
+  "education-isima-siad-2026",
+  "education-ofppt-fullstack-2021",
+  "pfe-business-intelligence-2024",
+  "chu-mohammed-vi-pfe-2026",
+]);
+
+const englishJourneySummary = retrievePortfolioKnowledge(
+  "Can you summarize your background?",
+  { locale: "en", topK: 10 },
+);
+assert.equal(englishJourneySummary.intent, "journey_summary");
+
+const availabilityLookup = retrievePortfolioKnowledge(
+  "Es-tu disponible pour un stage / une alternance / un CDI ?",
+  { locale: "fr", topK: 10 },
+);
+assert.equal(availabilityLookup.intent, "availability_lookup");
+assertExactEntities(availabilityLookup, ["person:soufiane-azerdaoui"]);
+assert.equal(
+  groupFor(availabilityLookup, "person:soufiane-azerdaoui")?.facts.some(
+    (fact) => fact.predicate === "hasAvailability",
+  ),
+  true,
+);
+
+const englishAvailability = retrievePortfolioKnowledge(
+  "Are you available for an internship?",
+  { locale: "en", topK: 10 },
+);
+assert.equal(englishAvailability.intent, "availability_lookup");
+
+const careerTarget = retrievePortfolioKnowledge(
+  "Quel type de poste recherches-tu ?",
+  { locale: "fr", topK: 10 },
+);
+assert.equal(careerTarget.intent, "career_target_lookup");
+assertExactEntities(careerTarget, ["person:soufiane-azerdaoui"]);
+assert.equal(
+  groupFor(careerTarget, "person:soufiane-azerdaoui")?.facts.some(
+    (fact) => fact.predicate === "hasCareerTarget",
+  ),
+  true,
+);
+
+const englishCareerTarget = retrievePortfolioKnowledge(
+  "What roles are you targeting?",
+  { locale: "en", topK: 10 },
+);
+assert.equal(englishCareerTarget.intent, "career_target_lookup");
+
+const mainSkills = retrievePortfolioKnowledge(
+  "Quelles sont tes compétences principales ?",
+  { locale: "fr", topK: 10 },
+);
+assert.equal(mainSkills.intent, "technical_skills_overview");
+assertExactEntities(mainSkills, ["person:soufiane-azerdaoui"]);
+
+const englishMainSkills = retrievePortfolioKnowledge("What are your main skills?", {
+  locale: "en",
+  topK: 10,
+});
+assert.equal(englishMainSkills.intent, "technical_skills_overview");
 
 const languageOverview = retrievePortfolioKnowledge(
   "Quelles langues parle-t-il ?",
@@ -796,13 +882,12 @@ assert.equal(typo.results.length, 0);
 const generic = retrievePortfolioKnowledge("AI", { locale: "fr" });
 assert.ok(generic.results.length <= 3);
 
-[
-  "Kubernetes",
-  "Travaille-t-il chez Google ?",
-  "A-t-il une certification AWS ?",
-].forEach((query) => {
+["Travaille-t-il chez Google ?", "A-t-il une certification AWS ?"].forEach((query) => {
   assertNotDocumented(retrievePortfolioKnowledge(query, { locale: "fr" }));
 });
+
+const bareKubernetes = retrievePortfolioKnowledge("Kubernetes", { locale: "fr" });
+assertExactEntities(bareKubernetes, ["person:soufiane-azerdaoui"]);
 
 const firstRun = retrievePortfolioKnowledge("A-t-il utilisé FastAPI ?", {
   locale: "fr",
