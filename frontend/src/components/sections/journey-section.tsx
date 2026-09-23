@@ -37,7 +37,7 @@ export function JourneySection({
           </h2>
         </header>
 
-        <ol className="mt-12 border-b border-[var(--border-muted)] lg:mt-14">
+        <ol className="mt-12 border-b border-[var(--border-muted)] lg:mt-16">
           {experiences.map((experience, index) => {
             const experienceType = experience.experienceType
               ? typeLabels[experience.experienceType]
@@ -48,14 +48,14 @@ export function JourneySection({
             return (
               <li
                 key={experience.id}
-                className="journey-experience-row editorial-interactive-row group -mx-4 grid cursor-default gap-4 px-4 py-8 motion-safe:animate-[journey-rise_420ms_cubic-bezier(0.22,1,0.36,1)_both] md:grid-cols-[9rem_minmax(0,1fr)] md:gap-8 lg:-mx-5 lg:grid-cols-[11rem_minmax(0,1fr)] lg:px-5 lg:py-9"
+                className="journey-experience-row editorial-interactive-row group -mx-4 grid cursor-default gap-5 px-4 py-9 motion-safe:animate-[journey-rise_420ms_cubic-bezier(0.22,1,0.36,1)_both] sm:py-10 md:grid-cols-[9.5rem_minmax(0,1fr)] md:gap-9 lg:-mx-5 lg:grid-cols-[11rem_minmax(0,1fr)] lg:px-5 lg:py-11"
                 style={{ animationDelay: `${90 + index * 70}ms` }}
               >
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1 md:block">
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                     <time
                       dateTime={experience.startDateTime}
-                      className="journey-experience-date text-[0.72rem] font-medium uppercase tracking-[0.065em] text-[var(--foreground-subtle)] transition-colors duration-200 motion-reduce:transition-none"
+                      className="journey-experience-date text-[0.7rem] font-medium uppercase tracking-[0.07em] text-[var(--foreground-subtle)] opacity-85 transition-colors duration-200 motion-reduce:transition-none"
                     >
                       {experience.period}
                     </time>
@@ -67,7 +67,7 @@ export function JourneySection({
                         >
                           ·
                         </span>
-                        <span className="journey-experience-type whitespace-nowrap text-[0.66rem] font-semibold uppercase tracking-[0.08em] text-[var(--accent-muted)] transition-colors duration-200 motion-reduce:transition-none">
+                        <span className="journey-experience-type whitespace-nowrap text-[0.65rem] font-semibold uppercase tracking-[0.085em] text-[var(--accent-muted)] opacity-85 transition-colors duration-200 motion-reduce:transition-none">
                           {experienceType}
                         </span>
                       </>
@@ -81,38 +81,38 @@ export function JourneySection({
                   ) : null}
                 </div>
 
-                <article className="editorial-interactive-content max-w-[44rem]">
-                  <h3 className="journey-experience-title text-[clamp(1.08rem,1.55vw,1.28rem)] font-semibold leading-snug tracking-[-0.035em] text-[var(--foreground)] transition-colors duration-200 motion-reduce:transition-none">
+                <article className="editorial-interactive-content max-w-[46rem]">
+                  <h3 className="journey-experience-title text-[clamp(1.14rem,1.45vw,1.36rem)] font-semibold leading-[1.28] tracking-normal text-[var(--foreground)] transition-colors duration-200 motion-reduce:transition-none">
                     {experience.role}
                     {experience.organization ? (
                       <>
-                        <span className="mx-2 text-[var(--foreground-subtle)] opacity-80">·</span>
-                        <span className="journey-experience-company font-medium text-[var(--foreground-secondary)] transition-colors duration-200 motion-reduce:transition-none">
+                        <span className="mx-2 text-[var(--foreground-subtle)] opacity-60">·</span>
+                        <span className="journey-experience-company font-semibold text-[var(--foreground-secondary)] transition-colors duration-200 motion-reduce:transition-none">
                           {experience.organization}
                         </span>
                       </>
                     ) : null}
                   </h3>
 
-                <p className="journey-experience-description mt-3 max-w-[42rem] text-[0.95rem] leading-[1.65] text-[var(--foreground-muted)] transition-colors duration-200 motion-reduce:transition-none">
+                <p className="journey-experience-description mt-3.5 max-w-[44rem] text-[clamp(1rem,1.02vw,1.06rem)] leading-[1.78] text-[var(--foreground-secondary)] transition-colors duration-200 motion-reduce:transition-none">
                   {experience.description}
                 </p>
 
                 {experience.context ? (
-                  <p className="journey-experience-context mt-2 text-[0.75rem] font-medium uppercase tracking-[0.08em] text-[var(--foreground-subtle)] transition-colors duration-200 motion-reduce:transition-none">
+                  <p className="journey-experience-context mt-3 text-[0.73rem] font-medium uppercase tracking-[0.085em] text-[var(--foreground-subtle)] transition-colors duration-200 motion-reduce:transition-none">
                     {experience.context}
                   </p>
                 ) : null}
 
                 {technologies?.length ? (
                   <ul
-                    className="mt-4 flex flex-wrap gap-2"
+                    className="mt-5 flex flex-wrap gap-2"
                     aria-label={labels.technologies}
                   >
                     {technologies.map((technology) => (
                       <li
                         key={technology}
-                        className="journey-experience-tech rounded-[6px] border border-[rgb(var(--accent-rgb)/0.075)] bg-[rgb(var(--accent-rgb)/0.032)] px-2 py-0.5 text-[0.72rem] font-[450] leading-5 tracking-[0.01em] text-[var(--accent-muted)] transition-[background-color,border-color,color] duration-200 ease-out motion-reduce:transition-none"
+                        className="journey-experience-tech rounded-[6px] border border-[rgb(var(--accent-rgb)/0.075)] bg-[rgb(var(--accent-rgb)/0.03)] px-2 py-0.5 text-[0.71rem] font-[450] leading-5 tracking-normal text-[var(--accent-muted)] transition-[background-color,border-color,color] duration-200 ease-out motion-reduce:transition-none"
                       >
                         {technology}
                       </li>
@@ -142,6 +142,15 @@ export function JourneySection({
             );
           })}
         </ol>
+
+        <a
+          href="/assets/AZERDAOUI_CV.pdf"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="journey-experience-link group/link mt-9 inline-flex items-center border-b border-[rgb(var(--accent-rgb)/0.34)] pb-1.5 text-[0.86rem] font-semibold tracking-[0.025em] text-[var(--accent-strong)] transition-[border-color,color] duration-200 ease-out hover:border-[rgb(var(--accent-rgb)/0.78)] hover:text-[var(--foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--focus-ring-offset)] motion-reduce:transition-none"
+        >
+          {labels.fullCvLink}
+        </a>
       </div>
     </section>
   );

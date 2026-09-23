@@ -753,7 +753,7 @@ html[data-motion="reduce"] .pointer-ambient-glow {
 
 .journey-experience-row:focus-within .journey-experience-description,
 .journey-experience-row:focus-within .journey-experience-context {
-  color: #a7a5af;
+  color: var(--foreground-secondary);
 }
 
 .journey-experience-row:focus-within .journey-experience-tech {
@@ -790,7 +790,7 @@ html[data-motion="reduce"] .pointer-ambient-glow {
 
   .journey-experience-row:hover .journey-experience-description,
   .journey-experience-row:hover .journey-experience-context {
-    color: #a7a5af;
+    color: var(--foreground-secondary);
   }
 
   .journey-experience-row:hover .journey-experience-tech {

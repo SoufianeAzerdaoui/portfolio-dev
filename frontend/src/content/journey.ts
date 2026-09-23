@@ -42,6 +42,7 @@ export type JourneySectionLabels = {
   technologies: string;
   currentExperience: string;
   externalProjectSuffix: string;
+  fullCvLink: string;
 };
 
 export type JourneyContent = {
@@ -251,6 +252,7 @@ export const journeyContentByLocale = {
       technologies: "Compétences utilisées",
       currentExperience: "Expérience en cours",
       externalProjectSuffix: "ouvre un nouvel onglet",
+      fullCvLink: "Voir le CV complet ↗",
     },
   },
   en: {
@@ -261,6 +263,7 @@ export const journeyContentByLocale = {
       technologies: "Technologies used",
       currentExperience: "Current experience",
       externalProjectSuffix: "opens in a new tab",
+      fullCvLink: "View Full CV ↗",
     },
   },
 } satisfies Record<LocaleCode, JourneyContent>;
