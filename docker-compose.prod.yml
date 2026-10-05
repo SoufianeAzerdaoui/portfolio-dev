@@ -1,0 +1,37 @@
+name: portfolio
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_SITE_URL: https://${DOMAIN:?Set DOMAIN in .env.production}
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_SITE_URL: https://${DOMAIN:?Set DOMAIN in .env.production}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      PORTFOLIO_AI_MODEL: ${PORTFOLIO_AI_MODEL:-gemini-3.6-flash}
+      PORTFOLIO_AI_PROVIDER_TIMEOUT_MS: ${PORTFOLIO_AI_PROVIDER_TIMEOUT_MS:-25000}
+      FREELLMAPI_ENABLED: ${FREELLMAPI_ENABLED:-false}
+      FREELLMAPI_BASE_URL: ${FREELLMAPI_BASE_URL:-http://host.docker.internal:3001/v1}
+      FREELLMAPI_API_KEY: ${FREELLMAPI_API_KEY:-}
+      FREELLMAPI_MODEL: ${FREELLMAPI_MODEL:-auto:fast}
+      PORTFOLIO_AI_FALLBACK_TIMEOUT_MS: ${PORTFOLIO_AI_FALLBACK_TIMEOUT_MS:-10000}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "127.0.0.1:${PORTFOLIO_PORT:-3100}:3000"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--quiet",
+          "--tries=1",
+          "--spider",
+          "http://127.0.0.1:3000/",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
