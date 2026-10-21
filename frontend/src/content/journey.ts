@@ -53,6 +53,20 @@ export type JourneyContent = {
 
 export const journeyExperiencesByLocale = {
   fr: [
+    {
+    id: "chu-mohammed-vi-pfe-2026",
+    period: "FÉVR. 2026 — JUIN 2026",
+    startDateTime: "2026-02",
+    endDateTime: "2026-06",
+    experienceType: "final-year-internship",
+    role: "Data & IA Engineer",
+    organization: "CHU Mohammed VI",
+    context: "PFE — MASTER IS2IA · ESISA",
+    description:
+      "Conception d’une plateforme RAG multimodale pour l’exploitation de rapports médicaux : extraction, structuration, indexation vectorielle, recherche sémantique et génération de réponses contextualisées.",
+    technologies: [],
+    displayTechnologies: ["Python", "FastAPI", "Qdrant", "Llama", "Next.js"],
+  },
   {
     id: "atline-alternance-2025",
     period: "OCT. 2025 — JUIL. 2026",
@@ -77,20 +91,7 @@ export const journeyExperiencesByLocale = {
     },
     isCurrent: false,
   },
-  {
-    id: "chu-mohammed-vi-pfe-2026",
-    period: "FÉVR. 2026 — JUIN 2026",
-    startDateTime: "2026-02",
-    endDateTime: "2026-06",
-    experienceType: "final-year-internship",
-    role: "Data & IA Engineer",
-    organization: "CHU Mohammed VI",
-    context: "PFE — MASTER IS2IA · ESISA",
-    description:
-      "Conception d’une plateforme RAG multimodale pour l’exploitation de rapports médicaux : extraction, structuration, indexation vectorielle, recherche sémantique et génération de réponses contextualisées.",
-    technologies: [],
-    displayTechnologies: ["Python", "FastAPI", "Qdrant", "Llama", "Next.js"],
-  },
+  
   {
     id: "atline-stage-2025",
     period: "JUIN 2025 — SEPT. 2025",
